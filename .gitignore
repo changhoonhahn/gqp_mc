@@ -1,0 +1,22 @@
+# python
+*.pyc
+__pycache__
+.ipynb_checkpoints*
+
+# tex
+*.aux
+*.blg
+*.log
+*.out
+
+# other 
+*.png
+*.p
+*.dat
+*.o
+*.key
+
+build
+dist
+figs
+*.egg*

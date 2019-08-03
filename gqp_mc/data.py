@@ -73,8 +73,68 @@ def Spectra(sim='lgal', noise='none', lib='bc03', sample='spectral_challenge'):
     return specs, meta 
 
 
-def Photometry(sim='lgal'): 
-    pass
+def Photometry(sim='lgal', lib='bc03', sample='spectral_challenge'): 
+    ''' read forward modeled photometry generated for simulations
+
+    parameters
+    ----------
+    sim : str 
+        (default: 'lgal')
+        name of simulation. currently only supports LGal SAM sim. 
+    lib : str 
+        (default: 'bc03') 
+        stellar library used to generate the spectra 
+    sample : str
+        (default: 'spectral_challenge') 
+        specify sample from the simulations. default is spectral_challenge, which
+        are 100 randomly selected galaxies. 
+    
+    returns
+    -------
+    photo : dict 
+        contains all the photometric data. mainly fluxes in maggies
+    meta : array 
+        dictionary of meta data 
+    '''
+    if sim != 'lgal': raise NotImplementedError 
+    if lib == 'bc03': 
+        str_lib = 'BC03_Stelib'
+    else: 
+        raise NotImplementedError
+
+    str_sample = ''
+    if sample != '': 
+        str_sample = '.%s' % sample
+
+    # read in meta data 
+    meta = pickle.load(open(os.path.join(UT.lgal_dir(), "lgal.meta%s.p" % str_sample), 'rb')) 
+    
+    photo = {} 
+    # read in photometry without dust 
+    phot_nodust = np.loadtxt(os.path.join(UT.lgal_dir(), 
+        'lgal.mag.BC03_Stelib.nodust.legacy_noise%s.dat' % str_sample), skiprows=1)
+    for icol, band in enumerate(['g', 'r', 'z', 'w1', 'w2', 'w3', 'w4']): 
+        photo['flux_nodust_%s' % band] = phot_nodust[icol+1,:]
+        photo['ivar_nodust_%s' % band] = phot_nodust[icol+8,:]
+
+    phot_dust = np.loadtxt(os.path.join(UT.lgal_dir(), 
+        'lgal.mag.BC03_Stelib.dust.legacy_noise%s.dat' % str_sample), skiprows=1) 
+    for icol, band in enumerate(['g', 'r', 'z', 'w1', 'w2', 'w3', 'w4']): 
+        photo['flux_dust_%s' % band] = phot_dust[icol+1,:]
+        photo['ivar_dust_%s' % band] = phot_dust[icol+8,:]
+    return photo, meta
+
+
+def _make_Lgal_Photometry(): 
+    '''
+    '''
+    # gather all galids 
+    galids = [] 
+    dir_inputs = os.path.join(UT.lgal_dir(), 'gal_inputs')
+    for finput in glob.glob(dir_inputs+'/*'): 
+        galids.append(int(os.path.basename(finput).split('_')[2]))
+    n_id = len(galids) 
+    return None 
 
 
 def _make_Lgal_Spectra(): 
@@ -238,13 +298,14 @@ def _make_Lgal_Spectra_SpectralChallenge():
     '''
     '''
     # gather all galids 
-    galids = [] 
+    _galids = [] 
     dir_inputs = os.path.join(UT.lgal_dir(), 'gal_inputs')
     finputs = np.loadtxt(os.path.join(UT.lgal_dir(), 'galids.spectral_challenge.txt'), skiprows=1, unpack=True, dtype='S')  
     for finput in finputs: 
-        galids.append(int(os.path.basename(str(finput)).split('_')[2]))
+        _galids.append(int(os.path.basename(str(finput)).split('_')[2]))
+    galids = np.unique(_galids) 
     n_id = len(galids) 
-    print('%i spectra in the spectral challenge' % n_id) 
+    print('%i unique galaxies in the spectral challenge' % n_id) 
 
     # compile input meta data 
     tlookback, dt = [], [] 
@@ -393,13 +454,3 @@ def _make_Lgal_Spectra_SpectralChallenge():
     return None 
 
 
-def _make_Lgal_Photometry(): 
-    '''
-    '''
-    # gather all galids 
-    galids = [] 
-    dir_inputs = os.path.join(UT.lgal_dir(), 'gal_inputs')
-    for finput in glob.glob(dir_inputs+'/*'): 
-        galids.append(int(os.path.basename(finput).split('_')[2]))
-    n_id = len(galids) 
-    return None 

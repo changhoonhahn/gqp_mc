@@ -7,7 +7,7 @@ setup(name = 'gqp_mc',
       version = __version__,
       python_requires='>3.5.2',
       description = 'GQP mock challenge',
-      requires = ['numpy', 'matplotlib', 'scipy'],
+      requires = ['numpy', 'matplotlib', 'scipy', 'astropy'],
       provides = ['gqp_mc'],
       packages = ['gqp_mc']
       )

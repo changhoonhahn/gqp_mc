@@ -114,13 +114,13 @@ def Photometry(sim='lgal', lib='bc03', sample='spectral_challenge'):
     photo = {} 
     # read in photometry without dust 
     phot_nodust = np.loadtxt(os.path.join(UT.lgal_dir(), sample, 
-        'lgal.mag.BC03_Stelib.nodust.legacy_noise%s.dat' % str_sample), skiprows=1)
+        'lgal.photo.BC03_Stelib.nodust.legacy_noise%s.dat' % str_sample), skiprows=1)
     for icol, band in enumerate(['g', 'r', 'z', 'w1', 'w2', 'w3', 'w4']): 
         photo['flux_nodust_%s' % band] = phot_nodust[:,icol+1]
         photo['ivar_nodust_%s' % band] = phot_nodust[:,icol+8]
 
     phot_dust = np.loadtxt(os.path.join(UT.lgal_dir(), sample,
-        'lgal.mag.BC03_Stelib.dust.legacy_noise%s.dat' % str_sample), skiprows=1) 
+        'lgal.photo.BC03_Stelib.dust.legacy_noise%s.dat' % str_sample), skiprows=1) 
     for icol, band in enumerate(['g', 'r', 'z', 'w1', 'w2', 'w3', 'w4']): 
         photo['flux_dust_%s' % band] = phot_dust[:,icol+1]
         photo['ivar_dust_%s' % band] = phot_dust[:,icol+8]

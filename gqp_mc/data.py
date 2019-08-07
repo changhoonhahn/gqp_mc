@@ -57,14 +57,14 @@ def Spectra(sim='lgal', noise='none', lib='bc03', sample='spectral_challenge'):
         str_sample = '.%s' % sample
 
     # read in meta data 
-    meta = pickle.load(open(os.path.join(UT.lgal_dir(), "lgal.meta%s.p" % str_sample), 'rb')) 
+    meta = pickle.load(open(os.path.join(UT.lgal_dir(), str_sample, "lgal.meta%s.p" % str_sample), 'rb')) 
     
     if noise == 'none': # noiseless source spectra
-        f = h5py.File(os.path.join(UT.lgal_dir(), 
+        f = h5py.File(os.path.join(UT.lgal_dir(), str_sample, 
             'lgal.spectra.%s.nonoise%s.hdf5' % (str_lib, str_sample)), 'r') 
     elif 'bgs' in noise: 
         iobs = int(noise.strip('bgs')) 
-        f = h5py.File(os.path.join(UT.lgal_dir(), 
+        f = h5py.File(os.path.join(UT.lgal_dir(), str_sample, 
             'lgal.spectra.%s.BGSnoise.obs%i%s.hdf5' % (str_lib, iobs, str_sample)), 'r') 
 
     specs = {} 
@@ -107,17 +107,17 @@ def Photometry(sim='lgal', lib='bc03', sample='spectral_challenge'):
         str_sample = '.%s' % sample
 
     # read in meta data 
-    meta = pickle.load(open(os.path.join(UT.lgal_dir(), "lgal.meta%s.p" % str_sample), 'rb')) 
+    meta = pickle.load(open(os.path.join(UT.lgal_dir(), str_sample, "lgal.meta%s.p" % str_sample), 'rb')) 
     
     photo = {} 
     # read in photometry without dust 
-    phot_nodust = np.loadtxt(os.path.join(UT.lgal_dir(), 
+    phot_nodust = np.loadtxt(os.path.join(UT.lgal_dir(), str_sample, 
         'lgal.mag.BC03_Stelib.nodust.legacy_noise%s.dat' % str_sample), skiprows=1)
     for icol, band in enumerate(['g', 'r', 'z', 'w1', 'w2', 'w3', 'w4']): 
         photo['flux_nodust_%s' % band] = phot_nodust[icol+1,:]
         photo['ivar_nodust_%s' % band] = phot_nodust[icol+8,:]
 
-    phot_dust = np.loadtxt(os.path.join(UT.lgal_dir(), 
+    phot_dust = np.loadtxt(os.path.join(UT.lgal_dir(), str_sample,
         'lgal.mag.BC03_Stelib.dust.legacy_noise%s.dat' % str_sample), skiprows=1) 
     for icol, band in enumerate(['g', 'r', 'z', 'w1', 'w2', 'w3', 'w4']): 
         photo['flux_dust_%s' % band] = phot_dust[icol+1,:]
@@ -300,7 +300,8 @@ def _make_Lgal_Spectra_SpectralChallenge():
     # gather all galids 
     _galids = [] 
     dir_inputs = os.path.join(UT.lgal_dir(), 'gal_inputs')
-    finputs = np.loadtxt(os.path.join(UT.lgal_dir(), 'galids.spectral_challenge.txt'), skiprows=1, unpack=True, dtype='S')  
+    finputs = np.loadtxt(os.path.join(UT.lgal_dir(), 'spectral_challenge', 
+        'galids.spectral_challenge.txt'), skiprows=1, unpack=True, dtype='S')  
     for finput in finputs: 
         _galids.append(int(os.path.basename(str(finput)).split('_')[2]))
     galids = np.unique(_galids) 
@@ -364,7 +365,8 @@ def _make_Lgal_Spectra_SpectralChallenge():
         flux_dust[i,:] = specin['flux_dust_nonoise'] * 1e-4 * 1e7 *1e17 #from W/A/m2 to 10e-17 erg/s/cm2/A
         flux_nodust[i,:] = specin['flux_nodust_nonoise'] * 1e-4 * 1e7 *1e17 #from W/A/m2 to 10e-17 erg/s/cm2/A
 
-    f = h5py.File(os.path.join(UT.lgal_dir(), 'lgal.spectra.%s.nonoise.spectral_challenge.hdf5' % str_lib), 'w') 
+    f = h5py.File(os.path.join(UT.lgal_dir(), 'spectral_challenge', 
+        'lgal.spectra.%s.nonoise.spectral_challenge.hdf5' % str_lib), 'w') 
     f.create_dataset('wavelength', data=wave) 
     f.create_dataset('flux_dust', data=flux_dust) 
     f.create_dataset('flux_nodust', data=flux_nodust) 
@@ -375,7 +377,7 @@ def _make_Lgal_Spectra_SpectralChallenge():
     meta['tau_bc']      = tau_bc
     meta['vd_disk']     = vd_disk 
     meta['vd_bulge']    = vd_bulge
-    pickle.dump(meta, open(os.path.join(UT.lgal_dir(), "lgal.meta.spectral_challenge.p"), 'wb')) 
+    pickle.dump(meta, open(os.path.join(UT.lgal_dir(), 'spectral_challenge', 'lgal.meta.spectral_challenge.p'), 'wb')) 
 
     # compile DESI BGS-like spectra (this will be updated!) 
     dir_bgs = '/Users/ChangHoon/data/FOMOspec/spectral_challenge/bgs/'
@@ -430,7 +432,7 @@ def _make_Lgal_Spectra_SpectralChallenge():
             ivar_dust_r[i,:] = bgs_dust['ivar_r']
             ivar_dust_z[i,:] = bgs_dust['ivar_z']
 
-        f = h5py.File(os.path.join(UT.lgal_dir(), 
+        f = h5py.File(os.path.join(UT.lgal_dir(), 'spectral_challenge', 
             'lgal.spectra.%s.BGSnoise.obs%i.spectral_challenge.hdf5' % (str_lib, iobs)), 'w') 
         f.create_dataset('wave_b', data=wave_b) 
         f.create_dataset('wave_r', data=wave_r) 
@@ -452,5 +454,3 @@ def _make_Lgal_Spectra_SpectralChallenge():
         f.create_dataset('ivar_dust_z', data=ivar_dust_z) 
         f.close() 
     return None 
-
-

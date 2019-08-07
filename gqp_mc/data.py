@@ -57,15 +57,17 @@ def Spectra(sim='lgal', noise='none', lib='bc03', sample='spectral_challenge'):
         str_sample = '.%s' % sample
 
     # read in meta data 
-    meta = pickle.load(open(os.path.join(UT.lgal_dir(), str_sample, "lgal.meta%s.p" % str_sample), 'rb')) 
+    meta = pickle.load(open(os.path.join(UT.lgal_dir(), sample, "lgal.meta%s.p" % str_sample), 'rb')) 
     
     if noise == 'none': # noiseless source spectra
-        f = h5py.File(os.path.join(UT.lgal_dir(), str_sample, 
+        f = h5py.File(os.path.join(UT.lgal_dir(), sample, 
             'lgal.spectra.%s.nonoise%s.hdf5' % (str_lib, str_sample)), 'r') 
     elif 'bgs' in noise: 
         iobs = int(noise.strip('bgs')) 
-        f = h5py.File(os.path.join(UT.lgal_dir(), str_sample, 
+        f = h5py.File(os.path.join(UT.lgal_dir(), sample, 
             'lgal.spectra.%s.BGSnoise.obs%i%s.hdf5' % (str_lib, iobs, str_sample)), 'r') 
+    else: 
+        raise NotImplementedError('%s noise not implemented' % noise) 
 
     specs = {} 
     for k in f.keys(): 
@@ -107,21 +109,21 @@ def Photometry(sim='lgal', lib='bc03', sample='spectral_challenge'):
         str_sample = '.%s' % sample
 
     # read in meta data 
-    meta = pickle.load(open(os.path.join(UT.lgal_dir(), str_sample, "lgal.meta%s.p" % str_sample), 'rb')) 
+    meta = pickle.load(open(os.path.join(UT.lgal_dir(), sample, "lgal.meta%s.p" % str_sample), 'rb')) 
     
     photo = {} 
     # read in photometry without dust 
-    phot_nodust = np.loadtxt(os.path.join(UT.lgal_dir(), str_sample, 
+    phot_nodust = np.loadtxt(os.path.join(UT.lgal_dir(), sample, 
         'lgal.mag.BC03_Stelib.nodust.legacy_noise%s.dat' % str_sample), skiprows=1)
     for icol, band in enumerate(['g', 'r', 'z', 'w1', 'w2', 'w3', 'w4']): 
-        photo['flux_nodust_%s' % band] = phot_nodust[icol+1,:]
-        photo['ivar_nodust_%s' % band] = phot_nodust[icol+8,:]
+        photo['flux_nodust_%s' % band] = phot_nodust[:,icol+1]
+        photo['ivar_nodust_%s' % band] = phot_nodust[:,icol+8]
 
-    phot_dust = np.loadtxt(os.path.join(UT.lgal_dir(), str_sample,
+    phot_dust = np.loadtxt(os.path.join(UT.lgal_dir(), sample,
         'lgal.mag.BC03_Stelib.dust.legacy_noise%s.dat' % str_sample), skiprows=1) 
     for icol, band in enumerate(['g', 'r', 'z', 'w1', 'w2', 'w3', 'w4']): 
-        photo['flux_dust_%s' % band] = phot_dust[icol+1,:]
-        photo['ivar_dust_%s' % band] = phot_dust[icol+8,:]
+        photo['flux_dust_%s' % band] = phot_dust[:,icol+1]
+        photo['ivar_dust_%s' % band] = phot_dust[:,icol+8]
     return photo, meta
 
 

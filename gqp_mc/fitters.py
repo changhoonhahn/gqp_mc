@@ -1,3 +1,4 @@
+import h5py 
 import fsps
 import numpy as np 
 # --- astropy --- 
@@ -147,11 +148,11 @@ class iFSPS(Fitter):
 
         w, spec = self.model(tt_arr, zred=zred) # get spectra  
     
-        nmaggies = filters.get_ab_maggies(spec * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom, wavelength=w.flatten()*U.Angstrom) # nanomaggies 
-        return np.array(list(nmaggies[0]))
+        maggies = filters.get_ab_maggies(spec * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom, wavelength=w.flatten()*U.Angstrom) # maggies 
+        return np.array(list(maggies[0])) * 1e9
 
     def MCMC_spec(self, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, 
-            nwalkers=100, burnin=100, niter=1000, threads=1, writeout=None, silent=True): 
+            nwalkers=100, burnin=100, niter=1000, writeout=None, silent=True): 
         ''' infer the posterior distribution of the free parameters given observed
         wavelength, spectra flux, and inverse variance using MCMC. The function 
         outputs a dictionary with the median theta of the posterior as well as the 
@@ -182,9 +183,6 @@ class iFSPS(Fitter):
         :param nwalkers: (optional) 
             int specifying the number of iterations. (default: 1000) 
         
-        :param threads: (optional) 
-            int specifying the number of threads. Not sure if this works or not... (default: 1) 
-
         :param writeout: (optional) 
             string specifying the output file. If specified, everything in the output dictionary 
             is written out as well as the entire MCMC chain. (default: None) 
@@ -211,7 +209,7 @@ class iFSPS(Fitter):
         ndim = len(self.priors) 
     
         # check mask 
-        _mask = self._check_mask(mask, wave_obs, flux_ivar_obs) 
+        _mask = self._check_mask(mask, wave_obs, flux_ivar_obs, zred) 
 
         # posterior function args and kwargs
         lnpost_args = (wave_obs, 
@@ -225,7 +223,7 @@ class iFSPS(Fitter):
 
         # run emcee and get MCMC chains 
         chain = self._emcee(self._lnPost, lnpost_args, lnpost_kwargs, 
-                nwalkers=nwalkers, burnin=burnin, niter=niter, threads=threads, silent=silent)
+                nwalkers=nwalkers, burnin=burnin, niter=niter, silent=silent)
         # get quanitles of the posterior
         lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
     
@@ -240,20 +238,22 @@ class iFSPS(Fitter):
         w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs)
         output['wavelength_model'] = w_model
         output['flux_model'] = flux_model 
+       
         output['wavelength_data'] = wave_obs
         output['flux_data'] = flux_obs
         output['flux_ivar_data'] = flux_ivar_obs
+        
+        output['mcmc_chain'] = chain 
 
         if writeout is not None: 
             fh5  = h5py.File(writeout, 'w') 
             for k in output.keys(): 
                 fh5.create_dataset(k, data=output[k]) 
-            fh5.create_dataset('mcmc_chain', data=chain) 
             fh5.close() 
         return output  
     
     def MCMC_photo(self, photo_obs, photo_ivar_obs, zred, bands='desi', 
-            nwalkers=100, burnin=100, niter=1000, threads=1, writeout=None, silent=True): 
+            nwalkers=100, burnin=100, niter=1000, writeout=None, silent=True): 
         ''' infer the posterior distribution of the free parameters given observed
         photometric flux, and inverse variance using MCMC. The function 
         outputs a dictionary with the median theta of the posterior as well as the 
@@ -283,9 +283,6 @@ class iFSPS(Fitter):
         :param nwalkers: (optional) 
             int specifying the number of iterations. (default: 1000) 
         
-        :param threads: (optional) 
-            int specifying the number of threads. Not sure if this works or not... (default: 1) 
-
         :param writeout: (optional) 
             string specifying the output file. If specified, everything in the output dictionary 
             is written out as well as the entire MCMC chain. (default: None) 
@@ -326,7 +323,7 @@ class iFSPS(Fitter):
     
         # run emcee and get MCMC chains 
         chain = self._emcee(self._lnPost_photo, lnpost_args, lnpost_kwargs, 
-                nwalkers=nwalkers, burnin=burnin, niter=niter, threads=threads, silent=silent)
+                nwalkers=nwalkers, burnin=burnin, niter=niter, silent=silent)
         # get quanitles of the posterior
         lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
     
@@ -343,15 +340,16 @@ class iFSPS(Fitter):
         output['flux_data'] = photo_obs
         output['flux_ivar_data'] = photo_ivar_obs
 
+        output['mcmc_chain'] = chain 
+
         if writeout is not None: 
             fh5  = h5py.File(writeout, 'w') 
             for k in output.keys(): 
                 fh5.create_dataset(k, data=output[k]) 
-            fh5.create_dataset('mcmc_chain', data=chain) 
             fh5.close() 
         return output  
     
-    def _emcee(self, lnpost_fn, lnpost_args, lnpost_kwargs, nwalkers=100, burnin=100, niter=1000, threads=1, silent=True): 
+    def _emcee(self, lnpost_fn, lnpost_args, lnpost_kwargs, nwalkers=100, burnin=100, niter=1000, silent=True): 
         ''' Runs MCMC (using emcee) for a given log posterior function.
         '''
         import scipy.optimize as op
@@ -375,7 +373,7 @@ class iFSPS(Fitter):
     
         # initial sampler 
         self.sampler = emcee.EnsembleSampler(nwalkers, ndim, lnpost_fn, 
-                args=lnpost_args, kwargs=lnpost_kwargs, threads=threads)
+                args=lnpost_args, kwargs=lnpost_kwargs)
         # initial walker positions 
         p0 = [tt0 + 1.e-4 * dprior * np.random.randn(ndim) for i in range(nwalkers)]
 
@@ -470,6 +468,7 @@ class iFSPS(Fitter):
         dflux = (flux - flux_obs) 
         # calculate chi-squared
         _chi2 = np.sum(dflux**2 * flux_ivar_obs) 
+        #print(flux, _chi2) 
         return _chi2
 
     def _lnPrior(self, tt_arr, shape='flat'): 
@@ -559,7 +558,7 @@ class iFSPS(Fitter):
             raise NotImplementedError
         return theta
 
-    def _check_mask(self, mask, wave_obs, flux_ivar_obs): 
+    def _check_mask(self, mask, wave_obs, flux_ivar_obs, zred): 
         ''' check that mask is sensible and mask out any parts of the 
         spectra where the ivar doesn't make sense. 
         '''
@@ -592,7 +591,7 @@ class iFSPS(Fitter):
         '''
         if isinstance(bands, str): 
             if bands == 'desi': 
-                bands_list = ['decam2014-g', 'decam2014-r', 'decam2014-z', 'wise2010-W1', 'wise2010-W2', 'wise2010-W3', 'wise2010-W4']
+                bands_list = ['decam2014-g', 'decam2014-r', 'decam2014-z', 'wise2010-W1', 'wise2010-W2']#, 'wise2010-W3', 'wise2010-W4']
             else: 
                 raise NotImplementedError("specified bands not implemented") 
         elif isinstance(bands, list): 

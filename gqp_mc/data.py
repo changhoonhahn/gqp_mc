@@ -75,21 +75,21 @@ def Spectra(sim='lgal', noise='none', lib='bc03', sample='spectral_challenge'):
     return specs, meta 
 
 
-def Photometry(sim='lgal', lib='bc03', sample='spectral_challenge'): 
+def Photometry(sim='lgal', noise='none', lib='bc03', sample='spectral_challenge'): 
     ''' read forward modeled photometry generated for simulations
 
-    parameters
-    ----------
-    sim : str 
-        (default: 'lgal')
-        name of simulation. currently only supports LGal SAM sim. 
-    lib : str 
-        (default: 'bc03') 
-        stellar library used to generate the spectra 
-    sample : str
-        (default: 'spectral_challenge') 
+    :param sim: 
+        name of simulation. currently only supports LGal SAM sim. (default: 'lgal')
+
+    :param noise: 
+        specify the noise of the photometry. Options are 'none' or 'legacy'. (default: none) 
+    
+    :param lib:
+        stellar library used to generate the spectra. lib == 'bc03' only supported. (default: 'bc03') 
+
+    :param sample:         
         specify sample from the simulations. default is spectral_challenge, which
-        are 100 randomly selected galaxies. 
+        are 100 randomly selected galaxies. (default: 'spectral_challenge') 
     
     returns
     -------
@@ -98,7 +98,16 @@ def Photometry(sim='lgal', lib='bc03', sample='spectral_challenge'):
     meta : array 
         dictionary of meta data 
     '''
-    if sim != 'lgal': raise NotImplementedError 
+    if sim != 'lgal': 
+        raise NotImplementedError 
+    
+    if noise == 'none'
+        str_noise = 'nonoise'
+    elif noise == 'legacy': 
+        str_noise = 'legacy_noise'
+    else: 
+        raise NotImplementedError
+
     if lib == 'bc03': 
         str_lib = 'BC03_Stelib'
     else: 
@@ -114,13 +123,13 @@ def Photometry(sim='lgal', lib='bc03', sample='spectral_challenge'):
     photo = {} 
     # read in photometry without dust 
     phot_nodust = np.loadtxt(os.path.join(UT.lgal_dir(), sample, 
-        'lgal.photo.BC03_Stelib.nodust.legacy_noise%s.dat' % str_sample), skiprows=1)
+        'lgal.photo.BC03_Stelib.nodust.%s%s.dat' % (str_noise, str_sample)), skiprows=1)
     for icol, band in enumerate(['g', 'r', 'z', 'w1', 'w2', 'w3', 'w4']): 
         photo['flux_nodust_%s' % band] = phot_nodust[:,icol+1]
         photo['ivar_nodust_%s' % band] = phot_nodust[:,icol+8]
 
     phot_dust = np.loadtxt(os.path.join(UT.lgal_dir(), sample,
-        'lgal.photo.BC03_Stelib.dust.legacy_noise%s.dat' % str_sample), skiprows=1) 
+        'lgal.photo.BC03_Stelib.dust.%s%s.dat' % (str_noise, str_sample)), skiprows=1) 
     for icol, band in enumerate(['g', 'r', 'z', 'w1', 'w2', 'w3', 'w4']): 
         photo['flux_dust_%s' % band] = phot_dust[:,icol+1]
         photo['ivar_dust_%s' % band] = phot_dust[:,icol+8]
@@ -167,7 +176,7 @@ def _make_Lgal_Spectra():
         # formed mass  
         logM_disk.append(np.log10(np.sum(gal_input['sfh_disk'])))
         logM_bulge.append(np.log10(np.sum(gal_input['sfh_bulge'])))
-        logM_total.append(np.log10(np.sum(gal_input['sfh_disk'])) + np.log10(np.sum(gal_input['sfh_bulge'])))
+        logM_total.append(np.log10(np.sum(gal_input['sfh_disk']) + np.sum(gal_input['sfh_bulge'])))
     meta = {} 
     meta['t_lookback']  = tlookback
     meta['sfh_disk']    = sfh_disk
@@ -176,7 +185,7 @@ def _make_Lgal_Spectra():
     meta['Z_bulge']     = Z_bulge
     meta['logM_disk']   = logM_disk
     meta['logM_bulge']  = logM_bulge
-    meta['logM_total']  = data=logM_total
+    meta['logM_total']  = logM_total
     
     # compile noiseless source spectra
     str_lib = 'BC03_Stelib'
@@ -313,6 +322,7 @@ def _make_Lgal_Spectra_SpectralChallenge():
     # compile input meta data 
     tlookback, dt = [], [] 
     sfh_disk, sfh_bulge, Z_disk, Z_bulge, logM_disk, logM_bulge, logM_total = [], [], [], [], [], [], []
+    t_age_MW, Z_MW = [], [] 
     for i, galid in enumerate(galids): 
         f_input = os.path.join(dir_inputs, 'gal_input_%i_BGS_template_FSPS_uvmiles.csv' % galid) 
         gal_input = Table.read(f_input, delimiter=' ')
@@ -328,7 +338,11 @@ def _make_Lgal_Spectra_SpectralChallenge():
         # formed mass  
         logM_disk.append(np.log10(np.sum(gal_input['sfh_disk'])))
         logM_bulge.append(np.log10(np.sum(gal_input['sfh_bulge'])))
-        logM_total.append(np.log10(np.sum(gal_input['sfh_disk'])) + np.log10(np.sum(gal_input['sfh_bulge'])))
+        logM_total.append(np.log10(np.sum(gal_input['sfh_disk']) + np.sum(gal_input['sfh_bulge'])))
+        # mass weighted
+        t_age_MW.append(np.sum(gal_input['sfh_t'] * (gal_input['sfh_disk'] + gal_input['sfh_bulge'])) / np.sum(gal_input['sfh_disk'] + gal_input['sfh_bulge']))
+        Z_MW.append(np.sum(gal_input['Z_disk'] * gal_input['sfh_disk'] + gal_input['Z_bulge'] * gal_input['sfh_bulge']) / np.sum(gal_input['sfh_disk'] + gal_input['sfh_bulge']))
+
     meta = {} 
     meta['galid']       = np.array(galids) 
     meta['t_lookback']  = tlookback
@@ -338,8 +352,10 @@ def _make_Lgal_Spectra_SpectralChallenge():
     meta['Z_bulge']     = Z_bulge
     meta['logM_disk']   = logM_disk
     meta['logM_bulge']  = logM_bulge
-    meta['logM_total']  = data=logM_total
-    
+    meta['logM_total']  = logM_total
+    meta['t_age_MW']    = t_age_MW
+    meta['Z_MW']        = Z_MW
+
     # compile noiseless source spectra
     str_lib = 'BC03_Stelib'
     # file name of noiseless source spectra

@@ -100,7 +100,7 @@ def nonoise_photometry():
         print('log M* = %f' % bestfit['theta_med'][0])
         print('log Z = %f' % bestfit['theta_med'][1]) 
         print('---------------') 
-        fig = DFM.corner(bestfit['mcmc_chain'], range=ifsps.priors, quantiles=[0.68], 
+        fig = DFM.corner(bestfit['mcmc_chain'], range=ifsps.priors, quantiles=[0.16, 0.5, 0.84], 
                 truths=[meta['logM_total'][igal], np.log10(meta['Z_MW'][igal]), meta['t_age_MW'][igal], None], 
                 labels=['$\log M_*$', '$\log Z$', r'$t_{\rm age}$', r'$\tau$'], label_kwargs={'fontsize': 20}) 
         fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 

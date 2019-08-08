@@ -3,6 +3,8 @@ import numpy as np
 # --- astropy --- 
 from astropy import units as U
 from astropy.cosmology import Planck13 as cosmo
+# --- speclite ---
+from speclite import filters as specFilter
 # --- gqp_mc --- 
 from . import util as UT
 
@@ -17,8 +19,14 @@ class iFSPS(Fitter):
     version of prospector 
     
     Usage:: 
+    
+    for fitting spectra 
         >>> ifsps = iFSPS(model_name='vanilla')
         >>> bestfit = ifsps.MCMC_spec(wave_obs, flux_obs, flux_ivar_obs, zred, writeout='output_file', silent=False) 
+
+    for fitting photometry 
+        >>> ifsps = iFSPS(model_name='vanilla')
+        >>> bestfit = ifsps.MCMC_photo(flux_obs, flux_ivar_obs, zred, writeout='output_file', silent=False) 
 
     :param model_name: (optional) 
         name of the model to use. This specifies the free parameters. For model_name == 'vanilla', 
@@ -37,7 +45,7 @@ class iFSPS(Fitter):
         self.ssp = self._ssp_initiate() # initial ssp
         self._set_prior(prior) # set prior 
 
-    def model(self, tt_arr, zred=0.0, wavelength=None): 
+    def model(self, tt_arr, zred=0.1, wavelength=None): 
         ''' very simple wrapper for a fsps model with minimal overhead. Generates a
         spectra given the free parameters. This will be called by the inference method. 
 
@@ -45,7 +53,7 @@ class iFSPS(Fitter):
         ----------
         tt_arr : array 
             array of free parameters
-        zred : float,array (default: 0.0) 
+        zred : float,array (default: 0.1) 
             The output wavelength and spectra are redshifted.
         wavelength : (default: None)  
             If specified, the model will interpolate the spectra to the specified 
@@ -54,9 +62,9 @@ class iFSPS(Fitter):
         returns
         -------
         outwave : array
-            output wavelength 
+            output wavelength (angstroms) 
         outspec : array 
-            spectra generated from FSPS model(theta) 
+            spectra generated from FSPS model(theta) in units of 1e-17 * erg/s/cm^2/Angstrom
         '''
         zred    = np.atleast_1d(zred)
         theta   = self._theta(tt_arr) 
@@ -109,7 +117,39 @@ class iFSPS(Fitter):
                 outspec[i,:] = np.interp(outwave[i,:], _w, _f, left=0, right=0)
 
         return outwave, outspec 
+   
+    def model_photo(self, tt_arr, zred=0.1, filters=None, bands=None): 
+        ''' very simple wrapper for a fsps model with minimal overhead. Generates photometry 
+        in specified photometric bands 
+
+        :param tt_arr:
+            array of free parameters
+
+        :param zred:
+            redshift (default: 0.1) 
+
+        :param filters:             
+            speclite.filters filter object. Either filters or bands has to be specified. (default: None) 
+
+        :param bands: (optional) 
+            photometric bands to generate the photometry. Either bands or filters has to be 
+            specified. (default: None)  
+
+        :return outphoto:
+            array of photometric fluxes in nanomaggies in the specified bands 
+        '''
+        if filters is None: 
+            if bands is not None: 
+                bands_list = self._get_bands(bands) # get list of bands 
+                filters = specFilter.load_filters(*tuple(bands_list))
+            else: 
+                raise ValueError("specify either filters or bands") 
+
+        w, spec = self.model(tt_arr, zred=zred) # get spectra  
     
+        nmaggies = filters.get_ab_maggies(spec * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom, wavelength=w.flatten()*U.Angstrom) # nanomaggies 
+        return np.array(list(nmaggies[0]))
+
     def MCMC_spec(self, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, 
             nwalkers=100, burnin=100, niter=1000, threads=1, writeout=None, silent=True): 
         ''' infer the posterior distribution of the free parameters given observed
@@ -172,7 +212,6 @@ class iFSPS(Fitter):
     
         # check mask 
         _mask = self._check_mask(mask, wave_obs, flux_ivar_obs) 
-        print(_mask)
 
         # posterior function args and kwargs
         lnpost_args = (wave_obs, 
@@ -184,32 +223,10 @@ class iFSPS(Fitter):
                 'prior_shape': 'flat'   # shape of prior (hardcoded) 
                 }
 
-        # get initial theta by minimization 
-        if not silent: print('getting initial theta') 
-        dprior = np.array(self.priors)[:,1] - np.array(self.priors)[:,0]  
-        _lnpost = lambda *args: -2. * self._lnPost(*args, **lnpost_kwargs) 
-        min_result = op.minimize(
-                _lnpost, 
-                np.average(np.array(self.priors), axis=1), # guess the middle of the prior 
-                args=lnpost_args, 
-                method='BFGS', 
-                options={'eps': 0.01 * dprior, 'maxiter': 100})
-        tt0 = min_result['x'] 
-        if not silent: print('initial theta = [%s]' % ', '.join([str(_t) for _t in tt0])) 
-    
-        # initial sampler 
-        self.sampler = emcee.EnsembleSampler(nwalkers, ndim, self._lnPost, args=lnpost_args, kwargs=lnpost_kwargs, threads=threads)
-        # initial walker positions 
-        p0 = [tt0 + 1.e-4 * dprior * np.random.randn(ndim) for i in range(nwalkers)]
-        # burn in 
-        if not silent: print('running burn-in') 
-        pos, prob, state = self.sampler.run_mcmc(p0, burnin)
-        self.sampler.reset()
-        # run mcmc 
-        if not silent: print('running main chain') 
-        self.sampler.run_mcmc(pos, niter)
-
-        chain = self.sampler.flatchain
+        # run emcee and get MCMC chains 
+        chain = self._emcee(self._lnPost, lnpost_args, lnpost_kwargs, 
+                nwalkers=nwalkers, burnin=burnin, niter=niter, threads=threads, silent=silent)
+        # get quanitles of the posterior
         lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
     
         output = {} 
@@ -234,6 +251,144 @@ class iFSPS(Fitter):
             fh5.create_dataset('mcmc_chain', data=chain) 
             fh5.close() 
         return output  
+    
+    def MCMC_photo(self, photo_obs, photo_ivar_obs, zred, bands='desi', 
+            nwalkers=100, burnin=100, niter=1000, threads=1, writeout=None, silent=True): 
+        ''' infer the posterior distribution of the free parameters given observed
+        photometric flux, and inverse variance using MCMC. The function 
+        outputs a dictionary with the median theta of the posterior as well as the 
+        1sigma and 2sigma errors on the parameters (see below).
+        
+        :param photo_obs: 
+            array of the observed photometric flux __in units of nanomaggies__
+
+        :param photo_ivar_obs: 
+            array of the observed photometric flux **inverse variance**. Not uncertainty!
+
+        :param zred: 
+            float specifying the redshift of the observations  
+
+        :param bands: 
+            specify the photometric bands. Some pre-programmed bands available. e.g. 
+            if bands == 'desi' then 
+            bands_list = ['decam2014-g', 'decam2014-r', 'decam2014-z','wise2010-W1', 'wise2010-W2', 'wise2010-W3', 'wise2010-W4']. 
+            (default: 'desi') 
+
+        :param nwalkers: (optional) 
+            number of walkers. (default: 100) 
+        
+        :param burnin: (optional) 
+            int specifying the burnin. (default: 100) 
+        
+        :param nwalkers: (optional) 
+            int specifying the number of iterations. (default: 1000) 
+        
+        :param threads: (optional) 
+            int specifying the number of threads. Not sure if this works or not... (default: 1) 
+
+        :param writeout: (optional) 
+            string specifying the output file. If specified, everything in the output dictionary 
+            is written out as well as the entire MCMC chain. (default: None) 
+
+        :param silent: (optional) 
+            If False, a bunch of messages will be shown 
+
+        :return output: 
+            dictionary that with keys: 
+            - output['redshift'] : redshift 
+            - output['theta_med'] : parameter value of the median posterior
+            - output['theta_1sig_plus'] : 1sigma above median 
+            - output['theta_2sig_plus'] : 2sigma above median 
+            - output['theta_1sig_minus'] : 1sigma below median 
+            - output['theta_2sig_minus'] : 2sigma below median 
+            - output['wavelength_model'] : wavelength of best-fit model 
+            - output['flux_model'] : flux of best-fit model 
+            - output['wavelength_data'] : wavelength of observations 
+            - output['flux_data'] : flux of observations 
+            - output['flux_ivar_data'] = inverse variance of the observed flux. 
+        '''
+        # get photometric bands  
+        bands_list = self._get_bands(bands)
+        assert len(bands_list) == len(photo_obs) 
+        # get filters
+        filters = specFilter.load_filters(*tuple(bands_list))
+
+        # posterior function args and kwargs
+        lnpost_args = (
+                photo_obs,               # nanomaggies
+                photo_ivar_obs,         # 1/nanomaggies^2
+                zred
+                ) 
+        lnpost_kwargs = {
+                'filters': filters,
+                'prior_shape': 'flat'   # shape of prior (hardcoded) 
+                }
+    
+        # run emcee and get MCMC chains 
+        chain = self._emcee(self._lnPost_photo, lnpost_args, lnpost_kwargs, 
+                nwalkers=nwalkers, burnin=burnin, niter=niter, threads=threads, silent=silent)
+        # get quanitles of the posterior
+        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
+    
+        output = {} 
+        output['redshift'] = zred
+        output['theta_med'] = med 
+        output['theta_1sig_plus'] = high
+        output['theta_2sig_plus'] = highhigh
+        output['theta_1sig_minus'] = low
+        output['theta_2sig_minus'] = lowlow
+    
+        flux_model = self.model_photo(med, zred=zred, filters=filters)
+        output['flux_model'] = flux_model 
+        output['flux_data'] = photo_obs
+        output['flux_ivar_data'] = photo_ivar_obs
+
+        if writeout is not None: 
+            fh5  = h5py.File(writeout, 'w') 
+            for k in output.keys(): 
+                fh5.create_dataset(k, data=output[k]) 
+            fh5.create_dataset('mcmc_chain', data=chain) 
+            fh5.close() 
+        return output  
+    
+    def _emcee(self, lnpost_fn, lnpost_args, lnpost_kwargs, nwalkers=100, burnin=100, niter=1000, threads=1, silent=True): 
+        ''' Runs MCMC (using emcee) for a given log posterior function.
+        '''
+        import scipy.optimize as op
+        import emcee
+        ndim = len(self.priors) 
+
+        # get initial theta by minimization 
+        if not silent: print('getting initial theta') 
+        dprior = np.array(self.priors)[:,1] - np.array(self.priors)[:,0]  
+
+        _lnpost = lambda *args: -2. * lnpost_fn(*args, **lnpost_kwargs) 
+
+        min_result = op.minimize(
+                _lnpost, 
+                np.average(np.array(self.priors), axis=1), # guess the middle of the prior 
+                args=lnpost_args, 
+                method='BFGS', 
+                options={'eps': 0.01 * dprior, 'maxiter': 100})
+        tt0 = min_result['x'] 
+        if not silent: print('initial theta = [%s]' % ', '.join([str(_t) for _t in tt0])) 
+    
+        # initial sampler 
+        self.sampler = emcee.EnsembleSampler(nwalkers, ndim, lnpost_fn, 
+                args=lnpost_args, kwargs=lnpost_kwargs, threads=threads)
+        # initial walker positions 
+        p0 = [tt0 + 1.e-4 * dprior * np.random.randn(ndim) for i in range(nwalkers)]
+
+        # burn in 
+        if not silent: print('running burn-in') 
+        pos, prob, state = self.sampler.run_mcmc(p0, burnin)
+        self.sampler.reset()
+
+        # run mcmc 
+        if not silent: print('running main chain') 
+        self.sampler.run_mcmc(pos, niter)
+        
+        return  self.sampler.flatchain
 
     def _lnPost(self, tt_arr, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, prior_shape='flat'): 
         ''' calculate the log posterior 
@@ -274,6 +429,47 @@ class iFSPS(Fitter):
         dflux = (flux[:,~mask] - flux_obs[~mask]) 
         # calculate chi-squared
         _chi2 = np.sum(dflux**2 * flux_ivar_obs[~mask]) 
+        return _chi2
+    
+    def _lnPost_photo(self, tt_arr, flux_obs, flux_ivar_obs, zred, filters=None, bands=None, prior_shape='flat'): 
+        ''' calculate the log posterior for photometry
+
+        :param tt_arr: 
+            array of free parameters
+
+        :param flux_obs: 
+            flux of the observed photometry maggies  
+
+        :param flux_ivar_obs :
+            inverse variance of of the observed spectra
+
+        :param zred:
+            redshift of the 'observations'
+
+        :param filters: 
+            speclite.filters filter object. Either filters or bands has to be specified. (default: None) 
+
+        :param bands: 
+            photometric bands to generate the photometry. Either bands or filters has to be 
+            specified. (default: None)  
+
+        :param prior_shape: (optional) 
+            shape of the prior. (default: 'flat') 
+        '''
+        lp = self._lnPrior(tt_arr, shape=prior_shape) # log prior
+        if not np.isfinite(lp): 
+            return -np.inf
+        return lp - 0.5 * self._Chi2_photo(tt_arr, flux_obs, flux_ivar_obs, zred, filters=filters, bands=bands)
+
+    def _Chi2_photo(self, tt_arr, flux_obs, flux_ivar_obs, zred, filters=None, bands=None): 
+        ''' calculated the chi-squared between the data and model photometry
+        '''
+        # model(theta) 
+        flux = self.model_photo(tt_arr, zred=zred, filters=filters, bands=bands) 
+        # data - model(theta) with masking 
+        dflux = (flux - flux_obs) 
+        # calculate chi-squared
+        _chi2 = np.sum(dflux**2 * flux_ivar_obs) 
         return _chi2
 
     def _lnPrior(self, tt_arr, shape='flat'): 
@@ -388,6 +584,19 @@ class iFSPS(Fitter):
             raise ValueError("mask = None, 'emline', or boolean array") 
 
         zero_err = np.isfinite(flux_ivar_obs)
-        print('zero_err', zero_err) 
         _mask = _mask | zero_err 
         return _mask 
+
+    def _get_bands(self, bands): 
+        ''' given bands
+        '''
+        if isinstance(bands, str): 
+            if bands == 'desi': 
+                bands_list = ['decam2014-g', 'decam2014-r', 'decam2014-z', 'wise2010-W1', 'wise2010-W2', 'wise2010-W3', 'wise2010-W4']
+            else: 
+                raise NotImplementedError("specified bands not implemented") 
+        elif isinstance(bands, list): 
+            bands_list = bands
+        else: 
+            raise NotImplementedError("specified bands not implemented") 
+        return bands_list 

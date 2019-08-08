@@ -13,8 +13,16 @@ def test_iFSPS(name, theta):
 
     ifsps = Fitters.iFSPS(model_name=name)
 
-    w, spec = ifsps.model(theta, zred=0.) 
+    w, spec = ifsps.model(theta, zred=0.1) 
     assert len(w) == len(spec) 
 
-    output = ifsps.MCMC_spec(w.flatten(), spec.flatten(), np.ones(w.shape[1]), 0., nwalkers=10, burnin=10, niter=10, silent=False) 
+    output = ifsps.MCMC_spec(w.flatten(), spec.flatten(), np.ones(w.shape[1]), 0.1, nwalkers=10, burnin=10, niter=10, silent=False)
+    assert 'theta_med' in output.keys() 
+
+    photo = ifsps.model_photo(theta, zred=0.1, bands='desi') 
+    print(photo) 
+    print(type(photo)) 
+    assert len(photo) == 7 # 7 bands 
+
+    output = ifsps.MCMC_photo(photo, np.ones(len(photo)), 0.1, bands='desi', nwalkers=10, burnin=10, niter=10, silent=False) 
     assert 'theta_med' in output.keys() 

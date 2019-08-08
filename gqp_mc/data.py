@@ -101,7 +101,7 @@ def Photometry(sim='lgal', noise='none', lib='bc03', sample='spectral_challenge'
     if sim != 'lgal': 
         raise NotImplementedError 
     
-    if noise == 'none'
+    if noise == 'none':
         str_noise = 'nonoise'
     elif noise == 'legacy': 
         str_noise = 'legacy_noise'

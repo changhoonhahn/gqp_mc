@@ -1,7 +1,6 @@
 __all__ = ['test_spectra', 'test_photometry'] 
 
 import pytest
-from itertools import product
 # --- gqp_mc --- 
 from gqp_mc import data as Data
 
@@ -22,8 +21,9 @@ def test_spectra(noise, sim='lgal', lib='bc03', sample='spectral_challenge'):
     assert n_meta == n_spec
     
 
-def test_photometry(sim='lgal', lib='bc03', sample='spectral_challenge'): 
-    photo, meta = Data.Photometry(sim=sim, lib=lib, sample=sample) 
+@pytest.mark.parametrize("noise", ('none', 'bgs1', 'bgs2'))
+def test_photometry(noise, sim='lgal', lib='bc03', sample='spectral_challenge'): 
+    photo, meta = Data.Photometry(sim=sim, noise=noise, lib=lib, sample=sample) 
 
     n_meta = len(meta['galid'])
     assert n_meta == len(meta['redshift']) 

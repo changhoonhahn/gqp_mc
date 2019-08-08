@@ -21,7 +21,7 @@ def test_spectra(noise, sim='lgal', lib='bc03', sample='spectral_challenge'):
     assert n_meta == n_spec
     
 
-@pytest.mark.parametrize("noise", ('none', 'bgs1', 'bgs2'))
+@pytest.mark.parametrize("noise", ('none', 'legacy'))
 def test_photometry(noise, sim='lgal', lib='bc03', sample='spectral_challenge'): 
     photo, meta = Data.Photometry(sim=sim, noise=noise, lib=lib, sample=sample) 
 

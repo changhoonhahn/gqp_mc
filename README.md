@@ -1,13 +1,15 @@
-# GQP Mock Challenge 
+#GQP Mock Challenge 
 ----
 Python package for the GQP mock challenge. Currently includes functions
 that make it easy to read in forward modeled Lgal spectra and photometry. 
 
-[Installiation](#install)
-[To-do](#todo)
+[Installiation](#-installing)
+
+[To-do](#-to-do)
 
 -----
-## Installing `gqp_mc` on NERSC {#install} 
+## Installing
+###on NERSC
 Below is one way to setup the package on nersc. 
 
 First, define `$GQPMC_DIR` environment in your `~/.bashrc.ext`---
@@ -58,5 +60,5 @@ pytest
 ```
 
 -----
-## To-do {#todo}
+## To-do 
 * `speclite` package is currently used for photometry, but this should be phased out for the filters in fsps.

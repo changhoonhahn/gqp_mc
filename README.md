@@ -7,6 +7,7 @@ that make it easy to read in forward modeled Lgal spectra and photometry.
 ## Table of Conents 
 [Installiation](#installation)<br>
 [To do](#to-do)<br>
+[Installing FSPS](#installing-fsps)<br> 
 
 ## Installation
 
@@ -35,8 +36,7 @@ cd $GQPMC_DIR
 ln -s /global/projecta/projectdirs/desi/mocks/LGal_spectra/ Lgal
 ```
 
-You need to install FSPS if you want to use the iFSPS fitter. 
-See [https://github.com/cconroy20/fsps](https://github.com/cconroy20/fsps)
+You need to install FSPS if you want to use the iFSPS fitter ([https://github.com/cconroy20/fsps](https://github.com/cconroy20/fsps)). See below for some notes on installing FSPS on NERSC
 
 With the data all set up, we can now install the package: 
 ```bash 
@@ -71,3 +71,27 @@ pytest
 
 * add read-in for no-noise photometry in 'gqp_mc.data.Photometry'
 * `speclite` package is currently used for photometry, but this should be phased out for the filters in fsps.
+
+## Installing FSPS 
+To compile FSPS using ifor modify the `src/Makefile` and comment out 
+> F90 = gfortran
+
+and uncomment
+
+> F90 = ifort 
+
+Also, under "Compiler Optimizations" comment out 
+
+> F90FLAGS = -O -cpp 
+
+and add  
+
+> F90FLAGS = -O3 -cpp -fPIC
+
+Alternatively, use
+
+> module swap PrgEnv-intel PrgEnv-gnu
+
+and add
+
+> F90FLAGS = -O -cpp -fPIC

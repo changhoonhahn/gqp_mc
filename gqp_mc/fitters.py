@@ -213,8 +213,8 @@ class iFSPS(Fitter):
 
         # posterior function args and kwargs
         lnpost_args = (wave_obs, 
-                flux_obs * 1e17,        # 10^-17 ergs/s/cm^2/Ang
-                flux_ivar_obs * 1e-34,   # 1/(10^-17 ergs/s/cm^2/Ang)^2
+                flux_obs,        # 10^-17 ergs/s/cm^2/Ang
+                flux_ivar_obs,   # 1/(10^-17 ergs/s/cm^2/Ang)^2
                 zred) 
         lnpost_kwargs = {
                 'mask': _mask,           # emission line mask 
@@ -582,7 +582,7 @@ class iFSPS(Fitter):
         else: 
             raise ValueError("mask = None, 'emline', or boolean array") 
 
-        zero_err = np.isfinite(flux_ivar_obs)
+        zero_err = ~np.isfinite(flux_ivar_obs)
         _mask = _mask | zero_err 
         return _mask 
 

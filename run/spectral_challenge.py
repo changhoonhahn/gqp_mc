@@ -28,38 +28,38 @@ mpl.rcParams['ytick.major.width'] = 1.5
 mpl.rcParams['legend.frameon'] = False
 
 
-def nonoise_spectra(): 
+def nonoise_spectra(igal): 
     # read noiseless Lgal spectra of the spectral_challenge mocks 
     specs, meta = Data.Spectra(sim='lgal', noise='none', lib='bc03', sample='spectral_challenge') 
     
     ifsps = Fitters.iFSPS(model_name='dustless_vanilla', prior=None) 
-
-    for igal in [0]: 
-        print('--- input ---') 
-        print('z = %f' % meta['redshift'][igal])
-        print('log M* total = %f' % meta['logM_total'][igal])
-        print('M* disk = %f' % np.sum(meta['sfh_disk'][igal]))
-        print('M* bulge = %f' % np.sum(meta['sfh_bulge'][igal]))
     
-        f_bf = os.path.join(UT.lgal_dir(), 'spectral_challenge', 'ifsps', 'spec.nonoise.nodust.dustless_vanilla.%i.hdf5' % igal)
-        bestfit = ifsps.MCMC_spec(
-                specs['wavelength'][igal], 
-                specs['flux_nodust'][igal], 
-                np.ones(len(specs['flux_nodust'][igal])), 
-                meta['redshift'][igal], 
-                mask='emline', 
-                nwalkers=10, 
-                burnin=100, 
-                niter=1000, 
-                threads=1,
-                writeout=f_bf,
-                silent=False)
-        print('--- bestfit ---') 
-        print('log M* = %f' % bestfit['theta_med'][0])
-        print('log Z = %f' % bestfit['theta_med'][1]) 
-        print('---------------') 
-        fig = DFM.corner(bestfit['mcmc_chain'], range=ifsps.prior) 
-        fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
+    print('--- input ---') 
+    print('z = %f' % meta['redshift'][igal])
+    print('log M* total = %f' % meta['logM_total'][igal])
+    print('MW Z = %f' % meta['Z_MW'][igal]) 
+    print('MW tage = %f' % meta['t_age_MW'][igal]) 
+
+    f_bf = os.path.join(UT.lgal_dir(), 'spectral_challenge', 'ifsps', 'spec.nonoise.nodust.dustless_vanilla.%i.hdf5' % igal)
+    bestfit = ifsps.MCMC_spec(
+            specs['wavelength'][igal], 
+            specs['flux_nodust'][igal], 
+            np.ones(len(specs['flux_nodust'][igal])), 
+            meta['redshift'][igal], 
+            mask='emline', 
+            nwalkers=10, 
+            burnin=100, 
+            niter=1000, 
+            writeout=f_bf,
+            silent=False)
+    print('--- bestfit ---') 
+    print('log M* = %f' % bestfit['theta_med'][0])
+    print('log Z = %f' % bestfit['theta_med'][1]) 
+    print('---------------') 
+    fig = DFM.corner(bestfit['mcmc_chain'], range=ifsps.priors, quantiles=[0.16, 0.5, 0.84], 
+            truths=[meta['logM_total'][igal], np.log10(meta['Z_MW'][igal]), meta['t_age_MW'][igal], None], 
+            labels=['$\log M_*$', '$\log Z$', r'$t_{\rm age}$', r'$\tau$'], label_kwargs={'fontsize': 20}) 
+    fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
     return None 
 
 
@@ -114,5 +114,4 @@ if __name__=="__main__":
     if spec_or_photo == 'photo': 
         nonoise_photometry(igal)
     else: 
-        raise NotImplementedError
-        #nonoise_spectra()
+        nonoise_spectra(igal)

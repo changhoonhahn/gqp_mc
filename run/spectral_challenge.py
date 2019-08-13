@@ -16,6 +16,7 @@ from gqp_mc import fitters as Fitters
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 mpl.rcParams['text.usetex'] = True
+mpl.rcParams['text.latex.unicode']=True
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['axes.linewidth'] = 1.5
 mpl.rcParams['axes.xmargin'] = 1
@@ -86,6 +87,7 @@ def nonoise_photometry(igal):
 
     f_bf = os.path.join(UT.lgal_dir(), 'spectral_challenge', 'ifsps', 
             'photo.nonoise.nodust.dustless_vanilla.%i.WRONG.hdf5' % igal)
+    print('--- writing to %s ---' % f_bf)
     bestfit = ifsps.MCMC_photo(
             photo_i, 
             np.ones(len(photo_i)), 

@@ -14,6 +14,8 @@ module load python
 source activate gqp
 source ~/.bashrc.ext 
 
+export HDF5_USE_FILE_LOCKING=FALSE
+
 srun -n 1 -c 1 python /global/homes/c/chahah/projects/gqp_mc/run/spectral_challenge.py 'photo' 0
 
 now=$(date +"%T")

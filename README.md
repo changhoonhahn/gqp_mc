@@ -2,10 +2,13 @@
 
 Python package for the GQP mock challenge. Currently includes functions
 that make it easy to read in forward modeled Lgal spectra and photometry. 
+Please feel free to add in implementations of your favorite spectral or
+photometry fitter and submit a pull request! 
 
 
 ## Table of Conents 
 [Installiation](#installation)<br>
+[Fitting Spectra/Photometry](#fitting-spectra-or-photometry)<br> 
 [To do](#to-do)<br>
 [Installing FSPS](#installing-fsps)<br> 
 
@@ -66,6 +69,12 @@ python setup.py install --user
 # test the package
 pytest 
 ```
+
+## Fitting Spectra or Photometry
+
+One of the main goals of the mock challenge is to fit spectra and photometry of 
+the mock challenge galaxies. For examples on reading in the mock challenge data
+and fitting them see `run/spectral_challenge.py`. 
 
 ## To do 
 

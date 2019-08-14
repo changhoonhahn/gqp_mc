@@ -72,6 +72,15 @@ def Spectra(sim='lgal', noise='none', lib='bc03', sample='spectral_challenge'):
     specs = {} 
     for k in f.keys(): 
         specs[k] = f[k][...]
+
+    if 'bgs' in noise: # concatenate the different bands for convenience 
+        specs['wavelength'] = np.tile(np.concatenate([specs['wave_b'], specs['wave_r'], specs['wave_z']]), 
+                (specs['flux_nodust_b'].shape[0],1))
+        specs['flux_nodust'] = np.concatenate([specs['flux_nodust_b'], specs['flux_nodust_r'], specs['flux_nodust_z']], axis=1) 
+        specs['flux_dust'] = np.concatenate([specs['flux_dust_b'], specs['flux_dust_r'], specs['flux_dust_z']], axis=1) 
+        specs['ivar_nodust'] = np.concatenate([specs['ivar_nodust_b'], specs['ivar_nodust_r'], specs['ivar_nodust_z']], axis=1) 
+        specs['ivar_dust'] = np.concatenate([specs['ivar_dust_b'], specs['ivar_dust_r'], specs['ivar_dust_z']], axis=1) 
+
     return specs, meta 
 
 

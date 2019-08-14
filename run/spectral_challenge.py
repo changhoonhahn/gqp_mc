@@ -59,11 +59,14 @@ def nonoise_spectra(igal):
     print('log M* = %f' % bestfit['theta_med'][0])
     print('log Z = %f' % bestfit['theta_med'][1]) 
     print('---------------') 
-    if os.environ['NERSC_HOST'] == 'cori': return None 
-    fig = DFM.corner(bestfit['mcmc_chain'], range=ifsps.priors, quantiles=[0.16, 0.5, 0.84], 
-            truths=[meta['logM_total'][igal], np.log10(meta['Z_MW'][igal]), meta['t_age_MW'][igal], None], 
-            labels=['$\log M_*$', '$\log Z$', r'$t_{\rm age}$', r'$\tau$'], label_kwargs={'fontsize': 20}) 
-    fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
+    try: 
+        # plotting on nersc never works.
+        if os.environ['NERSC_HOST'] == 'cori': return None 
+    except KeyError: 
+        fig = DFM.corner(bestfit['mcmc_chain'], range=ifsps.priors, quantiles=[0.16, 0.5, 0.84], 
+                truths=[meta['logM_total'][igal], np.log10(meta['Z_MW'][igal]), meta['t_age_MW'][igal], None], 
+                labels=['$\log M_*$', '$\log Z$', r'$t_{\rm age}$', r'$\tau$'], label_kwargs={'fontsize': 20}) 
+        fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
     return None 
 
 
@@ -105,13 +108,15 @@ def nonoise_photometry(igal):
     print('log M* = %f' % bestfit['theta_med'][0])
     print('log Z = %f' % bestfit['theta_med'][1]) 
     print('---------------') 
-
-    if os.environ['NERSC_HOST'] == 'cori': return None 
-
-    fig = DFM.corner(bestfit['mcmc_chain'], range=ifsps.priors, quantiles=[0.16, 0.5, 0.84], 
-            truths=[meta['logM_total'][igal], np.log10(meta['Z_MW'][igal]), meta['t_age_MW'][igal], None], 
-            labels=['$\log M_*$', '$\log Z$', r'$t_{\rm age}$', r'$\tau$'], label_kwargs={'fontsize': 20}) 
-    fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
+    
+    try: 
+        # plotting on nersc never works.
+        if os.environ['NERSC_HOST'] == 'cori': return None 
+    except KeyError: 
+        fig = DFM.corner(bestfit['mcmc_chain'], range=ifsps.priors, quantiles=[0.16, 0.5, 0.84], 
+                truths=[meta['logM_total'][igal], np.log10(meta['Z_MW'][igal]), meta['t_age_MW'][igal], None], 
+                labels=['$\log M_*$', '$\log Z$', r'$t_{\rm age}$', r'$\tau$'], label_kwargs={'fontsize': 20}) 
+        fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
     return None 
 
 

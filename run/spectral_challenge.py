@@ -30,24 +30,59 @@ mpl.rcParams['ytick.major.width'] = 1.5
 mpl.rcParams['legend.frameon'] = False
 
 
-def nonoise_spectra(igal): 
+def fit_spectra(igal, noise='none', dust=False): 
+    ''' Fit Lgal spectra. `noise` specifies whether to fit spectra without noise or 
+    with BGS-like noise. `dust` specifies whether to if spectra w/ dust or not. 
+    Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
+
+    :param igal: 
+        index of Lgal galaxy within the spectral_challenge 
+
+    :param noise: 
+        If 'none', fit noiseless spectra. 
+        If 'bgs1'...'bgs8', fit BGS-like spectra. (default: 'none') 
+
+    :param dust: 
+        If True, fit the spectra w/ dust using a model with dust 
+        If False, fit the spectra w/o dust using a model without dust. 
+        (default: False) 
+    '''
     # read noiseless Lgal spectra of the spectral_challenge mocks 
-    specs, meta = Data.Spectra(sim='lgal', noise='none', lib='bc03', sample='spectral_challenge') 
-    
-    ifsps = Fitters.iFSPS(model_name='dustless_vanilla', prior=None) 
+    specs, meta = Data.Spectra(sim='lgal', noise=noise, lib='bc03', sample='spectral_challenge') 
+
+    if not dust: 
+        model       = 'dustless_vanilla'
+        w_obs       = specs['wavelength'][igal] 
+        flux_obs    = specs['flux_nodust'][igal]
+        ivar_obs    = specs['ivar_nodust'][igal]
+        truths      = [meta['logM_total'][igal], np.log10(meta['Z_MW'][igal]), meta['t_age_MW'][igal], None]
+        labels      = ['$\log M_*$', '$\log Z$', r'$t_{\rm age}$', r'$\tau$']
+    else: 
+        model       = 'vanilla'
+        w_obs       = specs['wavelength'][igal] 
+        flux_obs    = specs['flux_dust'][igal]
+        ivar_obs    = specs['ivar_dust'][igal]
+        truths      = [meta['logM_total'][igal], np.log10(meta['Z_MW'][igal]), meta['t_age_MW'][igal], None, None]
+        labels      = ['$\log M_*$', '$\log Z$', r'$t_{\rm age}$', 'dust2', r'$\tau$']
+
+    if noise is None: # no noise 
+        ivar_obs = np.ones(len(w_obs)) 
     
     print('--- input ---') 
     print('z = %f' % meta['redshift'][igal])
     print('log M* total = %f' % meta['logM_total'][igal])
     print('MW Z = %f' % meta['Z_MW'][igal]) 
     print('MW tage = %f' % meta['t_age_MW'][igal]) 
-
+    
+    # initiating fit
+    ifsps = Fitters.iFSPS(model_name=model, prior=None) 
+    
     f_bf = os.path.join(UT.lgal_dir(), 'spectral_challenge', 'ifsps', 
-            'spec.nonoise.nodust.dustless_vanilla.%i.hdf5' % igal)
+            'spec.noise_%s.dust_%s.%s.%i.hdf5' % (noise, ['no', 'yes'][dust], model, igal))
     bestfit = ifsps.MCMC_spec(
-            specs['wavelength'][igal], 
-            specs['flux_nodust'][igal], 
-            np.ones(len(specs['flux_nodust'][igal])), 
+            w_obs, 
+            flux_obs, 
+            ivar_obs, 
             meta['redshift'][igal], 
             mask='emline', 
             nwalkers=10, 
@@ -55,48 +90,74 @@ def nonoise_spectra(igal):
             niter=1000, 
             writeout=f_bf,
             silent=False)
+
     print('--- bestfit ---') 
+    print('written to %s' % f_bf) 
     print('log M* = %f' % bestfit['theta_med'][0])
     print('log Z = %f' % bestfit['theta_med'][1]) 
     print('---------------') 
+    
     try: 
         # plotting on nersc never works.
         if os.environ['NERSC_HOST'] == 'cori': return None 
     except KeyError: 
+        # corner plot of the posteriors 
         fig = DFM.corner(bestfit['mcmc_chain'], range=ifsps.priors, quantiles=[0.16, 0.5, 0.84], 
-                truths=[meta['logM_total'][igal], np.log10(meta['Z_MW'][igal]), meta['t_age_MW'][igal], None], 
-                labels=['$\log M_*$', '$\log Z$', r'$t_{\rm age}$', r'$\tau$'], label_kwargs={'fontsize': 20}) 
+                truths=truths, labels=labels, label_kwargs={'fontsize': 20}) 
         fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
     return None 
 
 
-def nonoise_photometry(igal): 
-    # read Lgal photometry of the spectral_challenge mocks 
-    photo, meta = Data.Photometry(sim='lgal', noise='none', lib='bc03', sample='spectral_challenge') 
-    
-    ifsps = Fitters.iFSPS(model_name='dustless_vanilla', prior=None) 
+def fit_photometry(igal, noise='none', dust=False): 
+    ''' Fit Lgal photometry. `noise` specifies whether to fit spectra without noise or 
+    with legacy-like noise. `dust` specifies whether to if spectra w/ dust or not. 
+    Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
 
+    :param igal: 
+        index of Lgal galaxy within the spectral_challenge 
+
+    :param noise: 
+        If 'none', fit noiseless photometry. 
+        If 'legacy', fit Legacy-like photometry. (default: 'none') 
+
+    :param dust: 
+        If True, fit photometry w/ dust using a model with dust 
+        If False, fit photometry w/o dust using a model without dust. 
+        (default: False) 
+    '''
+    # read Lgal photometry of the spectral_challenge mocks 
+    photo, meta = Data.Photometry(sim='lgal', noise=noise, lib='bc03', sample='spectral_challenge') 
+    
+    if not dust: 
+        model       = 'dustless_vanilla'
+        photo_obs   = np.array([photo['flux_nodust_%s' % band][igal] for band in ['g', 'r', 'z', 'w1', 'w2']])  
+        ivar_obs    = np.array([photo['ivar_nodust_%s' % band][igal] for band in ['g', 'r', 'z', 'w1', 'w2']])  
+        truths      = [meta['logM_total'][igal], np.log10(meta['Z_MW'][igal]), meta['t_age_MW'][igal], None]
+        labels      = ['$\log M_*$', '$\log Z$', r'$t_{\rm age}$', r'$\tau$']
+    else: 
+        model       = 'vanilla'
+        photo_obs   = np.array([photo['flux_dust_%s' % band][igal] for band in ['g', 'r', 'z', 'w1', 'w2']])  
+        ivar_obs    = np.array([photo['ivar_dust_%s' % band][igal] for band in ['g', 'r', 'z', 'w1', 'w2']])  
+        truths      = [meta['logM_total'][igal], np.log10(meta['Z_MW'][igal]), meta['t_age_MW'][igal], None, None]
+        labels      = ['$\log M_*$', '$\log Z$', r'$t_{\rm age}$', 'dust2', r'$\tau$']
+
+    if noise is None: # no noise 
+        ivar_obs = np.ones(len(photo_obs)) 
+    
     print('--- input ---') 
     print('z = %f' % meta['redshift'][igal])
     print('log M* total = %f' % meta['logM_total'][igal])
     print('MW Z = %f' % meta['Z_MW'][igal]) 
     print('MW tage = %f' % meta['t_age_MW'][igal]) 
-
-    photo_i = np.array([
-        photo['flux_nodust_g'][igal], 
-        photo['flux_nodust_r'][igal], 
-        photo['flux_nodust_z'][igal], 
-        photo['flux_nodust_w1'][igal], 
-        photo['flux_nodust_w2'][igal] 
-        ])  
-    print(photo_i) 
+    
+    # initiate fitting
+    ifsps = Fitters.iFSPS(model_name=model, prior=None) 
 
     f_bf = os.path.join(UT.lgal_dir(), 'spectral_challenge', 'ifsps', 
-            'photo.nonoise.nodust.dustless_vanilla.%i.WRONG.hdf5' % igal)
-    print('--- writing to %s ---' % f_bf)
+            'photo.noise_%s.dust_%s.%s.%i.hdf5' % (noise, ['no', 'yes'][dust], model, igal))
     bestfit = ifsps.MCMC_photo(
-            photo_i, 
-            np.ones(len(photo_i)), 
+            photo_obs, 
+            ivar_obs,
             meta['redshift'][igal], 
             bands='desi', 
             nwalkers=100, 
@@ -105,6 +166,7 @@ def nonoise_photometry(igal):
             writeout=f_bf,
             silent=False)
     print('--- bestfit ---') 
+    print('written to %s ---' % f_bf)
     print('log M* = %f' % bestfit['theta_med'][0])
     print('log Z = %f' % bestfit['theta_med'][1]) 
     print('---------------') 
@@ -114,13 +176,12 @@ def nonoise_photometry(igal):
         if os.environ['NERSC_HOST'] == 'cori': return None 
     except KeyError: 
         fig = DFM.corner(bestfit['mcmc_chain'], range=ifsps.priors, quantiles=[0.16, 0.5, 0.84], 
-                truths=[meta['logM_total'][igal], np.log10(meta['Z_MW'][igal]), meta['t_age_MW'][igal], None], 
-                labels=['$\log M_*$', '$\log Z$', r'$t_{\rm age}$', r'$\tau$'], label_kwargs={'fontsize': 20}) 
+                truths=truths, labels=labels, label_kwargs={'fontsize': 20}) 
         fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
     return None 
 
 
-def plot_MCMCchain(igal, bestfit_file):  
+def _plot_MCMCchain(igal, bestfit_file):  
     ''' 
     :param igal: 
         index of spectral challenge galaxy 
@@ -154,20 +215,15 @@ def plot_MCMCchain(igal, bestfit_file):
     return None 
 
 
-
 if __name__=="__main__": 
-    spec_or_photo = sys.argv[1]
-    igal = int(sys.argv[2]) 
+    spec_or_photo   = sys.argv[1]
+    igal            = int(sys.argv[2]) 
+    noise           = sys.argv[3]
+    str_dust        = sys.argv[4]
+    if str_dust == 'True': dust = True
+    elif str_dust == 'False': dust = False 
 
     if spec_or_photo == 'photo': 
-        nonoise_photometry(igal)
+        fit_photometry(igal, noise=noise, dust=dust)
     elif spec_or_photo == 'spec': 
-        nonoise_spectra(igal)
-    elif spec_or_photo == 'plot': 
-        # quick hacks to plot the MCMC chains
-        f_bf = os.path.join(UT.lgal_dir(), 'spectral_challenge', 'ifsps', 
-            'spec.nonoise.nodust.dustless_vanilla.%i.hdf5' % igal)
-        plot_MCMCchain(igal, f_bf)
-        f_bf = os.path.join(UT.lgal_dir(), 'spectral_challenge', 'ifsps', 
-                'photo.nonoise.nodust.dustless_vanilla.%i.WRONG.hdf5' % igal)
-        plot_MCMCchain(igal, f_bf)
+        fit_spectra(igal, noise=noise, dust=dust)

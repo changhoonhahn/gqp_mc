@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --qos=debug
-#SBATCH --time=00:30:00
+#SBATCH --qos=regular
+#SBATCH --time=03:00:00
 #SBATCH --constraint=haswell
 #SBATCH -N 1
 #SBATCH -J spec_challenge
@@ -16,7 +16,14 @@ source ~/.bashrc.ext
 
 export HDF5_USE_FILE_LOCKING=FALSE
 
-srun -n 1 -c 1 python /global/homes/c/chahah/projects/gqp_mc/run/spectral_challenge.py 'photo' 0
+for i in {0..4}; do
+    echo 'spectral fitting '$i 
+    srun -n 1 -c 1 python /global/homes/c/chahah/projects/gqp_mc/run/spectral_challenge.py 'spec' $i
+done
+for i in {2..4}; do
+    echo 'photometric fitting '$i 
+    srun -n 1 -c 1 python /global/homes/c/chahah/projects/gqp_mc/run/spectral_challenge.py 'photo' $i
+done 
 
 now=$(date +"%T")
 echo "end time ... $now"

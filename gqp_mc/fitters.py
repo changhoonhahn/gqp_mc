@@ -243,6 +243,8 @@ class iFSPS(Fitter):
         output['flux_data'] = flux_obs
         output['flux_ivar_data'] = flux_ivar_obs
         
+        # save prior and MCMC chain 
+        output['priors'] = self.priors
         output['mcmc_chain'] = chain 
 
         if writeout is not None: 
@@ -339,7 +341,9 @@ class iFSPS(Fitter):
         output['flux_model'] = flux_model 
         output['flux_data'] = photo_obs
         output['flux_ivar_data'] = photo_ivar_obs
-
+    
+        # save prior and MCMC chain 
+        output['priors'] = self.priors
         output['mcmc_chain'] = chain 
 
         if writeout is not None: 

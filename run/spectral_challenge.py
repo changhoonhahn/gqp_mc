@@ -6,6 +6,7 @@ fit the spectra of the spectral_challenge mocks
 '''
 import os 
 import sys
+import h5py 
 import numpy as np 
 import corner as DFM
 # --- gqp_mc ---
@@ -41,7 +42,8 @@ def nonoise_spectra(igal):
     print('MW Z = %f' % meta['Z_MW'][igal]) 
     print('MW tage = %f' % meta['t_age_MW'][igal]) 
 
-    f_bf = os.path.join(UT.lgal_dir(), 'spectral_challenge', 'ifsps', 'spec.nonoise.nodust.dustless_vanilla.%i.hdf5' % igal)
+    f_bf = os.path.join(UT.lgal_dir(), 'spectral_challenge', 'ifsps', 
+            'spec.nonoise.nodust.dustless_vanilla.%i.hdf5' % igal)
     bestfit = ifsps.MCMC_spec(
             specs['wavelength'][igal], 
             specs['flux_nodust'][igal], 
@@ -113,11 +115,54 @@ def nonoise_photometry(igal):
     return None 
 
 
+def plot_MCMCchain(igal, bestfit_file):  
+    ''' 
+    :param igal: 
+        index of spectral challenge galaxy 
+
+    :param bestfit_file:
+        file name of best-fit file that includes the MCMC chain.
+    '''
+    # read meta data of the spectral_challenge mocks 
+    _, meta = Data.Photometry(sim='lgal', noise='none', lib='bc03', sample='spectral_challenge') 
+
+    print('--- input ---') 
+    print('z = %f' % meta['redshift'][igal])
+    print('log M* total = %f' % meta['logM_total'][igal])
+    print('MW Z = %f' % meta['Z_MW'][igal]) 
+    print('MW tage = %f' % meta['t_age_MW'][igal]) 
+    
+    # read in best-fit file with mcmc chain
+    f_bf = bestfit_file 
+    fbestfit = h5py.File(f_bf, 'r')  
+    bestfit = {} 
+    for k in fbestfit.keys(): 
+        bestfit[k] = fbestfit[k][...]
+
+    # **WARNING** for the future this should be replaced with bestfit['priors']!!
+    priors = [(8, 13), (-3, 1), (0., 13.), (0.1, 10.)]
+
+    fig = DFM.corner(bestfit['mcmc_chain'], range=priors, quantiles=[0.16, 0.5, 0.84], 
+            truths=[meta['logM_total'][igal], np.log10(meta['Z_MW'][igal]), meta['t_age_MW'][igal], None], 
+            labels=['$\log M_*$', '$\log Z$', r'$t_{\rm age}$', r'$\tau$'], label_kwargs={'fontsize': 20}) 
+    fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
+    return None 
+
+
+
 if __name__=="__main__": 
     spec_or_photo = sys.argv[1]
     igal = int(sys.argv[2]) 
 
     if spec_or_photo == 'photo': 
         nonoise_photometry(igal)
-    else: 
+    elif spec_or_photo == 'spec': 
         nonoise_spectra(igal)
+    elif spec_or_photo == 'plot': 
+        # quick hacks to plot the MCMC chains
+        f_bf = os.path.join(UT.lgal_dir(), 'spectral_challenge', 'ifsps', 
+            'spec.nonoise.nodust.dustless_vanilla.%i.hdf5' % igal)
+        plot_MCMCchain(igal, f_bf)
+        f_bf = os.path.join(UT.lgal_dir(), 'spectral_challenge', 'ifsps', 
+                'photo.nonoise.nodust.dustless_vanilla.%i.WRONG.hdf5' % igal)
+        plot_MCMCchain(igal, f_bf)

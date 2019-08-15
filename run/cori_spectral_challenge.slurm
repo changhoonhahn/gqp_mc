@@ -18,11 +18,11 @@ export HDF5_USE_FILE_LOCKING=FALSE
 
 for i in {0..4}; do
     echo 'spectral fitting '$i 
-    srun -n 1 -c 1 python /global/homes/c/chahah/projects/gqp_mc/run/spectral_challenge.py 'spec' $i
+    srun -n 1 -c 1 python /global/homes/c/chahah/projects/gqp_mc/run/spectral_challenge.py spec $i none False
 done
-for i in {2..4}; do
+for i in {0..4}; do
     echo 'photometric fitting '$i 
-    srun -n 1 -c 1 python /global/homes/c/chahah/projects/gqp_mc/run/spectral_challenge.py 'photo' $i
+    srun -n 1 -c 1 python /global/homes/c/chahah/projects/gqp_mc/run/spectral_challenge.py photo $i none False
 done 
 
 now=$(date +"%T")

@@ -1,5 +1,4 @@
-'''
-
+''' 
 fit the spectra of the spectral_challenge mocks 
 
 
@@ -17,7 +16,6 @@ from gqp_mc import fitters as Fitters
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 mpl.rcParams['text.usetex'] = True
-mpl.rcParams['text.latex.unicode']=True
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['axes.linewidth'] = 1.5
 mpl.rcParams['axes.xmargin'] = 1
@@ -30,7 +28,7 @@ mpl.rcParams['ytick.major.width'] = 1.5
 mpl.rcParams['legend.frameon'] = False
 
 
-def fit_spectra(igal, noise='none', dust=False, justplot=False): 
+def fit_spectra(igal, noise='none', dust=False, justplot=False, nwalkers=100, burnin=100, niter=1000): 
     ''' Fit Lgal spectra. `noise` specifies whether to fit spectra without noise or 
     with BGS-like noise. `dust` specifies whether to if spectra w/ dust or not. 
     Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
@@ -58,18 +56,18 @@ def fit_spectra(igal, noise='none', dust=False, justplot=False):
         model       = 'dustless_vanilla'
         w_obs       = specs['wavelength'][igal] 
         flux_obs    = specs['flux_nodust'][igal]
-        ivar_obs    = specs['ivar_nodust'][igal]
+        if noise != 'none': ivar_obs = specs['ivar_nodust'][igal]
         truths      = [meta['logM_total'][igal], np.log10(meta['Z_MW'][igal]), meta['t_age_MW'][igal], None]
         labels      = ['$\log M_*$', '$\log Z$', r'$t_{\rm age}$', r'$\tau$']
     else: 
         model       = 'vanilla'
         w_obs       = specs['wavelength'][igal] 
         flux_obs    = specs['flux_dust'][igal]
-        ivar_obs    = specs['ivar_dust'][igal]
+        if noise != 'none': ivar_obs = specs['ivar_dust'][igal]
         truths      = [meta['logM_total'][igal], np.log10(meta['Z_MW'][igal]), meta['t_age_MW'][igal], None, None]
         labels      = ['$\log M_*$', '$\log Z$', r'$t_{\rm age}$', 'dust2', r'$\tau$']
 
-    if noise is None: # no noise 
+    if noise == 'none': # no noise 
         ivar_obs = np.ones(len(w_obs)) 
     
     print('--- input ---') 
@@ -89,9 +87,9 @@ def fit_spectra(igal, noise='none', dust=False, justplot=False):
                 ivar_obs, 
                 meta['redshift'][igal], 
                 mask='emline', 
-                nwalkers=10, 
-                burnin=100, 
-                niter=1000, 
+                nwalkers=nwalkers, 
+                burnin=burnin, 
+                niter=niter, 
                 writeout=f_bf,
                 silent=False)
     else: 
@@ -113,12 +111,13 @@ def fit_spectra(igal, noise='none', dust=False, justplot=False):
     except KeyError: 
         # corner plot of the posteriors 
         fig = DFM.corner(bestfit['mcmc_chain'], range=bestfit['priors'], quantiles=[0.16, 0.5, 0.84], 
+                levels=[0.68, 0.95], nbin=40, smooth=True, 
                 truths=truths, labels=labels, label_kwargs={'fontsize': 20}) 
         fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
     return None 
 
 
-def fit_photometry(igal, noise='none', dust=False, justplot=False): 
+def fit_photometry(igal, noise='none', dust=False, justplot=False, nwalkers=100, burnin=100, niter=1000): 
     ''' Fit Lgal photometry. `noise` specifies whether to fit spectra without noise or 
     with legacy-like noise. `dust` specifies whether to if spectra w/ dust or not. 
     Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
@@ -145,17 +144,19 @@ def fit_photometry(igal, noise='none', dust=False, justplot=False):
     if not dust: 
         model       = 'dustless_vanilla'
         photo_obs   = np.array([photo['flux_nodust_%s' % band][igal] for band in ['g', 'r', 'z', 'w1', 'w2']])  
-        ivar_obs    = np.array([photo['ivar_nodust_%s' % band][igal] for band in ['g', 'r', 'z', 'w1', 'w2']])  
+        if noise != 'none': 
+            ivar_obs    = np.array([photo['ivar_nodust_%s' % band][igal] for band in ['g', 'r', 'z', 'w1', 'w2']])
         truths      = [meta['logM_total'][igal], np.log10(meta['Z_MW'][igal]), meta['t_age_MW'][igal], None]
         labels      = ['$\log M_*$', '$\log Z$', r'$t_{\rm age}$', r'$\tau$']
     else: 
         model       = 'vanilla'
         photo_obs   = np.array([photo['flux_dust_%s' % band][igal] for band in ['g', 'r', 'z', 'w1', 'w2']])  
-        ivar_obs    = np.array([photo['ivar_dust_%s' % band][igal] for band in ['g', 'r', 'z', 'w1', 'w2']])  
+        if noise != 'none': 
+            ivar_obs    = np.array([photo['ivar_dust_%s' % band][igal] for band in ['g', 'r', 'z', 'w1', 'w2']])
         truths      = [meta['logM_total'][igal], np.log10(meta['Z_MW'][igal]), meta['t_age_MW'][igal], None, None]
         labels      = ['$\log M_*$', '$\log Z$', r'$t_{\rm age}$', 'dust2', r'$\tau$']
 
-    if noise is None: # no noise 
+    if noise == 'none': # no noise 
         ivar_obs = np.ones(len(photo_obs)) 
     
     print('--- input ---') 
@@ -174,9 +175,9 @@ def fit_photometry(igal, noise='none', dust=False, justplot=False):
                 ivar_obs,
                 meta['redshift'][igal], 
                 bands='desi', 
-                nwalkers=100, 
-                burnin=100, 
-                niter=1000, 
+                nwalkers=nwalkers, 
+                burnin=burnin, 
+                niter=niter, 
                 writeout=f_bf,
                 silent=False)
     else: 
@@ -196,42 +197,9 @@ def fit_photometry(igal, noise='none', dust=False, justplot=False):
         if os.environ['NERSC_HOST'] == 'cori': return None 
     except KeyError: 
         fig = DFM.corner(bestfit['mcmc_chain'], range=bestfit['priors'], quantiles=[0.16, 0.5, 0.84], 
+                levels=[0.68, 0.95], nbin=40, smooth=True, 
                 truths=truths, labels=labels, label_kwargs={'fontsize': 20}) 
         fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
-    return None 
-
-
-def _plot_MCMCchain(igal, bestfit_file):  
-    ''' 
-    :param igal: 
-        index of spectral challenge galaxy 
-
-    :param bestfit_file:
-        file name of best-fit file that includes the MCMC chain.
-    '''
-    # read meta data of the spectral_challenge mocks 
-    _, meta = Data.Photometry(sim='lgal', noise='none', lib='bc03', sample='spectral_challenge') 
-
-    print('--- input ---') 
-    print('z = %f' % meta['redshift'][igal])
-    print('log M* total = %f' % meta['logM_total'][igal])
-    print('MW Z = %f' % meta['Z_MW'][igal]) 
-    print('MW tage = %f' % meta['t_age_MW'][igal]) 
-    
-    # read in best-fit file with mcmc chain
-    f_bf = bestfit_file 
-    fbestfit = h5py.File(f_bf, 'r')  
-    bestfit = {} 
-    for k in fbestfit.keys(): 
-        bestfit[k] = fbestfit[k][...]
-
-    # **WARNING** for the future this should be replaced with bestfit['priors']!!
-    priors = [(8, 13), (-3, 1), (0., 13.), (0.1, 10.)]
-
-    fig = DFM.corner(bestfit['mcmc_chain'], range=priors, quantiles=[0.16, 0.5, 0.84], 
-            truths=[meta['logM_total'][igal], np.log10(meta['Z_MW'][igal]), meta['t_age_MW'][igal], None], 
-            labels=['$\log M_*$', '$\log Z$', r'$t_{\rm age}$', r'$\tau$'], label_kwargs={'fontsize': 20}) 
-    fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
     return None 
 
 

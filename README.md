@@ -56,6 +56,7 @@ pip install astropy
 pip install emcee 
 pip install speclite 
 pip install fsps
+pip install multiprocessing
 
 # clone the repo 
 git clone https://github.com/changhoonhahn/gqp_mc.git 

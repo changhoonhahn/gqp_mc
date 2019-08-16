@@ -1,6 +1,12 @@
 ''' 
-fit the spectra of the spectral_challenge mocks 
+fit the spectra or photometry of the spectral_challenge mocks 
 
+Usage::
+    e.g. fit spectra of galaxies 0 to 9 with no noise, no dust, run on 10 threads, 100 walkers, 100 burnin, 1000 main chain
+    >>> python spectral_challenge.py spec 0 9 none False 10 100 100 1000
+
+    e.g. fit photometry of galaxies 0 to 9 with no noise, no dust, run on 10 threads, 100 walkers, 100 burnin, 1000 main chain
+    >>> python spectral_challenge.py photo 0 9 none False 10 100 100 1000
 
 '''
 import os 
@@ -8,6 +14,8 @@ import sys
 import h5py 
 import numpy as np 
 import corner as DFM
+from functools import partial
+from multiprocessing.pool import Pool 
 # --- gqp_mc ---
 from gqp_mc import util as UT 
 from gqp_mc import data as Data 
@@ -28,7 +36,7 @@ mpl.rcParams['ytick.major.width'] = 1.5
 mpl.rcParams['legend.frameon'] = False
 
 
-def fit_spectra(igal, noise='none', dust=False, justplot=False, nwalkers=100, burnin=100, niter=1000): 
+def fit_spectra(igal, noise='none', dust=False, nwalkers=100, burnin=100, niter=1000, justplot=False): 
     ''' Fit Lgal spectra. `noise` specifies whether to fit spectra without noise or 
     with BGS-like noise. `dust` specifies whether to if spectra w/ dust or not. 
     Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
@@ -79,6 +87,8 @@ def fit_spectra(igal, noise='none', dust=False, justplot=False, nwalkers=100, bu
     f_bf = os.path.join(UT.lgal_dir(), 'spectral_challenge', 'ifsps', 
             'spec.noise_%s.dust_%s.%s.%i.hdf5' % (noise, ['no', 'yes'][dust], model, igal))
     if not justplot: 
+        if os.path.isfile(f_bf): 
+            print("** CAUTION: %s already exists and is being overwritten **" % os.path.basename(f_bf)) 
         # initiating fit
         ifsps = Fitters.iFSPS(model_name=model, prior=None) 
         bestfit = ifsps.MCMC_spec(
@@ -117,7 +127,7 @@ def fit_spectra(igal, noise='none', dust=False, justplot=False, nwalkers=100, bu
     return None 
 
 
-def fit_photometry(igal, noise='none', dust=False, justplot=False, nwalkers=100, burnin=100, niter=1000): 
+def fit_photometry(igal, noise='none', dust=False, nwalkers=100, burnin=100, niter=1000, justplot=False): 
     ''' Fit Lgal photometry. `noise` specifies whether to fit spectra without noise or 
     with legacy-like noise. `dust` specifies whether to if spectra w/ dust or not. 
     Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
@@ -168,6 +178,8 @@ def fit_photometry(igal, noise='none', dust=False, justplot=False, nwalkers=100,
     f_bf = os.path.join(UT.lgal_dir(), 'spectral_challenge', 'ifsps', 
             'photo.noise_%s.dust_%s.%s.%i.hdf5' % (noise, ['no', 'yes'][dust], model, igal))
     if not justplot: 
+        if os.path.isfile(f_bf): 
+            print("** CAUTION: %s already exists and is being overwritten **" % os.path.basename(f_bf)) 
         # initiate fitting
         ifsps = Fitters.iFSPS(model_name=model, prior=None) 
         bestfit = ifsps.MCMC_photo(
@@ -203,22 +215,81 @@ def fit_photometry(igal, noise='none', dust=False, justplot=False, nwalkers=100,
     return None 
 
 
+def MP_fit(spec_or_photo, igals, noise='none', dust=False, nthreads=1, nwalkers=100, burnin=100, niter=1000, justplot=False): 
+    ''' multiprocessing wrapepr for fit_spectra and fit_photometry. This does *not* parallelize 
+    the MCMC sampling of individual fits but rather runs multiple fits simultaneously. 
+    
+    :param spec_or_photo: 
+        fit spectra or photometry 
+
+    :param igals: 
+        array/list of spectral_challenge galaxy indices
+
+    :param noise: 
+        If 'none', fit noiseless spectra. 
+        If 'bgs1'...'bgs8', fit BGS-like spectra. (default: 'none') 
+
+    :param dust: 
+        If True, fit the spectra w/ dust using a model with dust 
+        If False, fit the spectra w/o dust using a model without dust. 
+        (default: False) 
+
+    :param nthreads: 
+        Number of threads. If nthreads == 1, just runs fit_spectra
+    '''
+    args = igals # galaxy indices 
+
+    kwargs = {
+            'noise': noise, 
+            'dust': dust,
+            'nwalkers': nwalkers,
+            'burnin': burnin,
+            'niter': niter, 
+            'justplot': justplot
+            }
+    if spec_or_photo == 'spec': 
+        fit_func = fit_spectra
+    elif spec_or_photo == 'photo': 
+        fit_func = fit_photometry
+
+    if nthreads > 1: 
+        pool = Pool(processes=nthreads) 
+        pool.map(partial(fit_func, **kwargs), args)
+        pool.close()
+        pool.terminate()
+        pool.join()
+    else: 
+        # single thread, loop over 
+        for igal in args: fit_func(igal, **kwargs)
+    return None 
+
+
 if __name__=="__main__": 
+    # python spectral_challenge.py
     spec_or_photo   = sys.argv[1]
-    igal            = int(sys.argv[2]) 
-    noise           = sys.argv[3]
-    str_dust        = sys.argv[4]
+    igal0           = int(sys.argv[2]) 
+    igal1           = int(sys.argv[3]) 
+    noise           = sys.argv[4]
+    str_dust        = sys.argv[5]
+    nthreads        = int(sys.argv[6]) 
+    nwalkers        = int(sys.argv[7]) 
+    burnin          = int(sys.argv[8]) 
+    niter           = int(sys.argv[9]) 
+    
     if str_dust == 'True': dust = True
     elif str_dust == 'False': dust = False 
     
+    # if specified, it assumes the chains already exist and just makes the 
+    # corner plots (implemented because I have difficult making plots on nersc)
     try: 
-        _justplot = sys.argv[5]
+        _justplot = sys.argv[10]
         if _justplot == 'True': justplot = True
         elif _justplot == 'False': justplot = False 
     except IndexError: 
         justplot = False
-    
-    if spec_or_photo == 'photo': 
-        fit_photometry(igal, noise=noise, dust=dust, justplot=justplot)
-    elif spec_or_photo == 'spec': 
-        fit_spectra(igal, noise=noise, dust=dust, justplot=justplot)
+
+    print('----------------------------------------') 
+    print('fitting %s of spectral_challenge galaxies %i to %i' % (spec_or_photo, igal0, igal1))
+    igals = range(igal0, igal1+1) 
+    MP_fit(spec_or_photo, igals, noise=noise, dust=dust, nthreads=nthreads, 
+            nwalkers=nwalkers, burnin=burnin, niter=niter, justplot=justplot)

@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --qos=debug
 #SBATCH --time=00:30:00
-#SBATCH --constraint=haswell
+#SBATCH --constraint=knl
 #SBATCH -N 1
 #SBATCH -J spec_challenge
 #SBATCH -o _spec_challenge.o
@@ -16,11 +16,15 @@ source ~/.bashrc.ext
 
 export HDF5_USE_FILE_LOCKING=FALSE
 
-echo 'debugging spectral fitting'
-srun -n 1 -c 1 python /global/homes/c/chahah/projects/gqp_mc/run/spectral_challenge.py spec 0 bgs1 False
+i0=11
+i1=13
+n_cpu=3
 
-echo 'debugging photometric fitting'
-srun -n 1 -c 1 python /global/homes/c/chahah/projects/gqp_mc/run/spectral_challenge.py photo 0 legacy False
+echo 'debugging: fitting spectra of galaxies # '$i0' to '$i1
+srun -n 1 -c $n_cpu python /Users/ChangHoon/projects/gqp_mc/run/spectral_challenge.py spec $i0 $i1 none False $n_cpu 100 100 1000 
+
+#echo 'debugging: fitting photometry of galaxies # '$i0' to '$i1
+#srun -n 1 -c $n_cpu python -W ignore /Users/ChangHoon/projects/gqp_mc/run/spectral_challenge.py photo $i0 $i1 none False $n_cpu 100 100 1000
 
 now=$(date +"%T")
 echo "end time ... $now"

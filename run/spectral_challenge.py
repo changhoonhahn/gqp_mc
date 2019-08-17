@@ -36,7 +36,7 @@ mpl.rcParams['ytick.major.width'] = 1.5
 mpl.rcParams['legend.frameon'] = False
 
 
-def fit_spectra(igal, noise='none', dust=False, nwalkers=100, burnin=100, niter=1000, justplot=False): 
+def fit_spectra(igal, noise='none', dust=False, nwalkers=100, burnin=100, niter=1000, overwrite=False, justplot=False): 
     ''' Fit Lgal spectra. `noise` specifies whether to fit spectra without noise or 
     with BGS-like noise. `dust` specifies whether to if spectra w/ dust or not. 
     Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
@@ -88,7 +88,8 @@ def fit_spectra(igal, noise='none', dust=False, nwalkers=100, burnin=100, niter=
             'spec.noise_%s.dust_%s.%s.%i.hdf5' % (noise, ['no', 'yes'][dust], model, igal))
     if not justplot: 
         if os.path.isfile(f_bf): 
-            print("** CAUTION: %s already exists and is being overwritten **" % os.path.basename(f_bf)) 
+            if not overwrite: 
+                print("** CAUTION: %s already exists **" % os.path.basename(f_bf)) 
         # initiating fit
         ifsps = Fitters.iFSPS(model_name=model, prior=None) 
         bestfit = ifsps.MCMC_spec(
@@ -127,7 +128,7 @@ def fit_spectra(igal, noise='none', dust=False, nwalkers=100, burnin=100, niter=
     return None 
 
 
-def fit_photometry(igal, noise='none', dust=False, nwalkers=100, burnin=100, niter=1000, justplot=False): 
+def fit_photometry(igal, noise='none', dust=False, nwalkers=100, burnin=100, niter=1000, overwrite=False, justplot=False): 
     ''' Fit Lgal photometry. `noise` specifies whether to fit spectra without noise or 
     with legacy-like noise. `dust` specifies whether to if spectra w/ dust or not. 
     Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
@@ -179,7 +180,9 @@ def fit_photometry(igal, noise='none', dust=False, nwalkers=100, burnin=100, nit
             'photo.noise_%s.dust_%s.%s.%i.hdf5' % (noise, ['no', 'yes'][dust], model, igal))
     if not justplot: 
         if os.path.isfile(f_bf): 
-            print("** CAUTION: %s already exists and is being overwritten **" % os.path.basename(f_bf)) 
+            if not overwrite: 
+                print("** CAUTION: %s already exists **" % os.path.basename(f_bf)) 
+                return None 
         # initiate fitting
         ifsps = Fitters.iFSPS(model_name=model, prior=None) 
         bestfit = ifsps.MCMC_photo(
@@ -215,7 +218,7 @@ def fit_photometry(igal, noise='none', dust=False, nwalkers=100, burnin=100, nit
     return None 
 
 
-def MP_fit(spec_or_photo, igals, noise='none', dust=False, nthreads=1, nwalkers=100, burnin=100, niter=1000, justplot=False): 
+def MP_fit(spec_or_photo, igals, noise='none', dust=False, nthreads=1, nwalkers=100, burnin=100, niter=1000, overwrite=False, justplot=False): 
     ''' multiprocessing wrapepr for fit_spectra and fit_photometry. This does *not* parallelize 
     the MCMC sampling of individual fits but rather runs multiple fits simultaneously. 
     
@@ -245,6 +248,7 @@ def MP_fit(spec_or_photo, igals, noise='none', dust=False, nthreads=1, nwalkers=
             'nwalkers': nwalkers,
             'burnin': burnin,
             'niter': niter, 
+            'overwrite': overwrite, 
             'justplot': justplot
             }
     if spec_or_photo == 'spec': 
@@ -275,14 +279,18 @@ if __name__=="__main__":
     nwalkers        = int(sys.argv[7]) 
     burnin          = int(sys.argv[8]) 
     niter           = int(sys.argv[9]) 
+    str_overwrite   = sys.argv[10]
     
     if str_dust == 'True': dust = True
     elif str_dust == 'False': dust = False 
+
+    if str_overwrite == 'True': overwrite=True
+    elif str_overwrite == 'False': overwrite=False
     
     # if specified, it assumes the chains already exist and just makes the 
     # corner plots (implemented because I have difficult making plots on nersc)
     try: 
-        _justplot = sys.argv[10]
+        _justplot = sys.argv[11]
         if _justplot == 'True': justplot = True
         elif _justplot == 'False': justplot = False 
     except IndexError: 
@@ -292,4 +300,4 @@ if __name__=="__main__":
     print('fitting %s of spectral_challenge galaxies %i to %i' % (spec_or_photo, igal0, igal1))
     igals = range(igal0, igal1+1) 
     MP_fit(spec_or_photo, igals, noise=noise, dust=dust, nthreads=nthreads, 
-            nwalkers=nwalkers, burnin=burnin, niter=niter, justplot=justplot)
+            nwalkers=nwalkers, burnin=burnin, niter=niter, overwrite=overwrite, justplot=justplot)

@@ -5,10 +5,8 @@ generate plots for the mock challenge paper
 
 '''
 import os 
-import sys
 import h5py 
 import numpy as np 
-import corner as DFM
 # --- gqp_mc ---
 from gqp_mc import util as UT 
 from gqp_mc import data as Data 

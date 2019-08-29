@@ -221,7 +221,11 @@ def Fbestfit_photo(igal, noise='none', dust=False, method='ifsps'):
 
 if __name__=="__main__": 
     mock_challenge_spec(noise='none', dust=False, method='ifsps')
+    mock_challenge_spec(noise='none', dust=True, method='ifsps')
     mock_challenge_spec(noise='bgs1', dust=False, method='ifsps')
+    mock_challenge_spec(noise='bgs1', dust=True, method='ifsps')
     
     mock_challenge_photo(noise='none', dust=False, method='ifsps')
+    mock_challenge_photo(noise='none', dust=True, method='ifsps')
     mock_challenge_photo(noise='legacy', dust=False, method='ifsps')
+    mock_challenge_photo(noise='legacy', dust=True, method='ifsps')

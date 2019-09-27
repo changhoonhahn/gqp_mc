@@ -61,3 +61,15 @@ def c_light(): # AA/s
 def jansky_cgs(): 
     return 1e-23
 
+
+def fig_tex(ffig, pdf=False): 
+    ''' given filename of figure return a latex friendly file name
+    '''
+    path, ffig_base = os.path.split(ffig) 
+    ext = ffig_base.rsplit('.', 1)[-1] 
+    ffig_name = ffig_base.rsplit('.', 1)[0]
+
+    _ffig_name = ffig_name.replace('.', '_') 
+    if pdf: ext = 'pdf' 
+    return os.path.join(path, '.'.join([_ffig_name, ext])) 
+

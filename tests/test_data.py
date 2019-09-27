@@ -6,27 +6,23 @@ from gqp_mc import data as Data
 
 
 @pytest.mark.parametrize("noise", ('none', 'bgs1', 'bgs2'))
-def test_spectra(noise, sim='lgal', lib='bc03', sample='spectral_challenge'): 
+def test_spectra(noise, sim='lgal', lib='bc03', sample='mini_mocha'): 
     print(noise)
     specs, meta = Data.Spectra(sim=sim, noise=noise, lib=lib, sample=sample)
 
     n_meta = len(meta['galid'])
     assert n_meta == len(meta['redshift']) 
 
-    if noise == 'none': 
-        n_spec = specs['flux_dust'].shape[0]
-    elif 'bgs' in noise: 
-        n_spec = specs['flux_dust_b'].shape[0]
-
+    n_spec = specs['flux'].shape[0]
     assert n_meta == n_spec
     
 
 @pytest.mark.parametrize("noise", ('none', 'legacy'))
-def test_photometry(noise, sim='lgal', lib='bc03', sample='spectral_challenge'): 
+def test_photometry(noise, sim='lgal', lib='bc03', sample='mini_mocha'): 
     photo, meta = Data.Photometry(sim=sim, noise=noise, lib=lib, sample=sample) 
 
     n_meta = len(meta['galid'])
     assert n_meta == len(meta['redshift']) 
 
-    n_photo = len(photo['flux_nodust_g']) 
+    n_photo = photo['flux'].shape[0]
     assert n_meta == n_photo

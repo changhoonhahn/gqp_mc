@@ -71,11 +71,10 @@ def Spectra(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'):
 
     elif 'bgs' in noise: 
         # concatenate the 3 spectrograph outputs for convenience. 
-        specs['wave'] = np.tile(np.concatenate([
+        specs['wave'] = np.concatenate([
             mock['spec_wave_b_bgs'][...], 
             mock['spec_wave_r_bgs'][...], 
-            mock['spec_wave_z_bgs'][...]]), 
-            (mock['spec_flux_b_bgs'].shape[1],1))
+            mock['spec_wave_z_bgs'][...]])
         
         specs['flux'] = np.concatenate([
             mock['spec_flux_b_bgs'][...][iobs,:,:], 
@@ -284,10 +283,11 @@ def make_mini_mocha(lib='bc03'):
     
     # spectroscopy 
     # noiseless source spectra 
-    fout.create_dataset('spec_wave_source', data=spectra_s['wave']) 
-    fout.create_dataset('spec_flux_source', data=spectra_s['flux_dust']) 
+    wlim = (spectra_s['wave'] < 2e5) & (spectra_s['wave'] > 1e3) # truncating the spectra  
+    fout.create_dataset('spec_wave_source', data=spectra_s['wave'][wlim]) 
+    fout.create_dataset('spec_flux_source', data=spectra_s['flux_dust'][wlim]) 
     # noiseless source spectra in fiber 
-    fout.create_dataset('spec_fiber_flux_source', data=spectra_fiber)
+    fout.create_dataset('spec_fiber_flux_source', data=spectra_fiber[wlim])
     
     # BGS source spectra 
     for k in spectra_bgs.keys(): 

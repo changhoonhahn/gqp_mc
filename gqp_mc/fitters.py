@@ -150,6 +150,130 @@ class iFSPS(Fitter):
     
         maggies = filters.get_ab_maggies(spec * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom, wavelength=w.flatten()*U.Angstrom) # maggies 
         return np.array(list(maggies[0])) * 1e9
+    
+    def MCMC_spectrophoto(self, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, f_fiber_prior=None, 
+            mask=None, bands='desi',
+            nwalkers=100, burnin=100, niter=1000, writeout=None, silent=True): 
+        ''' infer the posterior distribution of the free parameters given spectroscopy and photometry:
+        observed wavelength, spectra flux, inverse variance flux, photometry, inv. variance photometry
+        using MCMC. The function outputs a dictionary with the median theta of the posterior as well as 
+        the 1sigma and 2sigma errors on the parameters (see below).
+
+        :param wave_obs: 
+            array of the observed wavelength
+        
+        :param flux_obs: 
+            array of the observed flux __in units of ergs/s/cm^2/Ang__
+
+        :param flux_ivar_obs: 
+            array of the observed flux **inverse variance**. Not uncertainty!
+        
+        :param photo_obs: 
+            array of the observed photometric flux __in units of nanomaggies__
+
+        :param photo_ivar_obs: 
+            array of the observed photometric flux **inverse variance**. Not uncertainty!
+
+        :param zred: 
+            float specifying the redshift of the observations  
+    
+        :param f_fiber_prior: 
+            list specifying the range of f_fiber factor proir. (default: None) 
+
+        :param mask: (optional) 
+            boolean array specifying where to mask the spectra. If mask == 'emline' the spectra
+            is masked around emission lines at 3728., 4861., 5007., 6564. Angstroms. (default: None) 
+
+        :param nwalkers: (optional) 
+            number of walkers. (default: 100) 
+        
+        :param burnin: (optional) 
+            int specifying the burnin. (default: 100) 
+        
+        :param nwalkers: (optional) 
+            int specifying the number of iterations. (default: 1000) 
+        
+        :param writeout: (optional) 
+            string specifying the output file. If specified, everything in the output dictionary 
+            is written out as well as the entire MCMC chain. (default: None) 
+
+        :param silent: (optional) 
+            If False, a bunch of messages will be shown 
+
+        :return output: 
+            dictionary that with keys: 
+            - output['redshift'] : redshift 
+            - output['theta_med'] : parameter value of the median posterior
+            - output['theta_1sig_plus'] : 1sigma above median 
+            - output['theta_2sig_plus'] : 2sigma above median 
+            - output['theta_1sig_minus'] : 1sigma below median 
+            - output['theta_2sig_minus'] : 2sigma below median 
+            - output['wavelength_model'] : wavelength of best-fit model 
+            - output['flux_model'] : flux of best-fit model 
+            - output['wavelength_data'] : wavelength of observations 
+            - output['flux_data'] : flux of observations 
+            - output['flux_ivar_data'] = inverse variance of the observed flux. 
+        '''
+        import scipy.optimize as op
+        import emcee
+
+        self.priors.append(f_fiber_prior) # add f_fiber priors 
+        ndim = len(self.priors)
+    
+        # check mask for spectra 
+        _mask = self._check_mask(mask, wave_obs, flux_ivar_obs, zred) 
+        
+        # get photometric bands  
+        bands_list = self._get_bands(bands)
+        assert len(bands_list) == len(photo_obs) 
+        # get filters
+        filters = specFilter.load_filters(*tuple(bands_list))
+
+        # posterior function args and kwargs
+        lnpost_args = (wave_obs, 
+                flux_obs,        # 10^-17 ergs/s/cm^2/Ang
+                flux_ivar_obs,   # 1/(10^-17 ergs/s/cm^2/Ang)^2
+                photo_obs,               # nanomaggies
+                photo_ivar_obs,         # 1/nanomaggies^2
+                zred) 
+        lnpost_kwargs = {
+                'mask': _mask,           # emission line mask 
+                'filters': filters,
+                'prior_shape': 'flat'   # shape of prior (hardcoded) 
+                }
+        
+        # run emcee and get MCMC chains 
+        chain = self._emcee(self._lnPost_spectrophoto, lnpost_args, lnpost_kwargs, 
+                nwalkers=nwalkers, burnin=burnin, niter=niter, silent=silent)
+        # get quanitles of the posterior
+        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
+    
+        output = {} 
+        output['redshift'] = zred
+        output['theta_med'] = med 
+        output['theta_1sig_plus'] = high
+        output['theta_2sig_plus'] = highhigh
+        output['theta_1sig_minus'] = low
+        output['theta_2sig_minus'] = lowlow
+    
+        w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs)
+        output['wavelength_model'] = w_model
+        output['flux_model'] = flux_model 
+       
+        output['wavelength_data'] = wave_obs
+        output['flux_data'] = flux_obs
+        output['flux_ivar_data'] = flux_ivar_obs
+        
+        # save prior and MCMC chain 
+        output['priors'] = self.priors
+        output['mcmc_chain'] = chain 
+
+        if writeout is not None: 
+            fh5  = h5py.File(writeout, 'w') 
+            for k in output.keys(): 
+                fh5.create_dataset(k, data=output[k]) 
+            fh5.close() 
+        return output  
 
     def MCMC_spec(self, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, 
             nwalkers=100, burnin=100, niter=1000, writeout=None, silent=True): 
@@ -392,6 +516,47 @@ class iFSPS(Fitter):
         
         return  self.sampler.flatchain
 
+    def _lnPost_spectrophoto(self, tt_arr, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, 
+            mask=None, filters=None, bands=None, prior_shape='flat'): 
+        ''' calculate the log posterior 
+
+        :param tt_arr: 
+            array of free parameters. last element is fspectrophoto factor 
+
+        :param wave_obs:
+            wavelength of 'observations'
+
+        :param flux_obs: 
+            flux of the observed spectra
+        
+        :param flux_ivar_obs :
+            inverse variance of of the observed spectra
+
+        :param photo_obs: 
+            flux of the observed photometry maggies  
+
+        :param photo_ivar_obs :
+            inverse variance of of the observed photometry  
+
+        :param zred:
+            redshift of the 'observations'
+
+        :param mask: (optional) 
+            A boolean array that specifies what part of the spectra to mask 
+            out. (default: None) 
+
+        :param prior_shape: (optional) 
+            shape of the prior. (default: 'flat') 
+        '''
+        lp = self._lnPrior(tt_arr, shape=prior_shape) # log prior
+        if not np.isfinite(lp): 
+            return -np.inf
+
+        chi_tot = self._Chi2(tt_arr[:-1], wave_obs, flux_obs, flux_ivar_obs, zred, mask=mask, f_fiber=tt_arr[-1]) + \
+                self._Chi2_photo(tt_arr[:-1], photo_obs, photo_ivar_obs, zred, filters=filters, bands=bands)
+
+        return lp - 0.5 * chi_tot 
+
     def _lnPost(self, tt_arr, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, prior_shape='flat'): 
         ''' calculate the log posterior 
 
@@ -422,13 +587,13 @@ class iFSPS(Fitter):
             return -np.inf
         return lp - 0.5 * self._Chi2(tt_arr, wave_obs, flux_obs, flux_ivar_obs, zred, mask=mask)
 
-    def _Chi2(self, tt_arr, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None): 
+    def _Chi2(self, tt_arr, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, f_fiber=1.): 
         ''' calculated the chi-squared between the data and model spectra. 
         '''
         # model(theta) 
         _, flux = self.model(tt_arr, zred=zred, wavelength=wave_obs) 
         # data - model(theta) with masking 
-        dflux = (flux[:,~mask] - flux_obs[~mask]) 
+        dflux = (f_fiber * flux[:,~mask] - flux_obs[~mask]) 
         # calculate chi-squared
         _chi2 = np.sum(dflux**2 * flux_ivar_obs[~mask]) 
         return _chi2

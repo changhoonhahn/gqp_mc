@@ -101,11 +101,11 @@ def validate_sample():
     sub = fig.add_subplot(111)
     
     for i, spec_bgs in enumerate([spec_bgs2, spec_bgs0]): 
-        wsort = np.argsort(spec_bgs['wave'][0,:]) 
+        wsort = np.argsort(spec_bgs['wave']) 
         if i == 0: 
-            _plt, = sub.plot(spec_bgs['wave'][0,wsort], spec_bgs['flux'][0,wsort], c='C%i' % i, lw=0.25) 
+            _plt, = sub.plot(spec_bgs['wave'][wsort], spec_bgs['flux'][0,wsort], c='C%i' % i, lw=0.25) 
         else:
-            sub.plot(spec_bgs['wave'][0,wsort], spec_bgs['flux'][0,wsort], c='C%i' % i, lw=0.25) 
+            sub.plot(spec_bgs['wave'][wsort], spec_bgs['flux'][0,wsort], c='C%i' % i, lw=0.25) 
     
     _plt_photo = sub.errorbar([4750, 6350, 9250], [flux_g[0], flux_r[0], flux_z[0]], 
             [ivar_g[0]**-0.5, ivar_r[0]**-0.5, ivar_z[0]**-0.5], fmt='.r') 
@@ -283,6 +283,107 @@ def fit_photometry(igal, noise='none', nwalkers=100, burnin=100, niter=1000, ove
     return None 
 
 
+def fit_spectrophotometry(igal, noise='none', nwalkers=100, burnin=100, niter=1000, overwrite=False, justplot=False): 
+    ''' Fit Lgal spectra. `noise` specifies whether to fit spectra without noise or 
+    with BGS-like noise. Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
+
+    :param igal: 
+        index of Lgal galaxy within the spectral_challenge 
+
+    :param noise: 
+        If 'none', fit noiseless spectra. 
+        If 'bgs1'...'bgs8', fit BGS-like spectra. (default: 'none') 
+
+    :param justplot: 
+        If True, skip the fitting and plot the best-fit. This is mainly implemented 
+        because I'm having issues plotting in NERSC. (default: False) 
+    '''
+    noise_spec = noise.split('_')[0]
+    noise_photo = noise.split('_')[1]
+    # read noiseless Lgal spectra of the spectral_challenge mocks 
+    specs, meta = Data.Spectra(sim='lgal', noise=noise_spec, lib='bc03', sample='mini_mocha') 
+    
+    # read Lgal photometry of the mini_mocha mocks 
+    photo, _ = Data.Photometry(sim='lgal', noise=noise_photo, lib='bc03', sample='mini_mocha') 
+
+    model       = 'vanilla'
+    w_obs       = specs['wave']
+    flux_obs    = specs['flux'][igal]
+    if noise_spec != 'none': 
+        ivar_obs = specs['ivar'][igal]
+    else:  
+        ivar_obs = np.ones(len(w_obs)) 
+    photo_obs   = photo['flux'][igal,:5]
+    if noise_photo != 'none': 
+        photo_ivar_obs = photo['ivar'][igal,:5]
+    else:  
+        photo_ivar_obs = np.ones(photo_obs.shape[0]) 
+
+    # get fiber flux factor prior range based on measured fiber flux 
+    f_fiber_true = (photo['fiberflux_r_meas'][igal]/photo['flux_r_true'][igal]) 
+    f_fiber_min = (photo['fiberflux_r_meas'][igal] - 3.*photo['fiberflux_r_ivar'][igal]**-0.5)/photo['flux'][igal,1]
+    f_fiber_max = (photo['fiberflux_r_meas'][igal] + 3.*photo['fiberflux_r_ivar'][igal]**-0.5)/photo['flux'][igal,1]
+    f_fiber_prior = [f_fiber_min, f_fiber_max]
+    print(f_fiber_prior) 
+    print(f_fiber_true) 
+
+    truths      = [meta['logM_total'][igal], np.log10(meta['Z_MW'][igal]), meta['t_age_MW'][igal], None, None, f_fiber_true]
+    labels      = ['$\log M_*$', '$\log Z$', r'$t_{\rm age}$', 'dust2', r'$\tau$', r'$f_{\rm fiber}$']
+
+    print('--- input ---') 
+    print('z = %f' % meta['redshift'][igal])
+    print('log M* total = %f' % meta['logM_total'][igal])
+    print('log M* fiber = %f' % meta['logM_fiber'][igal])
+    print('MW Z = %f' % meta['Z_MW'][igal]) 
+    print('MW tage = %f' % meta['t_age_MW'][igal]) 
+
+    f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', 'ifsps', 'lgal.specphoto.noise_%s.%s.%i.hdf5' % (noise, model, igal))
+    if not justplot: 
+        if os.path.isfile(f_bf): 
+            if not overwrite: 
+                print("** CAUTION: %s already exists **" % os.path.basename(f_bf)) 
+        # initiating fit
+        ifsps = Fitters.iFSPS(model_name=model, prior=None) 
+        bestfit = ifsps.MCMC_spectrophoto(
+                w_obs, 
+                flux_obs, 
+                ivar_obs, 
+                photo_obs, 
+                photo_ivar_obs, 
+                meta['redshift'][igal], 
+                f_fiber_prior=f_fiber_prior, 
+                mask='emline', 
+                nwalkers=nwalkers, 
+                burnin=burnin, 
+                niter=niter, 
+                writeout=f_bf,
+                silent=False)
+    else: 
+        # read in best-fit file with mcmc chain
+        fbestfit = h5py.File(f_bf, 'r')  
+        bestfit = {} 
+        for k in fbestfit.keys(): 
+            bestfit[k] = fbestfit[k][...]
+
+    print('--- bestfit ---') 
+    print('written to %s' % f_bf) 
+    print('log M* total = %f' % bestfit['theta_med'][0])
+    print('log M* fiber = %f' % (bestfit['theta_med'][0] + np.log10(bestfit['theta_med'][-1])))
+    print('log Z = %f' % bestfit['theta_med'][1]) 
+    print('---------------') 
+    
+    try: 
+        # plotting on nersc never works.
+        if os.environ['NERSC_HOST'] == 'cori': return None 
+    except KeyError: 
+        # corner plot of the posteriors 
+        fig = DFM.corner(bestfit['mcmc_chain'], range=bestfit['priors'], quantiles=[0.16, 0.5, 0.84], 
+                levels=[0.68, 0.95], nbin=40, smooth=True, 
+                truths=truths, labels=labels, label_kwargs={'fontsize': 20}) 
+        fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
+    return None 
+
+
 def MP_fit(spec_or_photo, igals, noise='none', nthreads=1, nwalkers=100, burnin=100, niter=1000, overwrite=False, justplot=False): 
     ''' multiprocessing wrapepr for fit_spectra and fit_photometry. This does *not* parallelize 
     the MCMC sampling of individual fits but rather runs multiple fits simultaneously. 
@@ -319,6 +420,8 @@ def MP_fit(spec_or_photo, igals, noise='none', nthreads=1, nwalkers=100, burnin=
         fit_func = fit_spectra
     elif spec_or_photo == 'photo': 
         fit_func = fit_photometry
+    elif spec_or_photo == 'specphoto': 
+        fit_func = fit_spectrophotometry
 
     if nthreads > 1: 
         pool = Pool(processes=nthreads) 
@@ -335,7 +438,6 @@ def MP_fit(spec_or_photo, igals, noise='none', nthreads=1, nwalkers=100, burnin=
 if __name__=="__main__": 
     #construct_sample()
     #validate_sample()
-
     # >>> python mini_mocha.py
     spec_or_photo   = sys.argv[1]
     igal0           = int(sys.argv[2]) 

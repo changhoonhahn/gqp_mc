@@ -140,7 +140,10 @@ def Photometry(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'):
         for icol, band in enumerate(bands): 
             photo['flux'][:,icol] = mock['photo_flux_%s_meas' % band][...] # 'measured'
             photo['ivar'][:,icol] = mock['photo_ivar_%s_true' % band][...]
-
+    photo['flux_r_true'] = mock['photo_flux_r_true'][...]
+    photo['fiberflux_r_true'] = mock['photo_fiberflux_r_true'][...]
+    photo['fiberflux_r_meas'] = mock['photo_fiberflux_r_meas'][...]
+    photo['fiberflux_r_ivar'] = mock['photo_fiberflux_r_ivar'][...]
     return photo, meta
 
 
@@ -207,6 +210,7 @@ def make_mini_mocha(lib='bc03'):
 
     # apply uncertainty to fiber flux as well 
     photo_fiber_meas = photo_fiber_true + f_fiber * photo_ivars[:,1]**-0.5 * np.random.randn(photo_true.shape[0]) 
+    photo_ivar_fiber = f_fiber**-2 * photo_ivars[:,1] 
 
     # 3.b. get fiber spectra by scaling down noiseless Lgal source spectra
     spectra_fiber = spectra_s['flux_dust'] * f_fiber[:,None] # 10e-17 erg/s/cm2/A
@@ -279,15 +283,16 @@ def make_mini_mocha(lib='bc03'):
     # fiber flux 
     fout.create_dataset('photo_fiberflux_r_true', data=photo_fiber_true) 
     fout.create_dataset('photo_fiberflux_r_meas', data=photo_fiber_meas) 
+    fout.create_dataset('photo_fiberflux_r_ivar', data=photo_ivar_fiber) 
     fout.create_dataset('frac_fiber', data=f_fiber) # fraction of flux in fiber
     
     # spectroscopy 
     # noiseless source spectra 
     wlim = (spectra_s['wave'] < 2e5) & (spectra_s['wave'] > 1e3) # truncating the spectra  
     fout.create_dataset('spec_wave_source', data=spectra_s['wave'][wlim]) 
-    fout.create_dataset('spec_flux_source', data=spectra_s['flux_dust'][wlim]) 
+    fout.create_dataset('spec_flux_source', data=spectra_s['flux_dust'][:,wlim]) 
     # noiseless source spectra in fiber 
-    fout.create_dataset('spec_fiber_flux_source', data=spectra_fiber[wlim])
+    fout.create_dataset('spec_fiber_flux_source', data=spectra_fiber[:,wlim])
     
     # BGS source spectra 
     for k in spectra_bgs.keys(): 

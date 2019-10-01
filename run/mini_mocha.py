@@ -162,6 +162,7 @@ def fit_spectra(igal, noise='none', nwalkers=100, burnin=100, niter=1000, overwr
     print('--- input ---') 
     print('z = %f' % meta['redshift'][igal])
     print('log M* total = %f' % meta['logM_total'][igal])
+    print('log M* fiber = %f' % meta['logM_fiber'][igal])
     print('MW Z = %f' % meta['Z_MW'][igal]) 
     print('MW tage = %f' % meta['t_age_MW'][igal]) 
 
@@ -298,8 +299,12 @@ def fit_spectrophotometry(igal, noise='none', nwalkers=100, burnin=100, niter=10
         If True, skip the fitting and plot the best-fit. This is mainly implemented 
         because I'm having issues plotting in NERSC. (default: False) 
     '''
-    noise_spec = noise.split('_')[0]
-    noise_photo = noise.split('_')[1]
+    if noise != 'none': 
+        noise_spec = noise.split('_')[0]
+        noise_photo = noise.split('_')[1]
+    else: 
+        noise_spec = 'none'
+        noise_photo = 'none'
     # read noiseless Lgal spectra of the spectral_challenge mocks 
     specs, meta = Data.Spectra(sim='lgal', noise=noise_spec, lib='bc03', sample='mini_mocha') 
     
@@ -326,6 +331,7 @@ def fit_spectrophotometry(igal, noise='none', nwalkers=100, burnin=100, niter=10
     f_fiber_prior = [f_fiber_min, f_fiber_max]
     print(f_fiber_prior) 
     print(f_fiber_true) 
+    print((photo['fiberflux_r_true'][igal]/photo['flux_r_true'][igal])) 
 
     truths      = [meta['logM_total'][igal], np.log10(meta['Z_MW'][igal]), meta['t_age_MW'][igal], None, None, f_fiber_true]
     labels      = ['$\log M_*$', '$\log Z$', r'$t_{\rm age}$', 'dust2', r'$\tau$', r'$f_{\rm fiber}$']

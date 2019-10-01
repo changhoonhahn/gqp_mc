@@ -1,6 +1,6 @@
 '''
 
-scripts to generate data for the mini Mock Challenge (mocha) 
+scripts to generate data for the mini Mock Challenge (mini mocha) 
 
 
 '''

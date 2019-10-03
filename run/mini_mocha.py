@@ -442,10 +442,14 @@ def MP_fit(spec_or_photo, igals, noise='none', nthreads=1, nwalkers=100, burnin=
 
 
 if __name__=="__main__": 
-    #construct_sample()
-    #validate_sample()
     # >>> python mini_mocha.py
     spec_or_photo   = sys.argv[1]
+
+    if spec_or_photo == 'construct':  
+        construct_sample()
+        validate_sample()
+        sys.exit() 
+
     igal0           = int(sys.argv[2]) 
     igal1           = int(sys.argv[3]) 
     noise           = sys.argv[4]

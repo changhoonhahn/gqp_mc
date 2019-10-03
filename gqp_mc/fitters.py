@@ -597,6 +597,12 @@ class iFSPS(Fitter):
         # calculate chi-squared
         _chi2 = np.sum(dflux**2 * flux_ivar_obs[~mask]) 
         return _chi2
+
+    def _lnPost_spec(self, *args, **kwargs): 
+        return self._lnPost(*args, **kwargs)
+    
+    def _lnPost_Chi2(self, *args, **kwargs): 
+        return self._Chi2(*args, **kwargs)
     
     def _lnPost_photo(self, tt_arr, flux_obs, flux_ivar_obs, zred, filters=None, bands=None, prior_shape='flat'): 
         ''' calculate the log posterior for photometry

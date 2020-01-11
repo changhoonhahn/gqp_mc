@@ -5,6 +5,7 @@ script with some of the firefly dependencies
 
 '''
 import numpy as np 
+from scipy.stats import chi2 
 
 
 def hpf(flux, windowsize=0, w_start=0):
@@ -143,11 +144,11 @@ def calculate_averages_pdf(probs, light_weights, mass_weights, unnorm_mass, age,
 
     # Keep the mass in linear units until later M/M_{odot}.
     tot_mass = np.sum(unnorm_mass, 1) * conversion_factor
-    av['stellar_mass'], av['stellar_mass_1_sig_plus'], av['stellar_mass_1_sig_minus'], av['stellar_mass_2_sig_plus'], av['stellar_mass_2_sig_minus'], av['stellar_mass_3_sig_plus'], av['stellar_mass_3_sig_minus'] = averages_and_errors(probs,tot_mass,sampling)
+    av['stellar_mass'], av['stellar_mass_1_sig_plus'], av['stellar_mass_1_sig_minus'], av['stellar_mass_2_sig_plus'], av['stellar_mass_2_sig_minus'], av['stellar_mass_3_sig_plus'], av['stellar_mass_3_sig_minus'] = averages_and_errors(probs, tot_mass, sampling)
     return av
 
 
-def averages_and_errors(probs,prop,sampling):
+def averages_and_errors(probs, prop, sampling):
     """
     determines the average and error of a property for a given sampling
     
@@ -162,7 +163,7 @@ def averages_and_errors(probs,prop,sampling):
     if ((len(probs) <= 1) or (len(prop[~np.isnan(prop)]) <= 1)):
         best_fit, upper_onesig,lower_onesig, upper_twosig,lower_twosig, upper_thrsig,lower_thrsig = 999.0, 999.0, 999.0, 999.0, 999.0, 999.0, 999.0
     else:
-        xdf, y = max_pdf(probs,prop,sampling)
+        xdf, y = max_pdf(probs, prop, sampling)
         cdf = np.zeros(np.shape(y))
         cdf_probspace = np.zeros(np.shape(y))
 
@@ -195,28 +196,31 @@ def averages_and_errors(probs,prop,sampling):
     return [best_fit,upper_onesig,lower_onesig,upper_twosig,lower_twosig,upper_thrsig,lower_thrsig]
 
 
-def max_pdf(probs, property, sampling):
+def max_pdf(probs, prop, sampling):
     ''' determines the maximum of a pdf of a property for a given sampling
 
     :param probs: probabilities
-    :param  property: property
-    :param  sampling: sampling of the property
+    :param property: property
+    :param sampling: sampling of the property
     '''
-    lower_limit 	= np.min(property)
-    upper_limit 	= np.max(property)
+    print(probs.shape, prop.shape)
+    lower_limit 	= np.min(prop)
+    upper_limit 	= np.max(prop)
     error_interval = np.round(upper_limit, 2) - np.round(lower_limit, 2)
 
     if np.round(upper_limit, 2) == np.round(lower_limit, 2) or error_interval <= abs((upper_limit/100.)*3):
-        return np.asarray(property),np.ones(len(probs))/np.size(probs)
+        return np.asarray(prop),np.ones(len(probs))/np.size(probs)
 
     property_pdf_int= np.arange(lower_limit, upper_limit * 1.001, (upper_limit-lower_limit) /sampling ) + ( upper_limit - lower_limit) * 0.000001	
     prob_pdf 		= np.zeros(len(property_pdf_int))
 
     for p in range(len(property_pdf_int)-1):
-        match_prop = np.where( (property <= property_pdf_int[p+1]) & (property > property_pdf_int[p]) )
+        match_prop = np.where( (prop <= property_pdf_int[p+1]) & (prop > property_pdf_int[p]) )
         if np.size(match_prop) == 0:
             continue
         else:
+            print('probs:', probs.shape)
+            print(match_prop[0].shape)
             prob_pdf[p] = np.max( probs[match_prop] )
 
     property_pdf = bisect_array(property_pdf_int)

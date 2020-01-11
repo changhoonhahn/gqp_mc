@@ -1,3 +1,4 @@
+import os 
 import h5py 
 import fsps
 import numpy as np 
@@ -9,7 +10,7 @@ from astropy.cosmology import Planck13 as cosmo
 from speclite import filters as specFilter
 # --- gqp_mc --- 
 from . import util as UT
-from .firefly._firefly import hpf, convert_chis_to_probs, curve_smoother 
+from .firefly._firefly import hpf, curve_smoother, calculate_averages_pdf, convert_chis_to_probs
 
 
 class Fitter(object): 
@@ -786,17 +787,17 @@ class pseudoFirefly(Fitter):
 
         self._model_init(model_name)
         self.cosmo = cosmo # cosmology  
-        self.ssp = self._ssp_initiate() # initial ssp
         self._set_prior(prior) # set prior 
 
         # get models within prior  
-        model_wave, model_flux, model_age, model_metal = self.get_model(downgraded=downgrade, silent=silent) 
+        model_wave, model_flux, model_age, model_metal = self._get_model(downgraded=downgraded, silent=silent) 
+        self.n_model        = model_flux.shape[0]
         self.model_wave     = model_wave
         self.model_flux     = model_flux
         self.model_age      = model_flux
         self.model_metal    = model_flux
 
-    def Fit_spec(self, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, flux_unit=1e-17, writeout=None, silent=True): 
+    def Fit_spec(self, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, flux_unit=1e-17, fit_cap=1000, iter_max=10, writeout=None, silent=True): 
         ''' fit parameters given observed wavelength, spectra flux, and inverse variance using Firefly. 
         The function outputs a dictionary with the median theta as well as the 
         1sigma and 2sigma errors on the parameters (see below).
@@ -854,13 +855,15 @@ class pseudoFirefly(Fitter):
                 flux_ivar_obs, 
                 self.model_wave, 
                 self.model_flux, 
-                mask=mask, 
+                mask=_mask, 
                 silent=silent)
         
         if not silent: print("Normalize the models to the median data flux")
         data_median     = np.median(flux_obs_match)
         model_median    = np.median(model_flux_raw, axis=1) 
-
+        
+        mass_factor = data_median/model_median
+        model_flux = (model_flux_raw.T / model_median).T * data_median
         if self.dust_corr:
             if not silent: print("Dust correction")
             # determining attenuation curve through HPF fitting, 
@@ -869,9 +872,9 @@ class pseudoFirefly(Fitter):
                     wave_obs_match, 
                     flux_obs_match, 
                     flux_ivar_obs_match, 
-                    model_flux,
-                    model_age, 
-                    model_metal)
+                    self.model_flux,
+                    self.model_age, 
+                    self.model_metal)
 
             model_flux_atten = np.zeros(model_flux_raw.shape)
             for m in range(len(model_flux_raw)):
@@ -887,7 +890,7 @@ class pseudoFirefly(Fitter):
         # this is supposed to be the essential ingredient of firefly 
         # the code is a giant mess with nested functions and classes 
         # and global variables everywhere. 
-        light_weights, chis, branch = self._fitter(wave_match, flux_obs_match, flux_ivar_obs_match, model_flux)
+        light_weights, chis, branch = self._fitter(wave_obs_match, flux_obs_match, flux_ivar_obs_match, model_flux, fit_cap=fit_cap, iter_max=iter_max)
 
         if not silent: print("mass weighted SSP contributions")
         # 5. Get mass-weighted SSP contributions using saved M/L ratio.
@@ -895,7 +898,7 @@ class pseudoFirefly(Fitter):
         mass_weights = (unnorm_mass.T / np.sum(unnorm_mass, axis=1)).T
 
         if not silent: print("chis into probabilities")
-        dof = len(wave_match)
+        dof = len(wave_obs_match)
         probs = convert_chis_to_probs(chis, dof)
                         
         if not silent: print("Calculating average properties and outputting")
@@ -903,8 +906,8 @@ class pseudoFirefly(Fitter):
                 light_weights, 
                 mass_weights, 
                 unnorm_mass, 
-                model_age, 
-                model_metal, 
+                self.model_age, 
+                self.model_metal, 
                 self.pdf_sampling, 
                 d_lum, 
                 flux_unit)
@@ -955,19 +958,19 @@ class pseudoFirefly(Fitter):
 
         model_files = []
         if self.ssp_model == 'm11': # Marastron & Stromback (2011) SP model 
-
-            str_model = self.emp_stellar_lib+'.'+self.imf 
+            imf_dict = {'kroupa': 'kr', 'chabrier': 'cha', 'salpeter': 'ss'} 
+            str_model = self.emp_stellar_lib+'.'+imf_dict[self.imf] 
 
             if downgraded :
                 if self.emp_stellar_lib in ['MILES_UVextended', 'MILES_revisedIRslope']:
                     model_path = os.path.join(dir_sp, 'SSP_M11_MILES_downgraded','ssp_M11_'+str_model)
                 else: 
-                    model_path = os.path.join([dir_sp, 'SSP_M11_'+self.emp_stellar_lib+'_downgraded', 'ssp_M11_'+str_model)
+                    model_path = os.path.join(dir_sp, 'SSP_M11_%s_downgraded' % self.emp_stellar_lib, 'ssp_M11_'+str_model)
             else:
                 if self.emp_stellar_lib in ['MILES_UVextended', 'MILES_revisedIRslope']:
-                    model_path = os.path.join(dir_sp, 'SSP_M11_MILES', 'ssp_M11_'+str_model])
+                    model_path = os.path.join(dir_sp, 'SSP_M11_MILES', 'ssp_M11_'+str_model)
                 else:
-                    model_path = os.path.join(dir_sp, 'SSP_M11_'+self.model_lib, 'ssp_M11_'+str_model)
+                    model_path = os.path.join(dir_sp, 'SSP_M11_%s' % self.emp_stellar_lib, 'ssp_M11_'+str_model)
         
             # metallity grid
             Z_strs  = np.array(['z001', 'z002', 'z004', 'z0001.bhb', 'z0001.rhb', 'z10m4.bhb', 'z10m4.rhb']) #'z10m4'
@@ -990,7 +993,7 @@ class pseudoFirefly(Fitter):
         # keep only files with metallicities within the metallity prior range  
         inZlim = (Z > 10**self.priors[1][0]) & (Z < 10**self.priors[1][1])  # log Z/H priors
         metal = Z[inZlim] 
-        metal_files = [model_path+zstr for zstr in z_strs[inZlim]]
+        metal_files = [model_path+zstr for zstr in Z_strs[inZlim]]
         if not silent: print('metal files included %s from %s' % (', '.join(metal_files), model_path))
 
         # constructs the model array
@@ -1018,8 +1021,8 @@ class pseudoFirefly(Fitter):
                 mf = flux.copy() 
 
                 # Reddens the models
-                if ebv_mw != 0:
-                    attenuations = unred(wavelength,ebv=0.0-ebv_mw)
+                if self.ebv_mw != 0:
+                    attenuations = unred(wavelength,ebv=0.0 - self.ebv_mw)
                     flux_model.append(mf*attenuations)
                 else:
                     flux_model.append(mf)
@@ -1071,6 +1074,8 @@ class pseudoFirefly(Fitter):
             self.emp_stellar_lib = 'MILES' # empirical stellar libraries 
             self.imf = 'kroupa'
 
+            self.ebv_mw = 0.
+
             # some other settings that we won't play with for now...
             # dust stuff (pretty much untouched from original firefly) 
             self.dust_corr  = False 
@@ -1080,9 +1085,7 @@ class pseudoFirefly(Fitter):
             self.dust_smoothing_length = 200
             
             # specific fitting options
-            max_iterations = 10
-            fit_per_iteration_cap = 1000
-            pdf_sampling = 300 # sampling size when calculating the maximum pdf (100=recommended)
+            self.pdf_sampling = 300 # sampling size when calculating the maximum pdf (100=recommended)
             # default is air, unless manga is used
             self.data_wave_medium = 'air'
         else: 
@@ -1199,12 +1202,12 @@ class pseudoFirefly(Fitter):
 
         return [np.array(final_ML) for final_ML in final_MLs]
 
-    def _fitter(self, wavelength, data, ivar, models, fit_cap=None, iter_max=None):
+    def _fitter(self, wavelength, data, ivar, models, fit_cap=1000, iter_max=10):
         '''
         '''
-        n_models = self.models.shape[0]
+        n_models = self.n_model
 
-        bic = np.log(len(wavelength))
+        bic_n = np.log(len(wavelength))
         chi_models = (models - data) * np.sqrt(ivar)  
 
         # initialise fit objects over initial set of models
@@ -1226,11 +1229,13 @@ class pseudoFirefly(Fitter):
             fit_list.append(fit_first) 
             int_chi.append(fit_first['chi_squared'])
 
+        index_count = len(models) 
+
         # Find clipped array to remove artefacts:
         clipped_arr = fit_list[np.argmin(int_chi)]['clipped_arr']
 
         # fit_list is our initial guesses from which we will iterate
-        final_fit_list = self._iterate(fit_list, bic_n, iterate_count, clipped_arr, chi_models, fit_cap=fit_cap)
+        final_fit_list = self._iterate(fit_list, bic_n, 0, clipped_arr, chi_models, fit_cap=fit_cap)
 
         chis = np.array([fdict['chi_squared'] for fdict in final_fit_list])
         best_fits = np.argsort(chis)	
@@ -1238,18 +1243,17 @@ class pseudoFirefly(Fitter):
         bf = len(best_fits)
         if bf > 10: bf = 10
 
-        extra_fit_list = self._mix(np.asarray(final_fit_list)[best_fits[:bf]].tolist(), final_fit_list, np.min(chis))
-        extra_chis = [fdict['chi_squared'] for fdict in extra_fit_list]
-        total_fit_list = final_fit_list + extra_fit_list
+        extra_fit_list  = self._mix(np.asarray(final_fit_list)[best_fits[:bf]].tolist(), final_fit_list, np.min(chis), index_count, chi_models)
+        extra_chis      = [fdict['chi_squared'] for fdict in extra_fit_list]
+        total_fit_list  = final_fit_list + extra_fit_list
 
-        weights = np.array([fdict['weights'] for fdict in total_fit_list]) 
-        chis = np.array([fdict['chi_squared'] for fdict in total_fit_list]) 
-        branches = np.array([fdict['branch_num'] for fdict in total_fit_list]) 
+        weights     = np.array([fdict['weights'] for fdict in total_fit_list]) 
+        chis        = np.array([fdict['chi_squared'] for fdict in total_fit_list]) 
+        branches    = np.array([fdict['branch_num'] for fdict in total_fit_list]) 
         return weights, chis, branches
 
     def _iterate(self, fitlist, bic_n, iterate_count, clipped_arr, chi_models, fit_cap=None): 
-        '''
-        '''
+        print(iterate_count) 
         iterate_count += 1 
 
         count_new = 0
@@ -1261,14 +1265,13 @@ class pseudoFirefly(Fitter):
             new_list = self._spawn_children(fitlist[f], iterate_count, clipped_arr, chi_models)
 
             len_new = len(new_list) 
-	    for n in range(len_new):
+            for n in range(len_new):
                 # Check if any of the new spawned children represent better solutions
                 new_chi = new_list[n]['chi_squared'] 
-
+               
                 if new_chi < (previous_chis - bic_n): # If they do, add them to the fit list!
                     count_new += 1
-                    if count_new > fit_cap:
-                        break
+                    if count_new > fit_cap: break
                     fitlist.append(new_list[n])
 
             if count_new > fit_cap: break
@@ -1288,7 +1291,7 @@ class pseudoFirefly(Fitter):
         new_weights = fitdict['weights'] * branch_num
         sum_weights = np.sum(new_weights)+1
 
-        for im in range(self.models.shape[0]): 
+        for im in range(self.n_model): 
             new_weights[im] += 1
 
             fitdict = {} 
@@ -1305,7 +1308,7 @@ class pseudoFirefly(Fitter):
             new_weights[im] -= 1
         return fit_list
     
-    def _mix(self, fit_list, full_fit_list, min_chi):
+    def _mix(self, fit_list, full_fit_list, min_chi, index_count, chi_models):
         """ Mix the best solutions together to improve error estimations.
         Never go more than 100 best solutions!  
         """
@@ -1319,11 +1322,11 @@ class pseudoFirefly(Fitter):
                     fitdict = {} 
                     fitdict['weights'] = (f1['weights'] + q * f2['weights']) / (1. + q)
                     fitdict['branch_num'] = f1['branch_num'] + f2['branch_num'] 
-                    fitdict['index'] = self.index_count
+                    fitdict['index'] = index_count
                     
                     # Auto-calculate chi-squared
                     index_weights = np.nonzero(fitdict['weights']) # saves time!
-                    chi_arr = np.dot(fitdict['weights'][index_weights], self.chi_models[index_weights])
+                    chi_arr = np.dot(fitdict['weights'][index_weights], chi_models[index_weights])
                     if fitdict['branch_num'] == 0: 
                         chi_clipped_arr = sigmaclip(chi_arr, low=3.0, high=3.0)
                         chi_clip_sq = np.square(chi_clipped_arr[0])
@@ -1331,8 +1334,7 @@ class pseudoFirefly(Fitter):
                     else: 
                         chi_clip_sq = np.square(chi_arr[self.clipped_arr])
                     fitdict['chi_squared'] = np.sum(chi_clip_sq)
-                    self.index_count += 1 
+                    index_count += 1 
 
                     extra_fit_list.append(fitdict)
         return extra_fit_list
-

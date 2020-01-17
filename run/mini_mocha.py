@@ -18,7 +18,10 @@ from gqp_mc import fitters as Fitters
 # --- plotting --- 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-mpl.rcParams['text.usetex'] = True
+try: 
+    if os.environ['NERSC_HOST'] == 'cori':  pass
+except KeyError: 
+    mpl.rcParams['text.usetex'] = True
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['axes.linewidth'] = 1.5
 mpl.rcParams['axes.xmargin'] = 1
@@ -499,6 +502,16 @@ def fit_pFF_spectra(igal, noise='none', iter_max=10, overwrite=False):
     print('log M* = %f' % bestfit['theta_med'][0])
     print('log Z = %f' % bestfit['theta_med'][1]) 
     print('---------------') 
+    
+    fig = plt.figure(figsize=(12,4))
+    sub = fig.add_subplot(111)
+    sub.plot(bestfit['wavelength_data'], bestfit['flux_data'], c='k', zorder=1, lw=0.5) 
+    sub.plot(bestfit['wavelength_model'] * (1. + bestfit['redshift']), bestfit['flux_model'], c='C1') 
+    sub.set_xlabel('Wavelength', fontsize=20) 
+    sub.set_xlim(3500, 1e4) 
+    sub.set_ylabel('Flux', fontsize=20) 
+    sub.set_ylim(0., None) 
+    fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
     return None 
 
 

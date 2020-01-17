@@ -91,8 +91,7 @@ def convert_chis_to_probs(chis,dof):
 
 
 def calculate_averages_pdf(probs, light_weights, mass_weights, unnorm_mass, age, metal, sampling, dist_lum,  flux_units): 
-    """
-    Calculates light- and mass-averaged age and metallicities.
+    ''' Calculates light- and mass-averaged age and metallicities.
     Also outputs stellar mass and mass-to-light ratios.
     And errors on all of these properties.
 
@@ -125,14 +124,14 @@ def calculate_averages_pdf(probs, light_weights, mass_weights, unnorm_mass, age,
     :param metal: metallicity
     :param sampling: sampling of the property
     :param dist_lum: luminosity distance in cm
-    """
+    '''
 
     # Sampling number of max_pdf (100:recommended) from options
     # Keep the age in linear units of Age(Gyr)
     log_age = age
     
     av = {} # dictionnary where values are stored :
-    av['light_age'],av['light_age_1_sig_plus'],av['light_age_1_sig_minus'], av['light_age_2_sig_plus'], av['light_age_2_sig_minus'], av['light_age_3_sig_plus'], av['light_age_3_sig_minus'] = averages_and_errors(probs,np.dot(light_weights,log_age),sampling)
+    av['light_age'],av['light_age_1_sig_plus'],av['light_age_1_sig_minus'], av['light_age_2_sig_plus'], av['light_age_2_sig_minus'], av['light_age_3_sig_plus'], av['light_age_3_sig_minus'] = averages_and_errors(probs, np.dot(light_weights, log_age), sampling)
     
     av['light_metal'], av['light_metal_1_sig_plus'], av['light_metal_1_sig_minus'], av['light_metal_2_sig_plus'], av['light_metal_2_sig_minus'], av['light_metal_3_sig_plus'], av['light_metal_3_sig_minus'] = averages_and_errors(probs, np.dot(light_weights, metal), sampling)
     
@@ -149,15 +148,14 @@ def calculate_averages_pdf(probs, light_weights, mass_weights, unnorm_mass, age,
 
 
 def averages_and_errors(probs, prop, sampling):
-    """
-    determines the average and error of a property for a given sampling
+    ''' determines the average and error of a property for a given sampling
     
     returns : an array with the best fit value, +/- 1, 2, 3 sigma values.
 
     :param probs: probabilities
     :param  property: property
     :param  sampling: sampling of the property
-    """
+    '''
     # This prevents galaxies with 1 unique solution from going any further. This is because the code crashes when constructing the likelihood
     # distributions. HACKY, but we need to think about this...
     if ((len(probs) <= 1) or (len(prop[~np.isnan(prop)]) <= 1)):
@@ -203,7 +201,6 @@ def max_pdf(probs, prop, sampling):
     :param property: property
     :param sampling: sampling of the property
     '''
-    print(probs.shape, prop.shape)
     lower_limit 	= np.min(prop)
     upper_limit 	= np.max(prop)
     error_interval = np.round(upper_limit, 2) - np.round(lower_limit, 2)
@@ -219,12 +216,10 @@ def max_pdf(probs, prop, sampling):
         if np.size(match_prop) == 0:
             continue
         else:
-            print('probs:', probs.shape)
-            print(match_prop[0].shape)
             prob_pdf[p] = np.max( probs[match_prop] )
 
-    property_pdf = bisect_array(property_pdf_int)
-    return property_pdf,prob_pdf[:-1]/np.sum(prob_pdf)
+    property_pdf = 0.5 * (property_pdf_int[:-1] + property_pdf_int[1:])
+    return property_pdf, prob_pdf[:-1]/np.sum(prob_pdf)
 
 
 # --- dust --- 
@@ -283,3 +278,14 @@ def dust_prevot_py(ebv,lam):
     return output
 
 
+def find_closest(A, target):
+    ''' returns the id of the target in the array A.
+    :param A: Array, must be sorted
+    :param target: target value to be located in the array.
+    '''
+    idx = A.searchsorted(target)
+    idx = np.clip(idx, 1, len(A)-1)
+    left = A[idx-1]
+    right = A[idx]
+    idx -= target - left < right - target
+    return idx

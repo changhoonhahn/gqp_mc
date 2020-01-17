@@ -794,8 +794,8 @@ class pseudoFirefly(Fitter):
         self.n_model        = model_flux.shape[0]
         self.model_wave     = model_wave
         self.model_flux     = model_flux
-        self.model_age      = model_flux
-        self.model_metal    = model_flux
+        self.model_age      = model_age
+        self.model_metal    = model_metal
 
     def Fit_spec(self, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, flux_unit=1e-17, fit_cap=1000, iter_max=10, writeout=None, silent=True): 
         ''' fit parameters given observed wavelength, spectra flux, and inverse variance using Firefly. 
@@ -923,16 +923,16 @@ class pseudoFirefly(Fitter):
         for i_sig in [1, 2]: 
             output['theta_%isig_plus' % i_sig] = np.array([
                 np.log10(averages['stellar_mass_%i_sig_plus' % i_sig]), 
-                np.log10(averages['mass_metal_%i_sig_plus']), 
-                averages['mass_age_%i_sig_plus']
+                np.log10(averages['mass_metal_%i_sig_plus' % i_sig]), 
+                averages['mass_age_%i_sig_plus' % i_sig]
                 ]) 
             output['theta_%isig_minus' % i_sig] = np.array([
                 np.log10(averages['stellar_mass_%i_sig_minus' % i_sig]),  
-                np.log10(averages['mass_metal_%i_sig_minus']),
-                averages['mass_age_%i_sig_minus'] # Gyr
+                np.log10(averages['mass_metal_%i_sig_minus' % i_sig]),
+                averages['mass_age_%i_sig_minus' % i_sig] # Gyr
                 ]) 
 
-        output['wavelength_model'] = wave_obs 
+        output['wavelength_model'] = wave_obs_match
         output['flux_model'] = best_fit 
        
         output['wavelength_data'] = wave_obs
@@ -1034,22 +1034,20 @@ class pseudoFirefly(Fitter):
     def _match_data_models(self, w_d, flux_d, err_d, w_m, flux_m, mask=None, silent=True): 
         ''' match the wavelength resolution of the data and model
         '''
-        if mask is None: mask = np.ones(len(w_d)).astype(bool) 
-
-        w_min, w_max = w_d[mask].min(), w_d[mask].max()
+        w_min, w_max = w_d[~mask].min(), w_d[~mask].max()
         if not silent: print("%f < wavelength < %f" % (w_min, w_max))
         
-        w_d     = w_d[mask]
-        flux_d  = flux_d[mask] 
-        err_d   = err_d[mask]
+        w_d     = w_d[~mask]
+        flux_d  = flux_d[~mask] 
+        err_d   = err_d[~mask]
 
         n_models = flux_m.shape[0]
-        mask_m = ((w_m >= w_min) & (w_m <= w_max))
-        assert np.sum(mask_m) > 0, ('outside of model wavelength range %f < wave < %f' % (w_m.min(), w_m.max()))
-        w_m     = w_m[mask_m]
-        flux_m  = flux_m[:,mask_m] 
+        mask_m = ((w_m < w_min) | (w_m > w_max))
+        assert np.sum(~mask_m) > 0, ('outside of model wavelength range %f < wave < %f' % (w_m.min(), w_m.max()))
+        w_m     = w_m[~mask_m]
+        flux_m  = flux_m[:,~mask_m] 
 
-        if np.sum(mask_m) >= np.sum(mask): 
+        if np.sum(~mask_m) >= np.sum(~mask): 
             if not silent: print("model has higher wavelength resolution")
             matched_wave    = w_d[1:-1]
             matched_data    = flux_d[1:-1]
@@ -1243,7 +1241,7 @@ class pseudoFirefly(Fitter):
         bf = len(best_fits)
         if bf > 10: bf = 10
 
-        extra_fit_list  = self._mix(np.asarray(final_fit_list)[best_fits[:bf]].tolist(), final_fit_list, np.min(chis), index_count, chi_models)
+        extra_fit_list  = self._mix(np.asarray(final_fit_list)[best_fits[:bf]].tolist(), final_fit_list, np.min(chis), index_count, chi_models, clipped_arr)
         extra_chis      = [fdict['chi_squared'] for fdict in extra_fit_list]
         total_fit_list  = final_fit_list + extra_fit_list
 
@@ -1253,7 +1251,7 @@ class pseudoFirefly(Fitter):
         return weights, chis, branches
 
     def _iterate(self, fitlist, bic_n, iterate_count, clipped_arr, chi_models, fit_cap=None): 
-        print(iterate_count) 
+        #print('iterate_count', iterate_count) 
         iterate_count += 1 
 
         count_new = 0
@@ -1282,7 +1280,7 @@ class pseudoFirefly(Fitter):
         else:
             if iterate_count == 10: # hard max number of iterations 
                 return fitlist
-            fit_list_new = self._iterate(fitlist, bic_n, iterate_count, clipped_arr, fit_cap=fit_cap)
+            fit_list_new = self._iterate(fitlist, bic_n, iterate_count, clipped_arr, chi_models, fit_cap=fit_cap)
             return fit_list_new
 
     def _spawn_children(self, fitdict, branch_num, clipped_arr, chi_models):
@@ -1308,7 +1306,7 @@ class pseudoFirefly(Fitter):
             new_weights[im] -= 1
         return fit_list
     
-    def _mix(self, fit_list, full_fit_list, min_chi, index_count, chi_models):
+    def _mix(self, fit_list, full_fit_list, min_chi, index_count, chi_models, clipped_arr):
         """ Mix the best solutions together to improve error estimations.
         Never go more than 100 best solutions!  
         """
@@ -1327,12 +1325,12 @@ class pseudoFirefly(Fitter):
                     # Auto-calculate chi-squared
                     index_weights = np.nonzero(fitdict['weights']) # saves time!
                     chi_arr = np.dot(fitdict['weights'][index_weights], chi_models[index_weights])
-                    if fitdict['branch_num'] == 0: 
-                        chi_clipped_arr = sigmaclip(chi_arr, low=3.0, high=3.0)
-                        chi_clip_sq = np.square(chi_clipped_arr[0])
-                        self.clipped_arr = (chi_arr > chi_clipped_arr[1]) & (chi_arr < chi_clipped_arr[2])
-                    else: 
-                        chi_clip_sq = np.square(chi_arr[self.clipped_arr])
+                    #if fitdict['branch_num'] == 0: 
+                    #    chi_clipped_arr = sigmaclip(chi_arr, low=3.0, high=3.0)
+                    #    chi_clip_sq = np.square(chi_clipped_arr[0])
+                    #    self.clipped_arr = (chi_arr > chi_clipped_arr[1]) & (chi_arr < chi_clipped_arr[2])
+                    #else: 
+                    chi_clip_sq = np.square(chi_arr[clipped_arr])
                     fitdict['chi_squared'] = np.sum(chi_clip_sq)
                     index_count += 1 
 

@@ -120,6 +120,13 @@ def mini_mocha_spec(noise='bgs0', method='ifsps'):
             fbf['theta_med'][...], 
             fbf['theta_1sig_plus'][...], 
             fbf['theta_2sig_plus'][...]])
+
+        if sfr == '1gyr': 
+            sfr_inf = ifsps._SFR_MCMC(fbf['mcmc_chain'][...], dt=1.)
+        elif sfr == '100myr': 
+            sfr_inf = ifsps._SFR_MCMC(fbf['mcmc_chain'][...], dt=0.1)
+        theta_inf_i = np.concatenate([theta_inf_i, np.atleast_2d(sfr_inf).T], axis=1) 
+
         theta_inf.append(theta_inf_i) 
     theta_inf = np.array(theta_inf) 
     
@@ -316,7 +323,7 @@ def mini_mocha_specphoto(noise='bgs0_legacy', method='ifsps'):
     return None 
 
 
-def photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', method='ifsps'):  
+def photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', method='ifsps', sfr='1gyr'):  
     ''' Compare properties inferred from photometry versus spectrophotometry to see how much
     information is gained from adding spectra
     '''
@@ -327,6 +334,7 @@ def photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', meth
     photo, _ = Data.Photometry(sim='lgal', noise=noise_specphoto.split('_')[1], lib='bc03', sample='mini_mocha')
 
     Mstar_input = np.array(meta['logM_total'][:97]) # total mass 
+    logSFR_input= np.log10(np.array(meta['sfr_%s' % sfr][:97])) 
     Z_MW_input  = meta['Z_MW'][:97]  # mass-weighted metallicity
     tage_input  = meta['t_age_MW'][:97]  # mass-weighted age
     
@@ -342,7 +350,18 @@ def photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', meth
             fbf['theta_med'][...], 
             fbf['theta_1sig_plus'][...], 
             fbf['theta_2sig_plus'][...]])
+
+        # calculate average SFR
+        if method == 'ifsps': 
+            ifsps = Fitters.iFSPS()
+            if sfr == '1gyr': 
+                sfr_inf = ifsps._SFR_MCMC(fbf['mcmc_chain'][...], dt=1.)
+            elif sfr == '100myr': 
+                sfr_inf = ifsps._SFR_MCMC(fbf['mcmc_chain'][...], dt=0.1)
+            theta_inf_i = np.concatenate([theta_inf_i, np.atleast_2d(sfr_inf).T], axis=1) 
+
         theta_inf_photo.append(theta_inf_i) 
+
         # read best-fit file and get inferred parameters from spectrophoto
         _fbf = Fbestfit_specphoto(igal, noise=noise_specphoto, method=method) 
         fbf = h5py.File(_fbf, 'r')  
@@ -353,6 +372,15 @@ def photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', meth
             fbf['theta_med'][...], 
             fbf['theta_1sig_plus'][...], 
             fbf['theta_2sig_plus'][...]])
+        
+        if method == 'ifsps': 
+            ifsps = Fitters.iFSPS()
+            if sfr == '1gyr': 
+                sfr_inf = ifsps._SFR_MCMC(fbf['mcmc_chain'][...], dt=1.)
+            elif sfr == '100myr': 
+                sfr_inf = ifsps._SFR_MCMC(fbf['mcmc_chain'][...], dt=0.1)
+            theta_inf_i = np.concatenate([theta_inf_i, np.atleast_2d(sfr_inf).T], axis=1) 
+
         theta_inf_specphoto.append(theta_inf_i) 
     theta_inf_photo = np.array(theta_inf_photo) 
     theta_inf_specphoto = np.array(theta_inf_specphoto) 
@@ -387,10 +415,47 @@ def photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', meth
     sig_dMstar_photo = np.array(sig_dMstar_photo) 
     dMstar_specphoto = np.array(dMstar_specphoto) 
     sig_dMstar_specphoto = np.array(sig_dMstar_specphoto) 
+    
+    # inferred SFRs
+    logSFR_inf_photo        = np.log10(theta_inf_photo[:,:,-1]) 
+    logSFR_inf_specphoto    = np.log10(theta_inf_specphoto[:,:,-1]) 
 
-    fig = plt.figure(figsize=(5,5))
+    # calculate delta log SFR 
+    logSFRbins = np.linspace(-3., 3., 25) 
+    logSFRbin_mid = [] 
+    dlogSFR_photo, sig_dlogSFR_photo = [], []
+    dlogSFR_specphoto, sig_dlogSFR_specphoto = [], [] 
+    for i_m in range(len(Mbins)-1): 
+        inbin = ((logSFR_input > logSFRbins[i_m]) & (logSFR_input <= logSFRbins[i_m+1])) 
+        if sfr == '1gyr': 
+            inbin = inbin & (np.array(tage_input) > 1.0) 
+        elif sfr == '100myr': 
+            inbin = inbin & (np.array(tage_input) > 0.1)
+        if np.sum(inbin) == 0: continue 
+        logSFRbin_mid.append(0.5 * (logSFRbins[i_m] + logSFRbins[i_m+1])) 
+
+        dlogSFR_photo.append(np.average(logSFR_inf_photo[:,2][inbin] - logSFR_input[inbin])) 
+        dlogSFR_specphoto.append(np.average(logSFR_inf_specphoto[:,2][inbin] - logSFR_input[inbin])) 
+
+        sig_dlogSFR_photo.append(
+                np.sqrt(np.sum(
+                    np.max([logSFR_input[inbin] - logSFR_inf_photo[inbin,1], 
+                        logSFR_inf_photo[inbin,3] - logSFR_input[inbin]], axis=1)
+                    ))/np.float(np.sum(inbin)))
+        sig_dlogSFR_specphoto.append(
+                np.sqrt(np.sum(
+                    np.max([logSFR_input[inbin] - logSFR_inf_specphoto[inbin,1], 
+                        logSFR_inf_specphoto[inbin,3] - logSFR_input[inbin]], axis=1)
+                    ))/np.float(np.sum(inbin)))
+    dlogSFR_photo = np.array(dlogSFR_photo) 
+    sig_dlogSFR_photo = np.array(sig_dlogSFR_photo) 
+    dlogSFR_specphoto = np.array(dlogSFR_specphoto) 
+    sig_dlogSFR_specphoto = np.array(sig_dlogSFR_specphoto) 
+
+
+    fig = plt.figure(figsize=(12,5))
     # compare total stellar mass 
-    sub = fig.add_subplot(111) 
+    sub = fig.add_subplot(121) 
     sub.plot([9., 12.], [0., 0.], c='k', ls='--')
     sub.fill_between(Mbin_mid, dMstar_photo - sig_dMstar_photo, dMstar_photo + sig_dMstar_photo, 
             fc='C0', ec='none', alpha=0.5, label='Photometry only') 
@@ -402,17 +467,38 @@ def photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', meth
     sub.plot(Mbin_mid, dMstar_specphoto, c='C1') 
     #sub.scatter(Mstar_input, (Mstar_inf_photo[:,2]-Mstar_input), c='C0')
     #sub.scatter(Mstar_input, (Mstar_inf_specphoto[:,2]-Mstar_input), c='C1')
-    sub.plot([9., 12.], [9., 12.], c='k', ls='--') 
-    sub.set_xlabel(r'$\log(~M^{\rm true}_{\rm tot}~[M_\odot]~)$', fontsize=25)
+    sub.set_xlabel(r'$\log(~M_{\rm tot}~[M_\odot]~)$', fontsize=25)
     sub.set_xlim(9., 12.) 
-    sub.set_ylabel(r'$\log(~\widehat{M}_{\rm tot} / M^{\rm true}_{\rm tot}~)$', fontsize=25)
+    sub.set_ylabel(r'$\log(~\widehat{M}_{\rm tot} / M_{\rm tot}~)$', fontsize=25)
     sub.set_ylim(-1., 1.) 
     sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
     
-    _ffig = os.path.join(dir_fig, 'photo_vs_specphoto.%s.vanilla.noise_%s_%s.png' % (method, noise_photo, noise_specphoto)) 
+    # compare SFR 
+    sub = fig.add_subplot(122) 
+    sub.plot([-3., 3.], [0., 0.], c='k', ls='--')
+    sub.fill_between(logSFRbin_mid, dlogSFR_photo - sig_dlogSFR_photo, dlogSFR_photo + sig_dlogSFR_photo, 
+            fc='C0', ec='none', alpha=0.5, label='Photometry only') 
+    sub.scatter(logSFRbin_mid, dlogSFR_photo, c='C0', s=2) 
+    sub.plot(logSFRbin_mid, dlogSFR_photo, c='C0') 
+    sub.fill_between(logSFRbin_mid, dlogSFR_specphoto - sig_dlogSFR_specphoto, dlogSFR_specphoto + sig_dlogSFR_specphoto, 
+            fc='C1', ec='none', alpha=0.5, label='Photometry+Spectroscopy') 
+    sub.scatter(logSFRbin_mid, dlogSFR_specphoto, c='C1', s=1) 
+    sub.plot(logSFRbin_mid, dlogSFR_specphoto, c='C1') 
+    
+    if sfr == '1gyr': lbl_sfr = '1Gyr'
+    elif sfr == '100myr': lbl_sfr = '100Myr'
+    sub.set_xlabel(r'$\log(~{\rm SFR}_{%s}~[M_\odot/yr]~)$' % lbl_sfr, fontsize=25)
+    sub.set_xlim(-3., 1.) 
+    sub.set_ylabel(r'$\log(~\widehat{\rm SFR}_{%s} / {\rm SFR}_{%s}~)$' % (lbl_sfr, lbl_sfr), fontsize=25)
+    sub.set_ylim(-3., 3.) 
+    #sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
+    
+    fig.subplots_adjust(wspace=0.3)
+    _ffig = os.path.join(dir_fig, 'photo_vs_specphoto.%s.sfr_%s.vanilla.noise_%s_%s.png' % (method, sfr, noise_photo, noise_specphoto)) 
     fig.savefig(_ffig, bbox_inches='tight') 
     fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
     return None 
+
 
 def Fbestfit_spec(igal, noise='none', method='ifsps'): 
     ''' file name of best-fit of spectra of spectral_challenge galaxy #igal 
@@ -495,4 +581,6 @@ if __name__=="__main__":
     #mini_mocha_spec(noise='bgs0', method='pfirefly')
     #mini_mocha_photo(noise='legacy', method='ifsps')
     #mini_mocha_specphoto(noise='bgs0_legacy', method='ifsps')
-    photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', method='ifsps')
+    
+    #photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', method='ifsps', sfr='1gyr')
+    #photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', method='ifsps', sfr='100myr')

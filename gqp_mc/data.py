@@ -55,6 +55,7 @@ def Spectra(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'):
 
     # read in meta data 
     meta = pickle.load(open(os.path.join(dir_sample, "lgal.%s.%s.meta.p" % (sample, lib)), 'rb')) 
+    meta = _avg_sfr(meta)
     
     # read in mock data 
     mock = h5py.File(os.path.join(dir_sample, 'lgal.%s.%s.hdf5' % (sample, lib)), 'r') 
@@ -121,6 +122,7 @@ def Photometry(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'):
 
     # read in meta data 
     meta = pickle.load(open(os.path.join(dir_sample, "lgal.%s.%s.meta.p" % (sample, lib)), 'rb')) 
+    meta = _avg_sfr(meta)
     
     # read in mock data 
     mock = h5py.File(os.path.join(dir_sample, 'lgal.%s.%s.hdf5' % (sample, lib)), 'r') 
@@ -299,6 +301,22 @@ def make_mini_mocha(lib='bc03'):
         fout.create_dataset('spec_%s_bgs' % k, data=spectra_bgs[k]) 
     fout.close() 
     return None 
+
+
+def _avg_sfr(meta): 
+    ''' given the mocha metadata calculate average SFRs over 100 Myr and 1Gyr 
+    '''
+    meta['sfr_1gyr'] = [] 
+    meta['sfr_100myr'] = [] 
+    for i in range(len(meta['sfh_bulge'])): 
+        sfh_total =  meta['sfh_bulge'][i] + meta['sfh_disk'][i] # total sfh 
+
+        in1gyr = (meta['t_lookback'][i] <= 1) 
+        in100myr = (meta['t_lookback'][i] <= 0.1) 
+
+        meta['sfr_1gyr'].append(np.sum(sfh_total[in1gyr]) / 1.e9) 
+        meta['sfr_100myr'].append(np.sum(sfh_total[in100myr]) / 1.e8) 
+    return meta  
 
 
 def _mini_mocha_galid(lib='bc03'): 

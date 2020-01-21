@@ -2,6 +2,7 @@ import os
 import h5py 
 import fsps
 import numpy as np 
+from scipy.special import gammainc
 from scipy.stats import sigmaclip
 # --- astropy --- 
 from astropy import units as U
@@ -552,7 +553,61 @@ class iFSPS(Fitter):
                 fh5.create_dataset(k, data=output[k]) 
             fh5.close() 
         return output  
+
+    def _SFR_MCMC(self, mcmc_chain, dt=1.): 
+        ''' given mcmc_chain of parameters calculate the -2-sig, -1-sig, median, 1 sig, 2 sig SFR values 
+        '''
+        avg_sfr, notoldenough  = self.get_SFR(mcmc_chain, dt=dt)
+        return np.percentile(avg_sfr, [2.5, 16, 50, 84, 97.5])
     
+    def get_SFR(self, tt, dt=1.):
+        ''' given theta calculate SFR averaged over dt Gyr
+        '''
+        theta = self._theta(tt)
+        if self.model_name == 'vanilla': 
+            sf_trunc = 0.0
+            sf_start = 0.0 
+            sfh = 4
+            tburst = 0.0
+            fburst = 0.0 
+            const = 0.0 
+            # indices in theta 
+        else: 
+            raise NotImplementedError 
+
+        if sfh == 1: power = 1
+        elif sfh == 4: power = 2
+        else: raise ValueError("get_SFR not supported for this SFH type.")
+    
+        tau = theta['tau']
+        tage = theta['tage']
+        
+        assert tage.min() > 0 
+
+        tb = (tburst - sf_start) / tau
+        tmax = (tage - sf_start) / tau
+        normalized_t0 = (tage - sf_start) / tau
+        # clip at 0. This means that if tage < dt then we're not actually getting a fair average.
+        normalized_t1 = np.clip(((tage - dt) - sf_start) / tau, 0, np.inf) 
+
+        mass0 = gammainc(power, normalized_t0) / gammainc(power, tmax)
+        mass1 = gammainc(power, normalized_t1) / gammainc(power, tmax)
+
+        avsfr = (mass0 - mass1) / dt / 1e9  # Msun/yr
+ 
+        #normalized_times = (np.array([tage, tage - dt]).T - sf_start) / tau
+        #mass = gammainc(power, normalized_times) / gammainc(power, tmax)
+        #avsfr = (mass[..., 0] - mass[..., 1]) / dt / 1e9  # Msun/yr
+    
+        # These lines change behavior when you request sfrs outside the range (sf_start + dt, tage)
+        #avsfr[times > tage] = np.nan  # does not work for scalars
+        #avsfr *= times <= tage
+        #avsfr[np.isfinite(avsfr)] = 0.0 # does not work for scalars
+        avsfr *= theta['mass']
+
+        notoldenough = (dt > tage) 
+        return np.clip(avsfr, 0, np.inf), notoldenough 
+
     def _emcee(self, lnpost_fn, lnpost_args, lnpost_kwargs, nwalkers=100, burnin=100, niter=1000, silent=True): 
         ''' Runs MCMC (using emcee) for a given log posterior function.
         '''

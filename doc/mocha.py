@@ -98,13 +98,14 @@ def mock_challenge_photo(noise='none', dust=False, method='ifsps'):
     return None 
 
 
-def mini_mocha_spec(noise='bgs0', method='ifsps'): 
+def mini_mocha_spec(noise='bgs0', method='ifsps', sfr='1gyr'): 
     ''' Compare properties inferred from forward modeled photometry to input properties
     '''
     # read noiseless Lgal spectra of the spectral_challenge mocks
     specs, meta = Data.Spectra(sim='lgal', noise=noise, lib='bc03', sample='mini_mocha') 
 
     Mstar_input = meta['logM_fiber'][:97] # total mass 
+    logSFR_input= np.log10(meta['sfr_%s' % sfr][:97])
     Z_MW_input  = meta['Z_MW'][:97]  # mass-weighted metallicity
     tage_input  = meta['t_age_MW'][:97]  # mass-weighted age
     
@@ -120,7 +121,9 @@ def mini_mocha_spec(noise='bgs0', method='ifsps'):
             fbf['theta_med'][...], 
             fbf['theta_1sig_plus'][...], 
             fbf['theta_2sig_plus'][...]])
-
+        
+        if method == 'ifsps': 
+            ifsps = Fitters.iFSPS()
         if sfr == '1gyr': 
             sfr_inf = ifsps._SFR_MCMC(fbf['mcmc_chain'][...], dt=1.)
         elif sfr == '100myr': 
@@ -132,12 +135,13 @@ def mini_mocha_spec(noise='bgs0', method='ifsps'):
     
     # inferred properties
     Mstar_inf   = theta_inf[:,:,0]
+    logSFR_inf  = np.log10(theta_inf[:,:,-1]) 
     Z_MW_inf    = 10**theta_inf[:,:,1]
     tage_inf    = theta_inf[:,:,2]
     
-    fig = plt.figure(figsize=(15,4))
+    fig = plt.figure(figsize=(20,4))
     # compare total stellar mass 
-    sub = fig.add_subplot(131) 
+    sub = fig.add_subplot(141) 
     sub.errorbar(Mstar_input, Mstar_inf[:,2], 
             yerr=[Mstar_inf[:,2]-Mstar_inf[:,1], Mstar_inf[:,3]-Mstar_inf[:,2]], fmt='.C0')
     sub.plot([9., 12.], [9., 12.], c='k', ls='--') 
@@ -145,9 +149,21 @@ def mini_mocha_spec(noise='bgs0', method='ifsps'):
     sub.set_xlim(9., 12.) 
     sub.set_ylabel(r'inferred $\log~M_{\rm fib.}$', fontsize=25)
     sub.set_ylim(9., 12.) 
+
+    # compare SFR
+    sub = fig.add_subplot(142) 
+    sub.errorbar(logSFR_input, logSFR_inf[:,2], 
+            yerr=[logSFR_inf[:,2]-logSFR_inf[:,1], logSFR_inf[:,3]-logSFR_inf[:,2]], fmt='.C0')
+    sub.plot([-3., 2.], [-3., 2.], c='k', ls='--') 
+    if sfr == '1gyr': lbl_sfr = '1Gyr'
+    elif sfr == '100myr': lbl_sfr = '100Myr'
+    sub.set_xlabel(r'input $\log~{\rm SFR}_{%s}$' % lbl_sfr, fontsize=25)
+    sub.set_xlim(-3., 2.) 
+    sub.set_ylabel(r'inferred $\log~{\rm SFR}_{%s}$' % lbl_sfr, fontsize=25)
+    sub.set_ylim(-3., 2.) 
     
     # compare metallicity
-    sub = fig.add_subplot(132)
+    sub = fig.add_subplot(143)
     sub.errorbar(Z_MW_input, Z_MW_inf[:,2], 
             yerr=[Z_MW_inf[:,2]-Z_MW_inf[:,1], Z_MW_inf[:,3]-Z_MW_inf[:,2]], fmt='.C0')
     sub.plot([1e-3, 1], [1e-3, 1.], c='k', ls='--') 
@@ -159,7 +175,7 @@ def mini_mocha_spec(noise='bgs0', method='ifsps'):
     sub.set_ylim(1e-3, 5e-2) 
 
     # compare age 
-    sub = fig.add_subplot(133)
+    sub = fig.add_subplot(144)
     sub.errorbar(tage_input, tage_inf[:,2], 
             yerr=[tage_inf[:,2]-tage_inf[:,1], tage_inf[:,3]-tage_inf[:,2]], fmt='.C0')
     sub.plot([0, 13], [0, 13.], c='k', ls='--') 
@@ -169,19 +185,20 @@ def mini_mocha_spec(noise='bgs0', method='ifsps'):
     sub.set_ylim(0, 13) 
 
     fig.subplots_adjust(wspace=0.4)
-    _ffig = os.path.join(dir_fig, 'mini_mocha.%s.specfit.vanilla.noise_%s.png' % (method, noise)) 
+    _ffig = os.path.join(dir_fig, 'mini_mocha.sfr_%s.%s.specfit.vanilla.noise_%s.png' % (sfr, method, noise)) 
     fig.savefig(_ffig, bbox_inches='tight') 
     fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
     return None 
 
 
-def mini_mocha_photo(noise='legacy', method='ifsps'): 
+def mini_mocha_photo(noise='legacy', method='ifsps', sfr='1gyr'): 
     ''' Compare properties inferred from forward modeled photometry to input properties
     '''
     # read noiseless Lgal spectra of the spectral_challenge mocks
     photo, meta = Data.Photometry(sim='lgal', noise=noise, lib='bc03', sample='mini_mocha')
 
     Mstar_input = meta['logM_total'][:97] # total mass 
+    logSFR_input= np.log10(meta['sfr_%s' % sfr][:97])
     Z_MW_input  = meta['Z_MW'][:97]  # mass-weighted metallicity
     tage_input  = meta['t_age_MW'][:97]  # mass-weighted age
     
@@ -197,17 +214,27 @@ def mini_mocha_photo(noise='legacy', method='ifsps'):
             fbf['theta_med'][...], 
             fbf['theta_1sig_plus'][...], 
             fbf['theta_2sig_plus'][...]])
+        
+        if method == 'ifsps': 
+            ifsps = Fitters.iFSPS()
+        if sfr == '1gyr': 
+            sfr_inf = ifsps._SFR_MCMC(fbf['mcmc_chain'][...], dt=1.)
+        elif sfr == '100myr': 
+            sfr_inf = ifsps._SFR_MCMC(fbf['mcmc_chain'][...], dt=0.1)
+        theta_inf_i = np.concatenate([theta_inf_i, np.atleast_2d(sfr_inf).T], axis=1) 
         theta_inf.append(theta_inf_i) 
+
     theta_inf = np.array(theta_inf) 
     
     # inferred properties
     Mstar_inf   = theta_inf[:,:,0]
+    logSFR_inf  = np.log10(theta_inf[:,:,-1]) 
     Z_MW_inf    = 10**theta_inf[:,:,1]
     tage_inf    = theta_inf[:,:,2]
     
-    fig = plt.figure(figsize=(15,4))
+    fig = plt.figure(figsize=(20,4))
     # compare total stellar mass 
-    sub = fig.add_subplot(131) 
+    sub = fig.add_subplot(141) 
     sub.errorbar(Mstar_input, Mstar_inf[:,2], 
             yerr=[Mstar_inf[:,2]-Mstar_inf[:,1], Mstar_inf[:,3]-Mstar_inf[:,2]], fmt='.C0')
     sub.plot([9., 12.], [9., 12.], c='k', ls='--') 
@@ -216,8 +243,20 @@ def mini_mocha_photo(noise='legacy', method='ifsps'):
     sub.set_ylabel(r'inferred $\log~M_{\rm tot.}$', fontsize=25)
     sub.set_ylim(9., 12.) 
     
+    # compare SFR 
+    sub = fig.add_subplot(142) 
+    sub.errorbar(logSFR_input, logSFR_inf[:,2], 
+            yerr=[logSFR_inf[:,2]-logSFR_inf[:,1], logSFR_inf[:,3]-logSFR_inf[:,2]], fmt='.C0')
+    sub.plot([-3., 2.], [-3., 2.], c='k', ls='--') 
+    if sfr == '1gyr': lbl_sfr = '1Gyr'
+    elif sfr == '100myr': lbl_sfr = '100Myr'
+    sub.set_xlabel(r'input $\log~{\rm SFR}_{%s}$' % lbl_sfr, fontsize=25)
+    sub.set_xlim(-3., 2.) 
+    sub.set_ylabel(r'inferred $\log~{\rm SFR}_{%s}$' % lbl_sfr, fontsize=25)
+    sub.set_ylim(-3., 2.) 
+    
     # compare metallicity
-    sub = fig.add_subplot(132)
+    sub = fig.add_subplot(143)
     sub.errorbar(Z_MW_input, Z_MW_inf[:,2], 
             yerr=[Z_MW_inf[:,2]-Z_MW_inf[:,1], Z_MW_inf[:,3]-Z_MW_inf[:,2]], fmt='.C0')
     sub.plot([1e-3, 1], [1e-3, 1.], c='k', ls='--') 
@@ -229,7 +268,7 @@ def mini_mocha_photo(noise='legacy', method='ifsps'):
     sub.set_ylim(1e-3, 5e-2) 
 
     # compare age 
-    sub = fig.add_subplot(133)
+    sub = fig.add_subplot(144)
     sub.errorbar(tage_input, tage_inf[:,2], 
             yerr=[tage_inf[:,2]-tage_inf[:,1], tage_inf[:,3]-tage_inf[:,2]], fmt='.C0')
     sub.plot([0, 13], [0, 13.], c='k', ls='--') 
@@ -239,13 +278,13 @@ def mini_mocha_photo(noise='legacy', method='ifsps'):
     sub.set_ylim(0, 13) 
 
     fig.subplots_adjust(wspace=0.4)
-    _ffig = os.path.join(dir_fig, 'mini_mocha.%s.photofit.vanilla.noise_%s.png' % (method, noise)) 
+    _ffig = os.path.join(dir_fig, 'mini_mocha.sfr_%s.%s.photofit.vanilla.noise_%s.png' % (sfr, method, noise)) 
     fig.savefig(_ffig, bbox_inches='tight') 
     fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
     return None 
 
 
-def mini_mocha_specphoto(noise='bgs0_legacy', method='ifsps'): 
+def mini_mocha_specphoto(noise='bgs0_legacy', method='ifsps', sfr='1gyr'): 
     ''' Compare properties inferred from forward modeled photometry to input properties
     '''
     if noise != 'none':
@@ -260,6 +299,7 @@ def mini_mocha_specphoto(noise='bgs0_legacy', method='ifsps'):
     photo, _ = Data.Photometry(sim='lgal', noise=noise_photo, lib='bc03', sample='mini_mocha')
 
     Mstar_input = meta['logM_total'][:97] # total mass 
+    logSFR_input= np.log10(meta['sfr_%s' % sfr][:97])
     Z_MW_input  = meta['Z_MW'][:97]  # mass-weighted metallicity
     tage_input  = meta['t_age_MW'][:97]  # mass-weighted age
     
@@ -275,17 +315,26 @@ def mini_mocha_specphoto(noise='bgs0_legacy', method='ifsps'):
             fbf['theta_med'][...], 
             fbf['theta_1sig_plus'][...], 
             fbf['theta_2sig_plus'][...]])
+        if method == 'ifsps': 
+            ifsps = Fitters.iFSPS()
+        if sfr == '1gyr': 
+            sfr_inf = ifsps._SFR_MCMC(fbf['mcmc_chain'][...], dt=1.)
+        elif sfr == '100myr': 
+            sfr_inf = ifsps._SFR_MCMC(fbf['mcmc_chain'][...], dt=0.1)
+        theta_inf_i = np.concatenate([theta_inf_i, np.atleast_2d(sfr_inf).T], axis=1) 
+
         theta_inf.append(theta_inf_i) 
     theta_inf = np.array(theta_inf) 
     
     # inferred properties
     Mstar_inf   = theta_inf[:,:,0]
+    logSFR_inf  = np.log10(theta_inf[:,:,-1]) 
     Z_MW_inf    = 10**theta_inf[:,:,1]
     tage_inf    = theta_inf[:,:,2]
     
-    fig = plt.figure(figsize=(15,4))
+    fig = plt.figure(figsize=(20,4))
     # compare total stellar mass 
-    sub = fig.add_subplot(131) 
+    sub = fig.add_subplot(141) 
     sub.errorbar(Mstar_input, Mstar_inf[:,2], 
             yerr=[Mstar_inf[:,2]-Mstar_inf[:,1], Mstar_inf[:,3]-Mstar_inf[:,2]], fmt='.C0')
     sub.plot([9., 12.], [9., 12.], c='k', ls='--') 
@@ -294,8 +343,20 @@ def mini_mocha_specphoto(noise='bgs0_legacy', method='ifsps'):
     sub.set_ylabel(r'inferred $\log~M_{\rm tot}$', fontsize=25)
     sub.set_ylim(9., 12.) 
     
+    # compare SFR 
+    sub = fig.add_subplot(142) 
+    sub.errorbar(logSFR_input, logSFR_inf[:,2], 
+            yerr=[logSFR_inf[:,2]-logSFR_inf[:,1], logSFR_inf[:,3]-logSFR_inf[:,2]], fmt='.C0')
+    sub.plot([-3., 2.], [-3., 2.], c='k', ls='--') 
+    if sfr == '1gyr': lbl_sfr = '1Gyr'
+    elif sfr == '100myr': lbl_sfr = '100Myr'
+    sub.set_xlabel(r'input $\log~{\rm SFR}_{%s}$' % lbl_sfr, fontsize=25)
+    sub.set_xlim(-3., 2.) 
+    sub.set_ylabel(r'inferred $\log~{\rm SFR}_{%s}$' % lbl_sfr, fontsize=25)
+    sub.set_ylim(-3., 2.) 
+    
     # compare metallicity
-    sub = fig.add_subplot(132)
+    sub = fig.add_subplot(143)
     sub.errorbar(Z_MW_input, Z_MW_inf[:,2], 
             yerr=[Z_MW_inf[:,2]-Z_MW_inf[:,1], Z_MW_inf[:,3]-Z_MW_inf[:,2]], fmt='.C0')
     sub.plot([1e-3, 1], [1e-3, 1.], c='k', ls='--') 
@@ -307,7 +368,7 @@ def mini_mocha_specphoto(noise='bgs0_legacy', method='ifsps'):
     sub.set_ylim(1e-3, 5e-2) 
 
     # compare age 
-    sub = fig.add_subplot(133)
+    sub = fig.add_subplot(144)
     sub.errorbar(tage_input, tage_inf[:,2], 
             yerr=[tage_inf[:,2]-tage_inf[:,1], tage_inf[:,3]-tage_inf[:,2]], fmt='.C0')
     sub.plot([0, 13], [0, 13.], c='k', ls='--') 
@@ -317,7 +378,7 @@ def mini_mocha_specphoto(noise='bgs0_legacy', method='ifsps'):
     sub.set_ylim(0, 13) 
 
     fig.subplots_adjust(wspace=0.4)
-    _ffig = os.path.join(dir_fig, 'mini_mocha.%s.specphotofit.vanilla.noise_%s.png' % (method, noise)) 
+    _ffig = os.path.join(dir_fig, 'mini_mocha.sfr_%s.%s.specphotofit.vanilla.noise_%s.png' % (sfr, method, noise)) 
     fig.savefig(_ffig, bbox_inches='tight') 
     fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
     return None 
@@ -577,10 +638,14 @@ if __name__=="__main__":
     #mock_challenge_photo(noise='legacy', dust=False, method='ifsps')
     #mock_challenge_photo(noise='legacy', dust=True, method='ifsps')
 
-    #mini_mocha_spec(noise='bgs0', method='ifsps')
+    mini_mocha_spec(noise='bgs0', method='ifsps', sfr='1gyr')
+    mini_mocha_spec(noise='bgs0', method='ifsps', sfr='100myr')
+    mini_mocha_photo(noise='legacy', method='ifsps', sfr='1gyr')
+    mini_mocha_photo(noise='legacy', method='ifsps', sfr='100myr')
+    mini_mocha_specphoto(noise='bgs0_legacy', method='ifsps', sfr='1gyr')
+    mini_mocha_specphoto(noise='bgs0_legacy', method='ifsps', sfr='100myr')
+    
     #mini_mocha_spec(noise='bgs0', method='pfirefly')
-    #mini_mocha_photo(noise='legacy', method='ifsps')
-    #mini_mocha_specphoto(noise='bgs0_legacy', method='ifsps')
     
     #photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', method='ifsps', sfr='1gyr')
     #photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', method='ifsps', sfr='100myr')

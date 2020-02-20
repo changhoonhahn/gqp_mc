@@ -8,6 +8,7 @@ setup(name = 'gqp_mc',
       python_requires='>3.5.2',
       description = 'GQP mock challenge',
       requires = ['numpy', 'matplotlib', 'scipy', 'h5py', 'astropy', 'emcee', 'fsps', 'speclite', 'multiprocessing'],
+      package_data={'gpc_mc': ['dat/*.pkl']},
       provides = ['gqp_mc'],
       packages = ['gqp_mc']
       )

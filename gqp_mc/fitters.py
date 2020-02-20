@@ -1,6 +1,7 @@
 import os 
 import h5py 
 import fsps
+import pickle
 import numpy as np 
 from scipy.special import gammainc
 from scipy.stats import sigmaclip
@@ -832,6 +833,180 @@ class iFSPS(Fitter):
         else: 
             raise NotImplementedError("specified bands not implemented") 
         return bands_list 
+
+
+class iSpeculator(iFSPS):
+    ''' inference that uses Speculator Alsing+(2020)  https://arxiv.org/abs/1911.11778 as its model. 
+    This is a child class of iFSPS and consequently shares many of its methods 
+    '''
+    def __init__(self, model_name='vanilla', prior=None, cosmo=cosmo): 
+        self.model_name = model_name # store model name 
+        self.cosmo = cosmo # cosmology  
+        self._load_model_params() # load emulator parameters
+        self._set_prior(prior) # set prior 
+
+    def model(self, tt_arr, zred=0.1, wavelength=None): 
+        ''' calls Speculator to computee SED given theta. This will be called by the inference method. 
+
+        parameters
+        ----------
+        tt_arr : array 
+            array of free parameters
+        zred : float,array (default: 0.1) 
+            The output wavelength and spectra are redshifted.
+        wavelength : (default: None)  
+            If specified, the model will interpolate the spectra to the specified 
+            wavelengths.
+
+        returns
+        -------
+        outwave : array
+            output wavelength (angstroms) 
+        outspec : array 
+            spectra generated from FSPS model(theta) in units of 1e-17 * erg/s/cm^2/Angstrom
+        '''
+        zred    = np.atleast_1d(zred)
+        theta   = self._theta(tt_arr) 
+        ntheta  = len(theta['mass']) 
+
+        if self.model_name == 'vanilla': 
+            for i in range(ntheta):
+                tt_i = np.array([theta['bSFH1'][i], theta['bSFH2'][i], theta['bSFH3'][i], theta['bSFH4'][i], theta['bZ1'][i], theta['bZ2'][i], theta['tage'][i], theta['tau'][i]]) 
+
+                ssp_lum = self._emulator(tt_i) 
+
+                if i == 0: 
+                    ssp_lums = np.zeros((ntheta, len(self._emu_wave)))
+                ssp_lums[i,:] = ssp_lum
+
+        # mass normalization
+        lum_ssp = theta['mass'][:,None] * ssp_lums
+
+        # redshift the spectra
+        w_z = self._emu_wave * (1. + zred)[:,None] 
+        d_lum = self.cosmo.luminosity_distance(zred).to(U.cm).value # luminosity distance in cm
+        flux_z = lum_ssp * UT.Lsun() / (4. * np.pi * d_lum[:,None]**2) / (1. + zred)[:,None] * 1e17 # 10^-17 ergs/s/cm^2/Ang
+
+        if wavelength is None: 
+            outwave = w_z
+            outspec = flux_z
+        else: 
+            outwave = np.atleast_2d(wavelength)
+            outspec = np.zeros((flux_z.shape[0], outwave.shape[1]))
+            for i, _w, _f in zip(range(outwave.shape[0]), w_z, flux_z): 
+                outspec[i,:] = np.interp(outwave[i,:], _w, _f, left=0, right=0)
+
+        return outwave, outspec 
+   
+    def _emulator(self, tt):
+        ''' emulator for FSPS 
+
+        :param tt: 
+            array of parameters 
+
+        :return flux: 
+            FSPS flux in units of Lsun/A
+        '''
+        theta = self._transform_theta(tt)  # transform theta 
+        # forward pass through the network
+        act = []
+        layers = [theta]
+        for i in range(self._emu_n_layers-1):
+            # linear NN operation
+            act.append(np.dot(layers[-1], self._emu_W[i]) + self._emu_b[i])
+
+            # activation function
+            layers.append((self._emu_beta[i] + (1.-self._emu_beta[i])*1./(1.+np.exp(-self._emu_alpha[i]*act[-1])))*act[-1])
+
+        # final (linear) layer -> PCA coefficients
+        layers.append(np.dot(layers[-1], self._emu_W[-1]) + self._emu_b[-1])
+
+        # rescale PCAs, multiply up to spectrum, re-scale spectrum
+        flux = np.dot(layers[-1]*self._emu_pca_std + self._emu_pca_mean, self_emu_pcas)*self._emu_spec_std + self._emu_spec_mean
+        return 10**flux
+
+    def _transform_theta(self, theta):
+        ''' initial transform applied to input parameters (network is trained over a 
+        transformed parameter set)
+        '''
+        transformed_theta = np.copy(theta)
+        transformed_theta[0] = np.sqrt(theta[0])
+        transformed_theta[2] = np.sqrt(theta[2])
+        return transformed_theta
+
+    def _load_model_params(self): 
+        ''' read in pickle file that contains all the parameters required for the emulator
+        model
+        '''
+        fpkl = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+                'dat', 'model_summary.pkl')
+        params = pickle.load(open(fpkl, 'rb'))
+        f.close()
+
+        self._emu_W             = params[0] 
+        self._emu_b             = params[1] 
+        self._emu_alpha         = params[2]
+        self._emu_beta          = params[3]
+        self._emu_pcas          = params[4] 
+        self._emu_pca_mean      = params[5]
+        self._emu_pca_std       = params[6]
+        self._emu_spec_mean     = params[7]
+        self._emu_spec_std      = params[8]
+        self._emu_theta_mean    = params[9]
+        self._emu_theta_std     = params[10]
+        self._emu_wave          = params[11]
+
+        self._emu_n_layers = len(W) # number of network layers
+        return None 
+        
+    def _theta(self, tt_arr): 
+        ''' Given some theta array return dictionary of parameter values. 
+        This is synchronized with self.model_name
+        '''
+        theta = {} 
+        tt_arr = np.atleast_2d(tt_arr) 
+        if self.model_name == 'vanilla': 
+            # tt_arr columns: mass, 4 SFH bases, 2 Z bases, tage, tau
+            theta['mass']   = 10**tt_arr[:,0]
+            theta['bSFH1']  = tt_arr[:,1]
+            theta['bSFH2']  = tt_arr[:,2]
+            theta['bSFH3']  = tt_arr[:,3]
+            theta['bSFH4']  = tt_arr[:,4]
+            theta['bZ1']    = tt_arr[:,5]
+            theta['bZ2']    = tt_arr[:,6]
+            theta['tage']   = tt_arr[:,7]
+            theta['tau']    = tt_arr[:,8]
+        else: 
+            raise NotImplementedError
+        return theta
+    
+    def _set_prior(self, priors): 
+        ''' sets the priors to be used for the MCMC parameter inference 
+
+        parameters 
+        ----------
+        priors : list
+            List of tuples that specify the priors of the free parameters 
+        '''
+        if priors is None: # default priors
+            p_mass  = (8, 13)       # mass
+            p_z     = (-3, 1)       # Z 
+            p_tage  = (0., 13.)     # tage
+            p_d2    = (0., 10.)     # dust 2 
+            p_tau   = (0.1, 10.)    # tau 
+
+            if self.model_name == 'vanilla':            # thetas: mass, Z, tage, dust2, tau
+                priors = [p_mass, p_z, p_tage, p_d2, p_tau]
+            elif self.model_name == 'dustless_vanilla': # thetas: mass, Z, tage, tau
+                priors = [p_mass, p_z, p_tage, p_tau]
+        else: 
+            if self.model_name == 'vanilla': 
+                assert len(priors) == 5, 'specify priors for mass, Z, tage, dust2, and tau'
+            elif self.model_name == 'dustless_vanilla': 
+                assert len(priors) == 4, 'specify priors for mass, Z, tage, and tau'
+        
+        self.priors = priors
+        return None 
 
 
 class pseudoFirefly(Fitter): 

@@ -17,7 +17,7 @@ from .firefly._firefly import hpf, curve_smoother, calculate_averages_pdf, conve
 
 class Fitter(object): 
     def __init__(self): 
-        pass 
+        self.prior = None   # prior object 
 
     def _check_mask(self, mask, wave_obs, flux_ivar_obs, zred): 
         ''' check that mask is sensible and mask out any parts of the 
@@ -47,50 +47,23 @@ class Fitter(object):
         _mask = _mask | zero_err 
         return _mask 
 
-    def _lnPrior(self, tt_arr, shape='flat'): 
+    def _lnPrior(self, tt_arr, prior=None): 
         ''' log prior(theta). 
-        **currenlty only supports flat priors**
         '''
-        if shape not in ['flat']: raise NotImplementedError
+        assert prior is not None 
 
-        prior_arr = np.array(self.priors) 
-        prior_min, prior_max = prior_arr[:,0], prior_arr[:,1]
+        _prior = prior(tt_arr) 
+        if _prior == 0: return -np.inf 
+        else: return np.log(_prior) 
 
-        dtt_min = tt_arr - prior_min 
-        dtt_max = prior_max - tt_arr
-
-        if (np.min(dtt_min) < 0.) or (np.min(dtt_max) < 0.): 
-            return -np.inf 
-        else:
-            return 0.
-
-    def _set_prior(self, priors): 
-        ''' sets the priors to be used for the MCMC parameter inference 
-
-        parameters 
-        ----------
-        priors : list
-            List of tuples that specify the priors of the free parameters 
+    def _default_prior(self): 
+        ''' set self.prior to be default prior 
         '''
-        if priors is None: # default priors
-            p_mass  = (8, 13)       # mass
-            p_z     = (-3, 1)       # Z 
-            p_tage  = (0., 13.)     # tage
-            p_d2    = (0., 10.)     # dust 2 
-            p_tau   = (0.1, 10.)    # tau 
-
-            if self.model_name == 'vanilla':            # thetas: mass, Z, tage, dust2, tau
-                priors = [p_mass, p_z, p_tage, p_d2, p_tau]
-            elif self.model_name == 'dustless_vanilla': # thetas: mass, Z, tage, tau
-                priors = [p_mass, p_z, p_tage, p_tau]
-        else: 
-            if self.model_name == 'vanilla': 
-                assert len(priors) == 5, 'specify priors for mass, Z, tage, dust2, and tau'
-            elif self.model_name == 'dustless_vanilla': 
-                assert len(priors) == 4, 'specify priors for mass, Z, tage, and tau'
-        
-        self.priors = priors
-        return None 
+        # thetas: mass, Z, tage, dust2, tau
+        prior_min = np.array([8., -3., 0., 0., 0.1])
+        prior_max = np.array([13., 1., 13., 10., 10.])
+        prior = UniformPrior(prior_min, prior_max)
+        return prior  
 
 
 class iFSPS(Fitter): 
@@ -111,18 +84,342 @@ class iFSPS(Fitter):
         name of the model to use. This specifies the free parameters. For model_name == 'vanilla', 
         the free parameters are mass, Z, tage, dust2, tau. (default: vanilla)
 
-    :param prior: (optional) 
-        list of tuples specifying the prior of the free parameters. (default: None) 
-
-    :cosmo : (optional) 
+    :param cosmo: (optional) 
         astropy.cosmology object that specifies the cosmology.(default: astropy.cosmology.Planck13) 
 
     '''
-    def __init__(self, model_name='vanilla', prior=None, cosmo=cosmo): 
+    def __init__(self, model_name='vanilla', cosmo=cosmo): 
         self.model_name = model_name # store model name 
-        self.cosmo = cosmo # cosmology  
-        self.ssp = self._ssp_initiate() # initial ssp
-        self._set_prior(prior) # set prior 
+        self.cosmo      = cosmo # cosmology  
+        self.ssp        = self._ssp_initiate() # initial ssp
+
+    def MCMC_spectrophoto(self, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, prior=None, 
+            mask=None, bands='desi',
+            nwalkers=100, burnin=100, niter=1000, writeout=None, silent=True): 
+        ''' infer the posterior distribution of the free parameters given spectroscopy and photometry:
+        observed wavelength, spectra flux, inverse variance flux, photometry, inv. variance photometry
+        using MCMC. The function outputs a dictionary with the median theta of the posterior as well as 
+        the 1sigma and 2sigma errors on the parameters (see below).
+
+        :param wave_obs: 
+            array of the observed wavelength
+        
+        :param flux_obs: 
+            array of the observed flux __in units of ergs/s/cm^2/Ang__
+
+        :param flux_ivar_obs: 
+            array of the observed flux **inverse variance**. Not uncertainty!
+        
+        :param photo_obs: 
+            array of the observed photometric flux __in units of nanomaggies__
+
+        :param photo_ivar_obs: 
+            array of the observed photometric flux **inverse variance**. Not uncertainty!
+
+        :param zred: 
+            float specifying the redshift of the observations  
+    
+        :param prior: 
+             callable prior object (e.g. prior(theta)). See priors below.
+
+        :param mask: (optional) 
+            boolean array specifying where to mask the spectra. If mask == 'emline' the spectra
+            is masked around emission lines at 3728., 4861., 5007., 6564. Angstroms. (default: None) 
+
+        :param nwalkers: (optional) 
+            number of walkers. (default: 100) 
+        
+        :param burnin: (optional) 
+            int specifying the burnin. (default: 100) 
+        
+        :param nwalkers: (optional) 
+            int specifying the number of iterations. (default: 1000) 
+        
+        :param writeout: (optional) 
+            string specifying the output file. If specified, everything in the output dictionary 
+            is written out as well as the entire MCMC chain. (default: None) 
+
+        :param silent: (optional) 
+            If False, a bunch of messages will be shown 
+
+        :return output: 
+            dictionary that with keys: 
+            - output['redshift'] : redshift 
+            - output['theta_med'] : parameter value of the median posterior
+            - output['theta_1sig_plus'] : 1sigma above median 
+            - output['theta_2sig_plus'] : 2sigma above median 
+            - output['theta_1sig_minus'] : 1sigma below median 
+            - output['theta_2sig_minus'] : 2sigma below median 
+            - output['wavelength_model'] : wavelength of best-fit model 
+            - output['flux_model'] : flux of best-fit model 
+            - output['wavelength_data'] : wavelength of observations 
+            - output['flux_data'] : flux of observations 
+            - output['flux_ivar_data'] = inverse variance of the observed flux. 
+        '''
+        import scipy.optimize as op
+        import emcee
+
+        ndim = prior.ndim
+    
+        # check mask for spectra 
+        _mask = self._check_mask(mask, wave_obs, flux_ivar_obs, zred) 
+        
+        # get photometric bands  
+        bands_list = self._get_bands(bands)
+        assert len(bands_list) == len(photo_obs) 
+        # get filters
+        filters = specFilter.load_filters(*tuple(bands_list))
+
+        # posterior function args and kwargs
+        lnpost_args = (wave_obs, 
+                flux_obs,               # 10^-17 ergs/s/cm^2/Ang
+                flux_ivar_obs,          # 1/(10^-17 ergs/s/cm^2/Ang)^2
+                photo_obs,              # nanomaggies
+                photo_ivar_obs,         # 1/nanomaggies^2
+                zred) 
+        lnpost_kwargs = {
+                'mask': _mask,          # emission line mask 
+                'filters': filters,
+                'prior': prior          # prior
+                }
+        
+        # run emcee and get MCMC chains 
+        chain = self._emcee(self._lnPost_spectrophoto, lnpost_args, lnpost_kwargs, 
+                nwalkers=nwalkers, burnin=burnin, niter=niter, silent=silent)
+        # get quanitles of the posterior
+        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
+    
+        output = {} 
+        output['redshift'] = zred
+        output['theta_med'] = med 
+        output['theta_1sig_plus'] = high
+        output['theta_2sig_plus'] = highhigh
+        output['theta_1sig_minus'] = low
+        output['theta_2sig_minus'] = lowlow
+    
+        w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs)
+        output['wavelength_model'] = w_model
+        output['flux_model'] = flux_model 
+       
+        output['wavelength_data'] = wave_obs
+        output['flux_data'] = flux_obs
+        output['flux_ivar_data'] = flux_ivar_obs
+        
+        # save MCMC chain 
+        output['mcmc_chain'] = chain 
+
+        if writeout is not None: 
+            fh5  = h5py.File(writeout, 'w') 
+            for k in output.keys(): 
+                fh5.create_dataset(k, data=output[k]) 
+            fh5.close() 
+        return output  
+
+    def MCMC_spec(self, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, prior=None,
+            nwalkers=100, burnin=100, niter=1000, writeout=None, silent=True): 
+        ''' infer the posterior distribution of the free parameters given observed
+        wavelength, spectra flux, and inverse variance using MCMC. The function 
+        outputs a dictionary with the median theta of the posterior as well as the 
+        1sigma and 2sigma errors on the parameters (see below).
+
+        :param wave_obs: 
+            array of the observed wavelength
+        
+        :param flux_obs: 
+            array of the observed flux __in units of ergs/s/cm^2/Ang__
+
+        :param flux_ivar_obs: 
+            array of the observed flux **inverse variance**. Not uncertainty!
+
+        :param zred: 
+            float specifying the redshift of the observations  
+
+        :param mask: (optional) 
+            boolean array specifying where to mask the spectra. If mask == 'emline' the spectra
+            is masked around emission lines at 3728., 4861., 5007., 6564. Angstroms. (default: None) 
+
+        :param prior: (optional) 
+             callable prior object (e.g. prior(theta)). See priors below. (default: None) 
+
+        :param nwalkers: (optional) 
+            number of walkers. (default: 100) 
+        
+        :param burnin: (optional) 
+            int specifying the burnin. (default: 100) 
+        
+        :param nwalkers: (optional) 
+            int specifying the number of iterations. (default: 1000) 
+        
+        :param writeout: (optional) 
+            string specifying the output file. If specified, everything in the output dictionary 
+            is written out as well as the entire MCMC chain. (default: None) 
+
+        :param silent: (optional) 
+            If False, a bunch of messages will be shown 
+
+        :return output: 
+            dictionary that with keys: 
+            - output['redshift'] : redshift 
+            - output['theta_med'] : parameter value of the median posterior
+            - output['theta_1sig_plus'] : 1sigma above median 
+            - output['theta_2sig_plus'] : 2sigma above median 
+            - output['theta_1sig_minus'] : 1sigma below median 
+            - output['theta_2sig_minus'] : 2sigma below median 
+            - output['wavelength_model'] : wavelength of best-fit model 
+            - output['flux_model'] : flux of best-fit model 
+            - output['wavelength_data'] : wavelength of observations 
+            - output['flux_data'] : flux of observations 
+            - output['flux_ivar_data'] = inverse variance of the observed flux. 
+        '''
+        import scipy.optimize as op
+        import emcee
+
+        ndim = priors.ndim
+    
+        # check mask 
+        _mask = self._check_mask(mask, wave_obs, flux_ivar_obs, zred) 
+
+        # posterior function args and kwargs
+        lnpost_args = (wave_obs, 
+                flux_obs,        # 10^-17 ergs/s/cm^2/Ang
+                flux_ivar_obs,   # 1/(10^-17 ergs/s/cm^2/Ang)^2
+                zred) 
+        lnpost_kwargs = {
+                'mask': _mask,          # emission line mask 
+                'prior': prior          # prior 
+                }
+
+        # run emcee and get MCMC chains 
+        chain = self._emcee(self._lnPost, lnpost_args, lnpost_kwargs, 
+                nwalkers=nwalkers, burnin=burnin, niter=niter, silent=silent)
+        # get quanitles of the posterior
+        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
+    
+        output = {} 
+        output['redshift'] = zred
+        output['theta_med'] = med 
+        output['theta_1sig_plus'] = high
+        output['theta_2sig_plus'] = highhigh
+        output['theta_1sig_minus'] = low
+        output['theta_2sig_minus'] = lowlow
+    
+        w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs)
+        output['wavelength_model'] = w_model
+        output['flux_model'] = flux_model 
+       
+        output['wavelength_data'] = wave_obs
+        output['flux_data'] = flux_obs
+        output['flux_ivar_data'] = flux_ivar_obs
+        
+        # save prior and MCMC chain 
+        output['priors'] = self.priors
+        output['mcmc_chain'] = chain 
+
+        if writeout is not None: 
+            fh5  = h5py.File(writeout, 'w') 
+            for k in output.keys(): 
+                fh5.create_dataset(k, data=output[k]) 
+            fh5.close() 
+        return output  
+    
+    def MCMC_photo(self, photo_obs, photo_ivar_obs, zred, bands='desi', prior=None,
+            nwalkers=100, burnin=100, niter=1000, writeout=None, silent=True): 
+        ''' infer the posterior distribution of the free parameters given observed
+        photometric flux, and inverse variance using MCMC. The function 
+        outputs a dictionary with the median theta of the posterior as well as the 
+        1sigma and 2sigma errors on the parameters (see below).
+        
+        :param photo_obs: 
+            array of the observed photometric flux __in units of nanomaggies__
+
+        :param photo_ivar_obs: 
+            array of the observed photometric flux **inverse variance**. Not uncertainty!
+
+        :param zred: 
+            float specifying the redshift of the observations  
+
+        :param bands: 
+            specify the photometric bands. Some pre-programmed bands available. e.g. 
+            if bands == 'desi' then 
+            bands_list = ['decam2014-g', 'decam2014-r', 'decam2014-z','wise2010-W1', 'wise2010-W2', 'wise2010-W3', 'wise2010-W4']. 
+            (default: 'desi') 
+
+        :param nwalkers: (optional) 
+            number of walkers. (default: 100) 
+        
+        :param burnin: (optional) 
+            int specifying the burnin. (default: 100) 
+        
+        :param nwalkers: (optional) 
+            int specifying the number of iterations. (default: 1000) 
+        
+        :param writeout: (optional) 
+            string specifying the output file. If specified, everything in the output dictionary 
+            is written out as well as the entire MCMC chain. (default: None) 
+
+        :param silent: (optional) 
+            If False, a bunch of messages will be shown 
+
+        :return output: 
+            dictionary that with keys: 
+            - output['redshift'] : redshift 
+            - output['theta_med'] : parameter value of the median posterior
+            - output['theta_1sig_plus'] : 1sigma above median 
+            - output['theta_2sig_plus'] : 2sigma above median 
+            - output['theta_1sig_minus'] : 1sigma below median 
+            - output['theta_2sig_minus'] : 2sigma below median 
+            - output['wavelength_model'] : wavelength of best-fit model 
+            - output['flux_model'] : flux of best-fit model 
+            - output['wavelength_data'] : wavelength of observations 
+            - output['flux_data'] : flux of observations 
+            - output['flux_ivar_data'] = inverse variance of the observed flux. 
+        '''
+        # get photometric bands  
+        bands_list = self._get_bands(bands)
+        assert len(bands_list) == len(photo_obs) 
+        # get filters
+        filters = specFilter.load_filters(*tuple(bands_list))
+
+        # posterior function args and kwargs
+        lnpost_args = (
+                photo_obs,               # nanomaggies
+                photo_ivar_obs,         # 1/nanomaggies^2
+                zred
+                ) 
+        lnpost_kwargs = {
+                'filters': filters,
+                'prior_shape': 'flat'   # shape of prior (hardcoded) 
+                }
+    
+        # run emcee and get MCMC chains 
+        chain = self._emcee(self._lnPost_photo, lnpost_args, lnpost_kwargs, 
+                nwalkers=nwalkers, burnin=burnin, niter=niter, silent=silent)
+        # get quanitles of the posterior
+        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
+    
+        output = {} 
+        output['redshift'] = zred
+        output['theta_med'] = med 
+        output['theta_1sig_plus'] = high
+        output['theta_2sig_plus'] = highhigh
+        output['theta_1sig_minus'] = low
+        output['theta_2sig_minus'] = lowlow
+    
+        flux_model = self.model_photo(med, zred=zred, filters=filters)
+        output['flux_model'] = flux_model 
+        output['flux_data'] = photo_obs
+        output['flux_ivar_data'] = photo_ivar_obs
+    
+        # save prior and MCMC chain 
+        output['priors'] = self.priors
+        output['mcmc_chain'] = chain 
+
+        if writeout is not None: 
+            fh5  = h5py.File(writeout, 'w') 
+            for k in output.keys(): 
+                fh5.create_dataset(k, data=output[k]) 
+            fh5.close() 
+        return output  
 
     def model(self, tt_arr, zred=0.1, wavelength=None): 
         ''' very simple wrapper for a fsps model with minimal overhead. Generates a
@@ -229,332 +526,6 @@ class iFSPS(Fitter):
         maggies = filters.get_ab_maggies(spec * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom, wavelength=w.flatten()*U.Angstrom) # maggies 
         return np.array(list(maggies[0])) * 1e9
     
-    def MCMC_spectrophoto(self, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, f_fiber_prior=None, 
-            mask=None, bands='desi',
-            nwalkers=100, burnin=100, niter=1000, writeout=None, silent=True): 
-        ''' infer the posterior distribution of the free parameters given spectroscopy and photometry:
-        observed wavelength, spectra flux, inverse variance flux, photometry, inv. variance photometry
-        using MCMC. The function outputs a dictionary with the median theta of the posterior as well as 
-        the 1sigma and 2sigma errors on the parameters (see below).
-
-        :param wave_obs: 
-            array of the observed wavelength
-        
-        :param flux_obs: 
-            array of the observed flux __in units of ergs/s/cm^2/Ang__
-
-        :param flux_ivar_obs: 
-            array of the observed flux **inverse variance**. Not uncertainty!
-        
-        :param photo_obs: 
-            array of the observed photometric flux __in units of nanomaggies__
-
-        :param photo_ivar_obs: 
-            array of the observed photometric flux **inverse variance**. Not uncertainty!
-
-        :param zred: 
-            float specifying the redshift of the observations  
-    
-        :param f_fiber_prior: 
-            list specifying the range of f_fiber factor proir. (default: None) 
-
-        :param mask: (optional) 
-            boolean array specifying where to mask the spectra. If mask == 'emline' the spectra
-            is masked around emission lines at 3728., 4861., 5007., 6564. Angstroms. (default: None) 
-
-        :param nwalkers: (optional) 
-            number of walkers. (default: 100) 
-        
-        :param burnin: (optional) 
-            int specifying the burnin. (default: 100) 
-        
-        :param nwalkers: (optional) 
-            int specifying the number of iterations. (default: 1000) 
-        
-        :param writeout: (optional) 
-            string specifying the output file. If specified, everything in the output dictionary 
-            is written out as well as the entire MCMC chain. (default: None) 
-
-        :param silent: (optional) 
-            If False, a bunch of messages will be shown 
-
-        :return output: 
-            dictionary that with keys: 
-            - output['redshift'] : redshift 
-            - output['theta_med'] : parameter value of the median posterior
-            - output['theta_1sig_plus'] : 1sigma above median 
-            - output['theta_2sig_plus'] : 2sigma above median 
-            - output['theta_1sig_minus'] : 1sigma below median 
-            - output['theta_2sig_minus'] : 2sigma below median 
-            - output['wavelength_model'] : wavelength of best-fit model 
-            - output['flux_model'] : flux of best-fit model 
-            - output['wavelength_data'] : wavelength of observations 
-            - output['flux_data'] : flux of observations 
-            - output['flux_ivar_data'] = inverse variance of the observed flux. 
-        '''
-        import scipy.optimize as op
-        import emcee
-
-        self.priors.append(f_fiber_prior) # add f_fiber priors 
-        ndim = len(self.priors)
-    
-        # check mask for spectra 
-        _mask = self._check_mask(mask, wave_obs, flux_ivar_obs, zred) 
-        
-        # get photometric bands  
-        bands_list = self._get_bands(bands)
-        assert len(bands_list) == len(photo_obs) 
-        # get filters
-        filters = specFilter.load_filters(*tuple(bands_list))
-
-        # posterior function args and kwargs
-        lnpost_args = (wave_obs, 
-                flux_obs,        # 10^-17 ergs/s/cm^2/Ang
-                flux_ivar_obs,   # 1/(10^-17 ergs/s/cm^2/Ang)^2
-                photo_obs,               # nanomaggies
-                photo_ivar_obs,         # 1/nanomaggies^2
-                zred) 
-        lnpost_kwargs = {
-                'mask': _mask,           # emission line mask 
-                'filters': filters,
-                'prior_shape': 'flat'   # shape of prior (hardcoded) 
-                }
-        
-        # run emcee and get MCMC chains 
-        chain = self._emcee(self._lnPost_spectrophoto, lnpost_args, lnpost_kwargs, 
-                nwalkers=nwalkers, burnin=burnin, niter=niter, silent=silent)
-        # get quanitles of the posterior
-        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
-    
-        output = {} 
-        output['redshift'] = zred
-        output['theta_med'] = med 
-        output['theta_1sig_plus'] = high
-        output['theta_2sig_plus'] = highhigh
-        output['theta_1sig_minus'] = low
-        output['theta_2sig_minus'] = lowlow
-    
-        w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs)
-        output['wavelength_model'] = w_model
-        output['flux_model'] = flux_model 
-       
-        output['wavelength_data'] = wave_obs
-        output['flux_data'] = flux_obs
-        output['flux_ivar_data'] = flux_ivar_obs
-        
-        # save prior and MCMC chain 
-        output['priors'] = self.priors
-        output['mcmc_chain'] = chain 
-
-        if writeout is not None: 
-            fh5  = h5py.File(writeout, 'w') 
-            for k in output.keys(): 
-                fh5.create_dataset(k, data=output[k]) 
-            fh5.close() 
-        return output  
-
-    def MCMC_spec(self, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, 
-            nwalkers=100, burnin=100, niter=1000, writeout=None, silent=True): 
-        ''' infer the posterior distribution of the free parameters given observed
-        wavelength, spectra flux, and inverse variance using MCMC. The function 
-        outputs a dictionary with the median theta of the posterior as well as the 
-        1sigma and 2sigma errors on the parameters (see below).
-
-        :param wave_obs: 
-            array of the observed wavelength
-        
-        :param flux_obs: 
-            array of the observed flux __in units of ergs/s/cm^2/Ang__
-
-        :param flux_ivar_obs: 
-            array of the observed flux **inverse variance**. Not uncertainty!
-
-        :param zred: 
-            float specifying the redshift of the observations  
-
-        :param mask: (optional) 
-            boolean array specifying where to mask the spectra. If mask == 'emline' the spectra
-            is masked around emission lines at 3728., 4861., 5007., 6564. Angstroms. (default: None) 
-
-        :param nwalkers: (optional) 
-            number of walkers. (default: 100) 
-        
-        :param burnin: (optional) 
-            int specifying the burnin. (default: 100) 
-        
-        :param nwalkers: (optional) 
-            int specifying the number of iterations. (default: 1000) 
-        
-        :param writeout: (optional) 
-            string specifying the output file. If specified, everything in the output dictionary 
-            is written out as well as the entire MCMC chain. (default: None) 
-
-        :param silent: (optional) 
-            If False, a bunch of messages will be shown 
-
-        :return output: 
-            dictionary that with keys: 
-            - output['redshift'] : redshift 
-            - output['theta_med'] : parameter value of the median posterior
-            - output['theta_1sig_plus'] : 1sigma above median 
-            - output['theta_2sig_plus'] : 2sigma above median 
-            - output['theta_1sig_minus'] : 1sigma below median 
-            - output['theta_2sig_minus'] : 2sigma below median 
-            - output['wavelength_model'] : wavelength of best-fit model 
-            - output['flux_model'] : flux of best-fit model 
-            - output['wavelength_data'] : wavelength of observations 
-            - output['flux_data'] : flux of observations 
-            - output['flux_ivar_data'] = inverse variance of the observed flux. 
-        '''
-        import scipy.optimize as op
-        import emcee
-        ndim = len(self.priors) 
-    
-        # check mask 
-        _mask = self._check_mask(mask, wave_obs, flux_ivar_obs, zred) 
-
-        # posterior function args and kwargs
-        lnpost_args = (wave_obs, 
-                flux_obs,        # 10^-17 ergs/s/cm^2/Ang
-                flux_ivar_obs,   # 1/(10^-17 ergs/s/cm^2/Ang)^2
-                zred) 
-        lnpost_kwargs = {
-                'mask': _mask,           # emission line mask 
-                'prior_shape': 'flat'   # shape of prior (hardcoded) 
-                }
-
-        # run emcee and get MCMC chains 
-        chain = self._emcee(self._lnPost, lnpost_args, lnpost_kwargs, 
-                nwalkers=nwalkers, burnin=burnin, niter=niter, silent=silent)
-        # get quanitles of the posterior
-        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
-    
-        output = {} 
-        output['redshift'] = zred
-        output['theta_med'] = med 
-        output['theta_1sig_plus'] = high
-        output['theta_2sig_plus'] = highhigh
-        output['theta_1sig_minus'] = low
-        output['theta_2sig_minus'] = lowlow
-    
-        w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs)
-        output['wavelength_model'] = w_model
-        output['flux_model'] = flux_model 
-       
-        output['wavelength_data'] = wave_obs
-        output['flux_data'] = flux_obs
-        output['flux_ivar_data'] = flux_ivar_obs
-        
-        # save prior and MCMC chain 
-        output['priors'] = self.priors
-        output['mcmc_chain'] = chain 
-
-        if writeout is not None: 
-            fh5  = h5py.File(writeout, 'w') 
-            for k in output.keys(): 
-                fh5.create_dataset(k, data=output[k]) 
-            fh5.close() 
-        return output  
-    
-    def MCMC_photo(self, photo_obs, photo_ivar_obs, zred, bands='desi', 
-            nwalkers=100, burnin=100, niter=1000, writeout=None, silent=True): 
-        ''' infer the posterior distribution of the free parameters given observed
-        photometric flux, and inverse variance using MCMC. The function 
-        outputs a dictionary with the median theta of the posterior as well as the 
-        1sigma and 2sigma errors on the parameters (see below).
-        
-        :param photo_obs: 
-            array of the observed photometric flux __in units of nanomaggies__
-
-        :param photo_ivar_obs: 
-            array of the observed photometric flux **inverse variance**. Not uncertainty!
-
-        :param zred: 
-            float specifying the redshift of the observations  
-
-        :param bands: 
-            specify the photometric bands. Some pre-programmed bands available. e.g. 
-            if bands == 'desi' then 
-            bands_list = ['decam2014-g', 'decam2014-r', 'decam2014-z','wise2010-W1', 'wise2010-W2', 'wise2010-W3', 'wise2010-W4']. 
-            (default: 'desi') 
-
-        :param nwalkers: (optional) 
-            number of walkers. (default: 100) 
-        
-        :param burnin: (optional) 
-            int specifying the burnin. (default: 100) 
-        
-        :param nwalkers: (optional) 
-            int specifying the number of iterations. (default: 1000) 
-        
-        :param writeout: (optional) 
-            string specifying the output file. If specified, everything in the output dictionary 
-            is written out as well as the entire MCMC chain. (default: None) 
-
-        :param silent: (optional) 
-            If False, a bunch of messages will be shown 
-
-        :return output: 
-            dictionary that with keys: 
-            - output['redshift'] : redshift 
-            - output['theta_med'] : parameter value of the median posterior
-            - output['theta_1sig_plus'] : 1sigma above median 
-            - output['theta_2sig_plus'] : 2sigma above median 
-            - output['theta_1sig_minus'] : 1sigma below median 
-            - output['theta_2sig_minus'] : 2sigma below median 
-            - output['wavelength_model'] : wavelength of best-fit model 
-            - output['flux_model'] : flux of best-fit model 
-            - output['wavelength_data'] : wavelength of observations 
-            - output['flux_data'] : flux of observations 
-            - output['flux_ivar_data'] = inverse variance of the observed flux. 
-        '''
-        # get photometric bands  
-        bands_list = self._get_bands(bands)
-        assert len(bands_list) == len(photo_obs) 
-        # get filters
-        filters = specFilter.load_filters(*tuple(bands_list))
-
-        # posterior function args and kwargs
-        lnpost_args = (
-                photo_obs,               # nanomaggies
-                photo_ivar_obs,         # 1/nanomaggies^2
-                zred
-                ) 
-        lnpost_kwargs = {
-                'filters': filters,
-                'prior_shape': 'flat'   # shape of prior (hardcoded) 
-                }
-    
-        # run emcee and get MCMC chains 
-        chain = self._emcee(self._lnPost_photo, lnpost_args, lnpost_kwargs, 
-                nwalkers=nwalkers, burnin=burnin, niter=niter, silent=silent)
-        # get quanitles of the posterior
-        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
-    
-        output = {} 
-        output['redshift'] = zred
-        output['theta_med'] = med 
-        output['theta_1sig_plus'] = high
-        output['theta_2sig_plus'] = highhigh
-        output['theta_1sig_minus'] = low
-        output['theta_2sig_minus'] = lowlow
-    
-        flux_model = self.model_photo(med, zred=zred, filters=filters)
-        output['flux_model'] = flux_model 
-        output['flux_data'] = photo_obs
-        output['flux_ivar_data'] = photo_ivar_obs
-    
-        # save prior and MCMC chain 
-        output['priors'] = self.priors
-        output['mcmc_chain'] = chain 
-
-        if writeout is not None: 
-            fh5  = h5py.File(writeout, 'w') 
-            for k in output.keys(): 
-                fh5.create_dataset(k, data=output[k]) 
-            fh5.close() 
-        return output  
-
     def _SFR_MCMC(self, mcmc_chain, dt=1.): 
         ''' given mcmc_chain of parameters calculate the -2-sig, -1-sig, median, 1 sig, 2 sig SFR values 
         '''
@@ -649,7 +620,7 @@ class iFSPS(Fitter):
         return  self.sampler.flatchain
 
     def _lnPost_spectrophoto(self, tt_arr, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, 
-            mask=None, filters=None, bands=None, prior_shape='flat'): 
+            mask=None, filters=None, bands=None, prior=None): 
         ''' calculate the log posterior 
 
         :param tt_arr: 
@@ -677,10 +648,10 @@ class iFSPS(Fitter):
             A boolean array that specifies what part of the spectra to mask 
             out. (default: None) 
 
-        :param prior_shape: (optional) 
-            shape of the prior. (default: 'flat') 
+        :param prior: (optional) 
+            callable prior object 
         '''
-        lp = self._lnPrior(tt_arr, shape=prior_shape) # log prior
+        lp = self._lnPrior(tt_arr, prior=prior) # log prior
         if not np.isfinite(lp): 
             return -np.inf
 
@@ -689,7 +660,7 @@ class iFSPS(Fitter):
 
         return lp - 0.5 * chi_tot 
 
-    def _lnPost(self, tt_arr, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, prior_shape='flat'): 
+    def _lnPost(self, tt_arr, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, prior=None): 
         ''' calculate the log posterior 
 
         :param tt_arr: 
@@ -711,10 +682,10 @@ class iFSPS(Fitter):
             A boolean array that specifies what part of the spectra to mask 
             out. (default: None) 
 
-        :param prior_shape: (optional) 
-            shape of the prior. (default: 'flat') 
+        :param prior: (optional) 
+            callable prior object. (default: None) 
         '''
-        lp = self._lnPrior(tt_arr, shape=prior_shape) # log prior
+        lp = self._lnPrior(tt_arr, prior=prior) # log prior
         if not np.isfinite(lp): 
             return -np.inf
         return lp - 0.5 * self._Chi2(tt_arr, wave_obs, flux_obs, flux_ivar_obs, zred, mask=mask)
@@ -733,10 +704,7 @@ class iFSPS(Fitter):
     def _lnPost_spec(self, *args, **kwargs): 
         return self._lnPost(*args, **kwargs)
     
-    def _lnPost_Chi2(self, *args, **kwargs): 
-        return self._Chi2(*args, **kwargs)
-    
-    def _lnPost_photo(self, tt_arr, flux_obs, flux_ivar_obs, zred, filters=None, bands=None, prior_shape='flat'): 
+    def _lnPost_photo(self, tt_arr, flux_obs, flux_ivar_obs, zred, filters=None, bands=None, prior=None): 
         ''' calculate the log posterior for photometry
 
         :param tt_arr: 
@@ -758,10 +726,10 @@ class iFSPS(Fitter):
             photometric bands to generate the photometry. Either bands or filters has to be 
             specified. (default: None)  
 
-        :param prior_shape: (optional) 
-            shape of the prior. (default: 'flat') 
+        :param prior: (optional) 
+            callable prior object. 
         '''
-        lp = self._lnPrior(tt_arr, shape=prior_shape) # log prior
+        lp = self._lnPrior(tt_arr, prior=prior) # log prior
         if not np.isfinite(lp): 
             return -np.inf
         return lp - 0.5 * self._Chi2_photo(tt_arr, flux_obs, flux_ivar_obs, zred, filters=filters, bands=bands)
@@ -787,12 +755,6 @@ class iFSPS(Fitter):
                     sfh=4,                  # sfh type 
                     dust_type=2,            # Calzetti et al. (2000) attenuation curve. 
                     imf_type=1)             # chabrier 
-
-        elif self.model_name == 'dustless_vanilla': 
-            ssp = fsps.StellarPopulation(
-                    zcontinuous=1,          # interpolate metallicities
-                    sfh=4,                  # sfh type 
-                    imf_type=1)             # chabrier 
         else: 
             raise NotImplementedError
         return ssp 
@@ -810,12 +772,6 @@ class iFSPS(Fitter):
             theta['tage']   = tt_arr[:,2]
             theta['dust2']  = tt_arr[:,3]
             theta['tau']    = tt_arr[:,4]
-        elif self.model_name == 'dustless_vanilla': 
-            # tt_arr columns: mass, Z, tage, tau
-            theta['mass']   = 10**tt_arr[:,0]
-            theta['Z']      = 10**tt_arr[:,1]
-            theta['tage']   = tt_arr[:,2]
-            theta['tau']    = tt_arr[:,3]
         else: 
             raise NotImplementedError
         return theta
@@ -834,29 +790,393 @@ class iFSPS(Fitter):
             raise NotImplementedError("specified bands not implemented") 
         return bands_list 
 
+    def _default_prior(self, f_fiber_prior=None): 
+        ''' return default prior object 
+        '''
+        # thetas: mass, Z, tage, dust2, tau
+        prior_min = [8., -3., 0., 0., 0.1]
+        prior_max = [13., 1., 13., 10., 10.]
+        if f_fiber_prior is not None: 
+            prior_min.append(f_fiber_prior[0])
+            prior_max.append(f_fiber_prior[1])
+
+        return UniformPrior(np.array(prior_min), np.array(prior_max)) 
+
 
 class iSpeculator(iFSPS):
     ''' inference that uses Speculator Alsing+(2020)  https://arxiv.org/abs/1911.11778 as its model. 
-    This is a child class of iFSPS and consequently shares many of its methods 
+    This is a child class of iFSPS and consequently shares many of its methods. Usage is essentially 
+    the same. 
+
+    The MCMC is run on in the parameter space with transformed SFH basis coefficients rather than 
+    the original SFH basis cofficient. This transformation is detailed in Betancourt2013 
+    (https://arxiv.org/abs/1010.3436). **The output chain however is transformed back to the original
+    SFH coefficients.**
     '''
-    def __init__(self, model_name='vanilla', prior=None, cosmo=cosmo): 
+    def __init__(self, model_name='vanilla', cosmo=cosmo): 
         self.model_name = model_name # store model name 
         self.cosmo = cosmo # cosmology  
         self._load_model_params() # load emulator parameters
-        self._set_prior(prior) # set prior 
 
-    def model(self, tt_arr, zred=0.1, wavelength=None): 
-        ''' calls Speculator to computee SED given theta. This will be called by the inference method. 
+    def MCMC_spectrophoto(self, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, prior=None, 
+            mask=None, bands='desi',
+            nwalkers=100, burnin=100, niter=1000, writeout=None, silent=True): 
+        ''' infer the posterior distribution of the free parameters given spectroscopy and photometry:
+        observed wavelength, spectra flux, inverse variance flux, photometry, inv. variance photometry
+        using MCMC. The function outputs a dictionary with the median theta of the posterior as well as 
+        the 1sigma and 2sigma errors on the parameters (see below).
 
-        parameters
-        ----------
-        tt_arr : array 
-            array of free parameters
-        zred : float,array (default: 0.1) 
+        :param wave_obs: 
+            array of the observed wavelength
+        
+        :param flux_obs: 
+            array of the observed flux __in units of ergs/s/cm^2/Ang__
+
+        :param flux_ivar_obs: 
+            array of the observed flux **inverse variance**. Not uncertainty!
+        
+        :param photo_obs: 
+            array of the observed photometric flux __in units of nanomaggies__
+
+        :param photo_ivar_obs: 
+            array of the observed photometric flux **inverse variance**. Not uncertainty!
+
+        :param zred: 
+            float specifying the redshift of the observations  
+    
+        :param prior: 
+             callable prior object (e.g. prior(theta)). See priors below.
+
+        :param mask: (optional) 
+            boolean array specifying where to mask the spectra. If mask == 'emline' the spectra
+            is masked around emission lines at 3728., 4861., 5007., 6564. Angstroms. (default: None) 
+
+        :param nwalkers: (optional) 
+            number of walkers. (default: 100) 
+        
+        :param burnin: (optional) 
+            int specifying the burnin. (default: 100) 
+        
+        :param nwalkers: (optional) 
+            int specifying the number of iterations. (default: 1000) 
+        
+        :param writeout: (optional) 
+            string specifying the output file. If specified, everything in the output dictionary 
+            is written out as well as the entire MCMC chain. (default: None) 
+
+        :param silent: (optional) 
+            If False, a bunch of messages will be shown 
+
+        :return output: 
+            dictionary that with keys: 
+            - output['redshift'] : redshift 
+            - output['theta_med'] : parameter value of the median posterior
+            - output['theta_1sig_plus'] : 1sigma above median 
+            - output['theta_2sig_plus'] : 2sigma above median 
+            - output['theta_1sig_minus'] : 1sigma below median 
+            - output['theta_2sig_minus'] : 2sigma below median 
+            - output['wavelength_model'] : wavelength of best-fit model 
+            - output['flux_model'] : flux of best-fit model 
+            - output['wavelength_data'] : wavelength of observations 
+            - output['flux_data'] : flux of observations 
+            - output['flux_ivar_data'] = inverse variance of the observed flux. 
+
+        notes: 
+        -----
+        *   Because the priors for the SFH basis parameters have Dirichlet priors, we have to do a 
+            transformation to get it to work
+        '''
+        import emcee
+
+        ndim = prior.ndim
+    
+        # check mask for spectra 
+        _mask = self._check_mask(mask, wave_obs, flux_ivar_obs, zred) 
+        
+        # get photometric bands  
+        bands_list = self._get_bands(bands)
+        assert len(bands_list) == len(photo_obs) 
+        # get filters
+        filters = specFilter.load_filters(*tuple(bands_list))
+
+        # posterior function args and kwargs
+        lnpost_args = (wave_obs, 
+                flux_obs,               # 10^-17 ergs/s/cm^2/Ang
+                flux_ivar_obs,          # 1/(10^-17 ergs/s/cm^2/Ang)^2
+                photo_obs,              # nanomaggies
+                photo_ivar_obs,         # 1/nanomaggies^2
+                zred) 
+        lnpost_kwargs = {
+                'mask': _mask,          # emission line mask 
+                'filters': filters,
+                'prior': prior          # prior
+                }
+        
+        # run emcee and get MCMC chains 
+        _chain = self._emcee(self._lnPost_spectrophoto, lnpost_args, lnpost_kwargs, 
+                nwalkers=nwalkers, burnin=burnin, niter=niter, silent=silent)
+        # transform chain back to original SFH basis 
+        chain = _chain.copy() 
+        chain[:,1:5] = self._transform_to_SFH_basis(_chain[:,1:5]) 
+
+        # get quanitles of the posterior
+        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
+    
+        output = {} 
+        output['redshift'] = zred
+        output['theta_med'] = med 
+        output['theta_1sig_plus'] = high
+        output['theta_2sig_plus'] = highhigh
+        output['theta_1sig_minus'] = low
+        output['theta_2sig_minus'] = lowlow
+    
+        w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs, dont_transform=True)
+        photo_model = self.model_photo(med, zred=zred, dont_transform=True)
+        output['wavelength_model'] = w_model
+        output['flux_model'] = flux_model 
+        output['photo_model'] = photo_model
+       
+        output['wavelength_data'] = wave_obs
+        output['flux_data'] = flux_obs
+        output['flux_ivar_data'] = flux_ivar_obs
+        output['photo_data'] = photo_obs
+        output['photo_ivar_data'] = photo_ivar_obs
+        
+        # save MCMC chain 
+        output['mcmc_chain'] = chain 
+
+        if writeout is not None: 
+            fh5  = h5py.File(writeout, 'w') 
+            for k in output.keys(): 
+                fh5.create_dataset(k, data=output[k]) 
+            fh5.close() 
+        return output  
+
+    def MCMC_spec(self, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, prior=None,
+            nwalkers=100, burnin=100, niter=1000, writeout=None, silent=True): 
+        ''' infer the posterior distribution of the free parameters given observed
+        wavelength, spectra flux, and inverse variance using MCMC. The function 
+        outputs a dictionary with the median theta of the posterior as well as the 
+        1sigma and 2sigma errors on the parameters (see below).
+
+        :param wave_obs: 
+            array of the observed wavelength
+        
+        :param flux_obs: 
+            array of the observed flux __in units of ergs/s/cm^2/Ang__
+
+        :param flux_ivar_obs: 
+            array of the observed flux **inverse variance**. Not uncertainty!
+
+        :param zred: 
+            float specifying the redshift of the observations  
+
+        :param mask: (optional) 
+            boolean array specifying where to mask the spectra. If mask == 'emline' the spectra
+            is masked around emission lines at 3728., 4861., 5007., 6564. Angstroms. (default: None) 
+
+        :param prior: (optional) 
+             callable prior object (e.g. prior(theta)). See priors below. (default: None) 
+
+        :param nwalkers: (optional) 
+            number of walkers. (default: 100) 
+        
+        :param burnin: (optional) 
+            int specifying the burnin. (default: 100) 
+        
+        :param nwalkers: (optional) 
+            int specifying the number of iterations. (default: 1000) 
+        
+        :param writeout: (optional) 
+            string specifying the output file. If specified, everything in the output dictionary 
+            is written out as well as the entire MCMC chain. (default: None) 
+
+        :param silent: (optional) 
+            If False, a bunch of messages will be shown 
+
+        :return output: 
+            dictionary that with keys: 
+            - output['redshift'] : redshift 
+            - output['theta_med'] : parameter value of the median posterior
+            - output['theta_1sig_plus'] : 1sigma above median 
+            - output['theta_2sig_plus'] : 2sigma above median 
+            - output['theta_1sig_minus'] : 1sigma below median 
+            - output['theta_2sig_minus'] : 2sigma below median 
+            - output['wavelength_model'] : wavelength of best-fit model 
+            - output['flux_model'] : flux of best-fit model 
+            - output['wavelength_data'] : wavelength of observations 
+            - output['flux_data'] : flux of observations 
+            - output['flux_ivar_data'] = inverse variance of the observed flux. 
+        '''
+        import scipy.optimize as op
+        import emcee
+
+        ndim = priors.ndim
+    
+        # check mask 
+        _mask = self._check_mask(mask, wave_obs, flux_ivar_obs, zred) 
+
+        # posterior function args and kwargs
+        lnpost_args = (wave_obs, 
+                flux_obs,        # 10^-17 ergs/s/cm^2/Ang
+                flux_ivar_obs,   # 1/(10^-17 ergs/s/cm^2/Ang)^2
+                zred) 
+        lnpost_kwargs = {
+                'mask': _mask,          # emission line mask 
+                'prior': prior          # prior 
+                }
+
+        # run emcee and get MCMC chains 
+        chain = self._emcee(self._lnPost, lnpost_args, lnpost_kwargs, 
+                nwalkers=nwalkers, burnin=burnin, niter=niter, silent=silent)
+        # transform chain back to original SFH basis 
+        chain = _chain.copy() 
+        chain[:,1:5] = self._transform_to_SFH_basis(_chain[:,1:5]) 
+        # get quanitles of the posterior
+        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
+    
+        output = {} 
+        output['redshift'] = zred
+        output['theta_med'] = med 
+        output['theta_1sig_plus'] = high
+        output['theta_2sig_plus'] = highhigh
+        output['theta_1sig_minus'] = low
+        output['theta_2sig_minus'] = lowlow
+    
+        w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs, dont_transform=True)
+        output['wavelength_model'] = w_model
+        output['flux_model'] = flux_model 
+       
+        output['wavelength_data'] = wave_obs
+        output['flux_data'] = flux_obs
+        output['flux_ivar_data'] = flux_ivar_obs
+        
+        # save prior and MCMC chain 
+        output['priors'] = self.priors
+        output['mcmc_chain'] = chain 
+
+        if writeout is not None: 
+            fh5  = h5py.File(writeout, 'w') 
+            for k in output.keys(): 
+                fh5.create_dataset(k, data=output[k]) 
+            fh5.close() 
+        return output  
+    
+    def MCMC_photo(self, photo_obs, photo_ivar_obs, zred, bands='desi', prior=None,
+            nwalkers=100, burnin=100, niter=1000, writeout=None, silent=True): 
+        ''' infer the posterior distribution of the free parameters given observed
+        photometric flux, and inverse variance using MCMC. The function 
+        outputs a dictionary with the median theta of the posterior as well as the 
+        1sigma and 2sigma errors on the parameters (see below).
+        
+        :param photo_obs: 
+            array of the observed photometric flux __in units of nanomaggies__
+
+        :param photo_ivar_obs: 
+            array of the observed photometric flux **inverse variance**. Not uncertainty!
+
+        :param zred: 
+            float specifying the redshift of the observations  
+
+        :param bands: 
+            specify the photometric bands. Some pre-programmed bands available. e.g. 
+            if bands == 'desi' then 
+            bands_list = ['decam2014-g', 'decam2014-r', 'decam2014-z','wise2010-W1', 'wise2010-W2', 'wise2010-W3', 'wise2010-W4']. 
+            (default: 'desi') 
+
+        :param nwalkers: (optional) 
+            number of walkers. (default: 100) 
+        
+        :param burnin: (optional) 
+            int specifying the burnin. (default: 100) 
+        
+        :param nwalkers: (optional) 
+            int specifying the number of iterations. (default: 1000) 
+        
+        :param writeout: (optional) 
+            string specifying the output file. If specified, everything in the output dictionary 
+            is written out as well as the entire MCMC chain. (default: None) 
+
+        :param silent: (optional) 
+            If False, a bunch of messages will be shown 
+
+        :return output: 
+            dictionary that with keys: 
+            - output['redshift'] : redshift 
+            - output['theta_med'] : parameter value of the median posterior
+            - output['theta_1sig_plus'] : 1sigma above median 
+            - output['theta_2sig_plus'] : 2sigma above median 
+            - output['theta_1sig_minus'] : 1sigma below median 
+            - output['theta_2sig_minus'] : 2sigma below median 
+            - output['wavelength_model'] : wavelength of best-fit model 
+            - output['flux_model'] : flux of best-fit model 
+            - output['wavelength_data'] : wavelength of observations 
+            - output['flux_data'] : flux of observations 
+            - output['flux_ivar_data'] = inverse variance of the observed flux. 
+        '''
+        # get photometric bands  
+        bands_list = self._get_bands(bands)
+        assert len(bands_list) == len(photo_obs) 
+        # get filters
+        filters = specFilter.load_filters(*tuple(bands_list))
+
+        # posterior function args and kwargs
+        lnpost_args = (
+                photo_obs,               # nanomaggies
+                photo_ivar_obs,         # 1/nanomaggies^2
+                zred
+                ) 
+        lnpost_kwargs = {
+                'filters': filters,
+                'prior_shape': 'flat'   # shape of prior (hardcoded) 
+                }
+    
+        # run emcee and get MCMC chains 
+        chain = self._emcee(self._lnPost_photo, lnpost_args, lnpost_kwargs, 
+                nwalkers=nwalkers, burnin=burnin, niter=niter, silent=silent)
+        # transform chain back to original SFH basis 
+        chain = _chain.copy() 
+        chain[:,1:5] = self._transform_to_SFH_basis(_chain[:,1:5]) 
+        # get quanitles of the posterior
+        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
+    
+        output = {} 
+        output['redshift'] = zred
+        output['theta_med'] = med 
+        output['theta_1sig_plus'] = high
+        output['theta_2sig_plus'] = highhigh
+        output['theta_1sig_minus'] = low
+        output['theta_2sig_minus'] = lowlow
+    
+        flux_model = self.model_photo(med, zred=zred, filters=filters, dont_transform=True)
+        output['flux_model'] = flux_model 
+        output['flux_data'] = photo_obs
+        output['flux_ivar_data'] = photo_ivar_obs
+    
+        # save prior and MCMC chain 
+        output['priors'] = self.priors
+        output['mcmc_chain'] = chain 
+
+        if writeout is not None: 
+            fh5  = h5py.File(writeout, 'w') 
+            for k in output.keys(): 
+                fh5.create_dataset(k, data=output[k]) 
+            fh5.close() 
+        return output  
+
+    def model(self, zz_arr, zred=0.1, wavelength=None, dont_transform=False): 
+        ''' calls Speculator to computee SED given theta. theta[1:4] are the **transformed** SFH basis coefficients, 
+        not the actual coefficients! This method is called by the inference method. 
+
+        :param zz_arr:
+            array of parameters. theta[1:4] are the **transformed** SFH basis coefficients
+        :param zred: float,array (default: 0.1) 
             The output wavelength and spectra are redshifted.
-        wavelength : (default: None)  
+        :param wavelength: (default: None)  
             If specified, the model will interpolate the spectra to the specified 
             wavelengths.
+        :param dont_transform:
+            If True, skips the transformation  
 
         returns
         -------
@@ -866,6 +1186,11 @@ class iSpeculator(iFSPS):
             spectra generated from FSPS model(theta) in units of 1e-17 * erg/s/cm^2/Angstrom
         '''
         zred    = np.atleast_1d(zred)
+        tt_arr  = zz_arr.copy() 
+        # transform back to SFH basis coefficients 
+        if not dont_transform: 
+            tt_arr[:,1:5] = self._transform_to_SFH_basis(zz_arr[:,1:5]) 
+
         theta   = self._theta(tt_arr) 
         ntheta  = len(theta['mass']) 
 
@@ -897,6 +1222,38 @@ class iSpeculator(iFSPS):
                 outspec[i,:] = np.interp(outwave[i,:], _w, _f, left=0, right=0)
 
         return outwave, outspec 
+    
+    def model_photo(self, zz_arr, zred=0.1, filters=None, bands=None, dont_transform=False): 
+        ''' very simple wrapper for a fsps model with minimal overhead. Generates photometry 
+        in specified photometric bands 
+
+        :param zz_arr:
+            array of free parameters
+
+        :param zred:
+            redshift (default: 0.1) 
+
+        :param filters:             
+            speclite.filters filter object. Either filters or bands has to be specified. (default: None) 
+
+        :param bands: (optional) 
+            photometric bands to generate the photometry. Either bands or filters has to be 
+            specified. (default: None)  
+
+        :return outphoto:
+            array of photometric fluxes in nanomaggies in the specified bands 
+        '''
+        if filters is None: 
+            if bands is not None: 
+                bands_list = self._get_bands(bands) # get list of bands 
+                filters = specFilter.load_filters(*tuple(bands_list))
+            else: 
+                raise ValueError("specify either filters or bands") 
+
+        w, spec = self.model(zz_arr, zred=zred, dont_transform=dont_transform) # get SED  
+    
+        maggies = filters.get_ab_maggies(spec * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom, wavelength=w.flatten()*U.Angstrom) # maggies 
+        return np.array(list(maggies[0])) * 1e9
    
     def _emulator(self, tt):
         ''' emulator for FSPS 
@@ -979,34 +1336,52 @@ class iSpeculator(iFSPS):
         else: 
             raise NotImplementedError
         return theta
+
+    def _transform_to_SFH_basis(self, zarr):
+        ''' MCMC is sampled in a warped manifold transformation of the original basis manifold
+        as specified in Betancourt(2013). This function transforms back to the original manifold
     
-    def _set_prior(self, priors): 
-        ''' sets the priors to be used for the MCMC parameter inference 
 
-        parameters 
-        ----------
-        priors : list
-            List of tuples that specify the priors of the free parameters 
+        x_i = (\prod\limits_{k=1}^{i-1} z_k) * f 
+
+        f = 1 - z_i         for i < m
+        f = 1               for i = m 
+
+        :param zarr: 
+            N x m array 
+
+        reference
+        ---------
+        * Betancourt(2013) - https://arxiv.org/pdf/1010.3436.pdf
         '''
-        if priors is None: # default priors
-            p_mass  = (8, 13)       # mass
-            p_z     = (-3, 1)       # Z 
-            p_tage  = (0., 13.)     # tage
-            p_d2    = (0., 10.)     # dust 2 
-            p_tau   = (0.1, 10.)    # tau 
+        zarr    = np.atleast_2d(zarr)
+        m       = zarr.shape[1]
+        xarr    = np.empty(zarr.shape) 
+    
+        xarr[:,0] = 1. - zarr[:,0]
+        for i in range(1,m-1): 
+            xarr[:,i] = np.prod(zarr[:,:i], axis=1) * (1. - zarr[:,i]) 
+        xarr[:,-1] = np.prod(zarr[:,:-1], axis=1) 
 
-            if self.model_name == 'vanilla':            # thetas: mass, Z, tage, dust2, tau
-                priors = [p_mass, p_z, p_tage, p_d2, p_tau]
-            elif self.model_name == 'dustless_vanilla': # thetas: mass, Z, tage, tau
-                priors = [p_mass, p_z, p_tage, p_tau]
-        else: 
-            if self.model_name == 'vanilla': 
-                assert len(priors) == 5, 'specify priors for mass, Z, tage, dust2, and tau'
-            elif self.model_name == 'dustless_vanilla': 
-                assert len(priors) == 4, 'specify priors for mass, Z, tage, and tau'
-        
-        self.priors = priors
-        return None 
+        return xarr 
+    
+    def _default_prior(self, f_fiber_prior=None): 
+        ''' return default prior object. this prior spans the *transformed* SFH basis coefficients. 
+        Because of this transformation, we use uniform priors. 
+
+        :param f_fiber_prior: 
+            [min, max] of f_fiber prior. if specified, f_fiber is added as an extra parameter.
+            This is for spectrophotometric fitting 
+        '''
+        # M*, beta1', beta2', beta3', beta4', gamma1, gamma2, tage, tau  
+        prior_min = [8., 0., 0., 0., 0., 6.9e-5, 6.9e-5, 9.5, 0.]
+        prior_max = [13., 1., 1., 1., 1., 7.3e-3, 7.3e-3, 13.7, 3.]
+
+        if f_fiber_prior is not None: 
+            prior_min.append(f_fiber_prior[0]) 
+            prior_max.append(f_fiber_prior[1]) 
+
+        return UniformPrior(np.array(prior_min), np.array(prior_max))
 
 
 class pseudoFirefly(Fitter): 
@@ -1566,3 +1941,53 @@ class pseudoFirefly(Fitter):
 
                     extra_fit_list.append(fitdict)
         return extra_fit_list
+
+
+def FlatDirichletPrior(object): 
+    ''' flat dirichlet prior
+    '''
+    def __init__(self, ndim):
+        self.ndim = ndim 
+        self.alpha = [1. for i in range(ndim)] # alpha_i = 1 for flat prior 
+        self._random = np.random.mtrand.RandomState()
+        
+    def __call__(self, theta=None):
+        if theta is None:
+            return self._random.dirchlet(self.alpha)
+        else:
+            return 1 if np.sum(theta) == 1 else 0
+    
+    def append(self, *arg, **kwargs): 
+        raise ValueError("appending not supproted") 
+
+
+def UniformPrior(object): 
+    ''' uniform tophat prior
+    
+    :param min: 
+        scalar or array of min values
+    :param max: 
+        scalar or array of max values
+    '''
+    
+    def __init__(self, min, max):
+        self.min = np.atleast_1d(min)
+        self.max = np.atleast_1d(max)
+        self.ndim = len(self.min) 
+        self._random = np.random.mtrand.RandomState()
+        assert self.min.shape == self.max.shape
+        assert np.all(self.min < self.max)
+        
+    def __call__(self, theta=None):
+        if theta is None:
+            return np.array([self._random.uniform(mi, ma) for (mi, ma) in zip(self.min, self.max)])
+        else:
+            return 1 if np.all(theta < self.max) and np.all(theta >= self.min) else 0
+
+    def append(self, _min, _max): 
+        self.min = np.concatenate([self.min, _min]) 
+        self.max = np.concatenate([self.max, _max]) 
+        self.ndim = len(self.min)
+        assert self.min.shape == self.max.shape
+        assert np.all(self.min < self.max)
+        return None 

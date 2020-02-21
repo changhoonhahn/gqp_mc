@@ -2,7 +2,7 @@
 #source activate gqp
 
 i0=0
-i1=10
+i1=96
 
 #echo 'fitting spectra of galaxies # '$i0' to '$i1
 

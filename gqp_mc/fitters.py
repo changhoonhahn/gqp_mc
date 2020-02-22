@@ -156,11 +156,6 @@ class iFSPS(Fitter):
             - output['flux_data'] : flux of observations 
             - output['flux_ivar_data'] = inverse variance of the observed flux. 
         '''
-        import scipy.optimize as op
-        import emcee
-
-        ndim = prior.ndim
-    
         # check mask for spectra 
         _mask = self._check_mask(mask, wave_obs, flux_ivar_obs, zred) 
         
@@ -184,8 +179,14 @@ class iFSPS(Fitter):
                 }
         
         # run emcee and get MCMC chains 
-        chain = self._emcee(self._lnPost_spectrophoto, lnpost_args, lnpost_kwargs, 
-                nwalkers=nwalkers, burnin=burnin, niter=niter, silent=silent)
+        chain = self._emcee(
+                self._lnPost_spectrophoto, 
+                lnpost_args, 
+                lnpost_kwargs, 
+                nwalkers=nwalkers, 
+                burnin=burnin, 
+                niter=niter, 
+                silent=silent)
         # get quanitles of the posterior
         lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
     
@@ -206,6 +207,7 @@ class iFSPS(Fitter):
         output['flux_ivar_data'] = flux_ivar_obs
         
         # save MCMC chain 
+        output['prior_range'] = np.vstack([prior.min, prior.max]).T
         output['mcmc_chain'] = chain 
 
         if writeout is not None: 
@@ -271,11 +273,6 @@ class iFSPS(Fitter):
             - output['flux_data'] : flux of observations 
             - output['flux_ivar_data'] = inverse variance of the observed flux. 
         '''
-        import scipy.optimize as op
-        import emcee
-
-        ndim = priors.ndim
-    
         # check mask 
         _mask = self._check_mask(mask, wave_obs, flux_ivar_obs, zred) 
 
@@ -290,8 +287,14 @@ class iFSPS(Fitter):
                 }
 
         # run emcee and get MCMC chains 
-        chain = self._emcee(self._lnPost, lnpost_args, lnpost_kwargs, 
-                nwalkers=nwalkers, burnin=burnin, niter=niter, silent=silent)
+        chain = self._emcee(
+                self._lnPost, 
+                lnpost_args, 
+                lnpost_kwargs, 
+                nwalkers=nwalkers,
+                burnin=burnin, 
+                niter=niter, 
+                silent=silent)
         # get quanitles of the posterior
         lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
     
@@ -312,7 +315,7 @@ class iFSPS(Fitter):
         output['flux_ivar_data'] = flux_ivar_obs
         
         # save prior and MCMC chain 
-        output['priors'] = self.priors
+        output['prior_range'] = np.vstack([prior.min, prior.max]).T
         output['mcmc_chain'] = chain 
 
         if writeout is not None: 
@@ -374,6 +377,8 @@ class iFSPS(Fitter):
             - output['flux_data'] : flux of observations 
             - output['flux_ivar_data'] = inverse variance of the observed flux. 
         '''
+        ndim = prior.ndim
+    
         # get photometric bands  
         bands_list = self._get_bands(bands)
         assert len(bands_list) == len(photo_obs) 
@@ -388,12 +393,18 @@ class iFSPS(Fitter):
                 ) 
         lnpost_kwargs = {
                 'filters': filters,
-                'prior_shape': 'flat'   # shape of prior (hardcoded) 
+                'prior': prior  # prior object
                 }
     
         # run emcee and get MCMC chains 
-        chain = self._emcee(self._lnPost_photo, lnpost_args, lnpost_kwargs, 
-                nwalkers=nwalkers, burnin=burnin, niter=niter, silent=silent)
+        chain = self._emcee(
+                self._lnPost_photo, 
+                lnpost_args,
+                lnpost_kwargs, 
+                nwalkers=nwalkers, 
+                burnin=burnin, 
+                niter=niter, 
+                silent=silent)
         # get quanitles of the posterior
         lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
     
@@ -411,7 +422,7 @@ class iFSPS(Fitter):
         output['flux_ivar_data'] = photo_ivar_obs
     
         # save prior and MCMC chain 
-        output['priors'] = self.priors
+        output['prior_range'] = np.vstack([prior.min, prior.max]).T
         output['mcmc_chain'] = chain 
 
         if writeout is not None: 
@@ -585,17 +596,20 @@ class iFSPS(Fitter):
         '''
         import scipy.optimize as op
         import emcee
-        ndim = len(self.priors) 
 
         # get initial theta by minimization 
         if not silent: print('getting initial theta') 
-        dprior = np.array(self.priors)[:,1] - np.array(self.priors)[:,0]  
+    
+        ndim = lnpost_kwargs['prior'].ndim
+
+        
+        dprior = lnpost_kwargs['prior'].max - lnpost_kwargs['prior'].min
 
         _lnpost = lambda *args: -2. * lnpost_fn(*args, **lnpost_kwargs) 
 
         min_result = op.minimize(
                 _lnpost, 
-                np.average(np.array(self.priors), axis=1), # guess the middle of the prior 
+                0.5*(lnpost_kwargs['prior'].max + lnpost_kwargs['prior'].min), # guess the middle of the prior 
                 args=lnpost_args, 
                 method='BFGS', 
                 options={'eps': 0.01 * dprior, 'maxiter': 100})
@@ -886,10 +900,6 @@ class iSpeculator(iFSPS):
         *   Because the priors for the SFH basis parameters have Dirichlet priors, we have to do a 
             transformation to get it to work
         '''
-        import emcee
-
-        ndim = prior.ndim
-    
         # check mask for spectra 
         _mask = self._check_mask(mask, wave_obs, flux_ivar_obs, zred) 
         
@@ -913,8 +923,14 @@ class iSpeculator(iFSPS):
                 }
         
         # run emcee and get MCMC chains 
-        _chain = self._emcee(self._lnPost_spectrophoto, lnpost_args, lnpost_kwargs, 
-                nwalkers=nwalkers, burnin=burnin, niter=niter, silent=silent)
+        _chain = self._emcee(
+                self._lnPost_spectrophoto, 
+                lnpost_args, 
+                lnpost_kwargs, 
+                nwalkers=nwalkers,
+                burnin=burnin, 
+                niter=niter, 
+                silent=silent)
         # transform chain back to original SFH basis 
         chain = _chain.copy() 
         chain[:,1:5] = self._transform_to_SFH_basis(_chain[:,1:5]) 
@@ -943,6 +959,7 @@ class iSpeculator(iFSPS):
         output['photo_ivar_data'] = photo_ivar_obs
         
         # save MCMC chain 
+        output['prior_range'] = np.vstack([prior.min, prior.max]).T
         output['mcmc_chain'] = chain 
 
         if writeout is not None: 
@@ -1008,11 +1025,6 @@ class iSpeculator(iFSPS):
             - output['flux_data'] : flux of observations 
             - output['flux_ivar_data'] = inverse variance of the observed flux. 
         '''
-        import scipy.optimize as op
-        import emcee
-
-        ndim = priors.ndim
-    
         # check mask 
         _mask = self._check_mask(mask, wave_obs, flux_ivar_obs, zred) 
 
@@ -1027,8 +1039,14 @@ class iSpeculator(iFSPS):
                 }
 
         # run emcee and get MCMC chains 
-        chain = self._emcee(self._lnPost, lnpost_args, lnpost_kwargs, 
-                nwalkers=nwalkers, burnin=burnin, niter=niter, silent=silent)
+        chain = self._emcee(
+                self._lnPost, 
+                lnpost_args, 
+                lnpost_kwargs, 
+                nwalkers=nwalkers, 
+                burnin=burnin, 
+                niter=niter, 
+                silent=silent)
         # transform chain back to original SFH basis 
         chain = _chain.copy() 
         chain[:,1:5] = self._transform_to_SFH_basis(_chain[:,1:5]) 
@@ -1052,7 +1070,7 @@ class iSpeculator(iFSPS):
         output['flux_ivar_data'] = flux_ivar_obs
         
         # save prior and MCMC chain 
-        output['priors'] = self.priors
+        output['prior_range'] = np.vstack([prior.min, prior.max]).T
         output['mcmc_chain'] = chain 
 
         if writeout is not None: 
@@ -1128,12 +1146,18 @@ class iSpeculator(iFSPS):
                 ) 
         lnpost_kwargs = {
                 'filters': filters,
-                'prior_shape': 'flat'   # shape of prior (hardcoded) 
+                'prior': prior   # prior object
                 }
     
         # run emcee and get MCMC chains 
-        chain = self._emcee(self._lnPost_photo, lnpost_args, lnpost_kwargs, 
-                nwalkers=nwalkers, burnin=burnin, niter=niter, silent=silent)
+        chain = self._emcee(
+                self._lnPost_photo, 
+                lnpost_args, 
+                lnpost_kwargs, 
+                nwalkers=nwalkers, 
+                burnin=burnin, 
+                niter=niter, 
+                silent=silent)
         # transform chain back to original SFH basis 
         chain = _chain.copy() 
         chain[:,1:5] = self._transform_to_SFH_basis(_chain[:,1:5]) 
@@ -1154,7 +1178,7 @@ class iSpeculator(iFSPS):
         output['flux_ivar_data'] = photo_ivar_obs
     
         # save prior and MCMC chain 
-        output['priors'] = self.priors
+        output['prior_range'] = np.vstack([prior.min, prior.max]).T
         output['mcmc_chain'] = chain 
 
         if writeout is not None: 
@@ -1943,7 +1967,7 @@ class pseudoFirefly(Fitter):
         return extra_fit_list
 
 
-def FlatDirichletPrior(object): 
+class FlatDirichletPrior(object): 
     ''' flat dirichlet prior
     '''
     def __init__(self, ndim):
@@ -1961,7 +1985,7 @@ def FlatDirichletPrior(object):
         raise ValueError("appending not supproted") 
 
 
-def UniformPrior(object): 
+class UniformPrior(object): 
     ''' uniform tophat prior
     
     :param min: 
@@ -1970,9 +1994,9 @@ def UniformPrior(object):
         scalar or array of max values
     '''
     
-    def __init__(self, min, max):
-        self.min = np.atleast_1d(min)
-        self.max = np.atleast_1d(max)
+    def __init__(self, _min, _max):
+        self.min = np.atleast_1d(_min)
+        self.max = np.atleast_1d(_max)
         self.ndim = len(self.min) 
         self._random = np.random.mtrand.RandomState()
         assert self.min.shape == self.max.shape

@@ -176,13 +176,17 @@ def fit_iFSPS_spectra(igal, noise='none', nwalkers=100, burnin=100, niter=1000, 
             if not overwrite: 
                 print("** CAUTION: %s already exists **" % os.path.basename(f_bf)) 
         # initiating fit
-        ifsps = Fitters.iFSPS(model_name=model, prior=None) 
+        ifsps = Fitters.iFSPS(model_name=model) 
+        
+        prior = ifsps._default_prior(f_fiber_prior=None)
+
         bestfit = ifsps.MCMC_spec(
                 w_obs, 
                 flux_obs, 
                 ivar_obs, 
                 meta['redshift'][igal], 
                 mask='emline', 
+                prior=prior, 
                 nwalkers=nwalkers, 
                 burnin=burnin, 
                 niter=niter, 
@@ -206,7 +210,7 @@ def fit_iFSPS_spectra(igal, noise='none', nwalkers=100, burnin=100, niter=1000, 
         if os.environ['NERSC_HOST'] == 'cori': return None 
     except KeyError: 
         # corner plot of the posteriors 
-        fig = DFM.corner(bestfit['mcmc_chain'], range=bestfit['priors'], quantiles=[0.16, 0.5, 0.84], 
+        fig = DFM.corner(bestfit['mcmc_chain'], range=bestfit['prior_range'], quantiles=[0.16, 0.5, 0.84], 
                 levels=[0.68, 0.95], nbin=40, smooth=True, 
                 truths=truths, labels=labels, label_kwargs={'fontsize': 20}) 
         fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
@@ -254,12 +258,16 @@ def fit_iFSPS_photometry(igal, noise='none', nwalkers=100, burnin=100, niter=100
                 print("** CAUTION: %s already exists **" % os.path.basename(f_bf)) 
                 return None 
         # initiate fitting
-        ifsps = Fitters.iFSPS(model_name=model, prior=None) 
+        ifsps = Fitters.iFSPS(model_name=model) 
+
+        prior = ifsps._default_prior(f_fiber_prior=None)
+
         bestfit = ifsps.MCMC_photo(
                 photo_obs, 
                 ivar_obs,
                 meta['redshift'][igal], 
                 bands='desi', 
+                prior=prior, 
                 nwalkers=nwalkers, 
                 burnin=burnin, 
                 niter=niter, 
@@ -281,7 +289,7 @@ def fit_iFSPS_photometry(igal, noise='none', nwalkers=100, burnin=100, niter=100
         # plotting on nersc never works.
         if os.environ['NERSC_HOST'] == 'cori': return None 
     except KeyError: 
-        fig = DFM.corner(bestfit['mcmc_chain'], range=bestfit['priors'], quantiles=[0.16, 0.5, 0.84], 
+        fig = DFM.corner(bestfit['mcmc_chain'], range=bestfit['prior_range'], quantiles=[0.16, 0.5, 0.84], 
                 levels=[0.68, 0.95], nbin=40, smooth=True, 
                 truths=truths, labels=labels, label_kwargs={'fontsize': 20}) 
         fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
@@ -353,7 +361,10 @@ def fit_iFSPS_spectrophotometry(igal, noise='none', nwalkers=100, burnin=100, ni
             if not overwrite: 
                 print("** CAUTION: %s already exists **" % os.path.basename(f_bf)) 
         # initiating fit
-        ifsps = Fitters.iFSPS(model_name=model, prior=None) 
+        ifsps = Fitters.iFSPS(model_name=model) 
+
+        prior = ifsps._default_prior(f_fiber_prior=f_fiber_prior)
+
         bestfit = ifsps.MCMC_spectrophoto(
                 w_obs, 
                 flux_obs, 
@@ -361,8 +372,8 @@ def fit_iFSPS_spectrophotometry(igal, noise='none', nwalkers=100, burnin=100, ni
                 photo_obs, 
                 photo_ivar_obs, 
                 meta['redshift'][igal], 
-                f_fiber_prior=f_fiber_prior, 
                 mask='emline', 
+                prior=prior, 
                 nwalkers=nwalkers, 
                 burnin=burnin, 
                 niter=niter, 
@@ -387,7 +398,7 @@ def fit_iFSPS_spectrophotometry(igal, noise='none', nwalkers=100, burnin=100, ni
         if os.environ['NERSC_HOST'] == 'cori': return None 
     except KeyError: 
         # corner plot of the posteriors 
-        fig = DFM.corner(bestfit['mcmc_chain'], range=bestfit['priors'], quantiles=[0.16, 0.5, 0.84], 
+        fig = DFM.corner(bestfit['mcmc_chain'], range=bestfit['prior_range'], quantiles=[0.16, 0.5, 0.84], 
                 levels=[0.68, 0.95], nbin=40, smooth=True, 
                 truths=truths, labels=labels, label_kwargs={'fontsize': 20}) 
         fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
@@ -536,23 +547,32 @@ if __name__=="__main__":
     
     if str_overwrite == 'True': overwrite=True
     elif str_overwrite == 'False': overwrite=False
-    
-    if method == 'ifsps': 
-        # if specified, it assumes the chains already exist and just makes the 
-        # corner plots (implemented because I have difficult making plots on nersc)
-        try: 
-            _justplot = sys.argv[12]
-            if _justplot == 'True': justplot = True
-            elif _justplot == 'False': justplot = False 
-        except IndexError: 
-            justplot = False
 
+    # if specified, it assumes the chains already exist and just makes the 
+    # corner plots (implemented because I have difficult making plots on nersc)
+    try: 
+        _justplot = sys.argv[11]
+        if _justplot == 'True': justplot = True
+        elif _justplot == 'False': justplot = False 
+    except IndexError: 
+        justplot = False
+
+    if method == 'ifsps': 
         print('----------------------------------------') 
-        print('fitting %s of mini_mocha galaxies %i to %i' % (spec_or_photo, igal0, igal1))
+        print('iFSPS fitting %s of mini_mocha galaxies %i to %i' % (spec_or_photo, igal0, igal1))
         print('using %i threads' % nthreads) 
         igals = range(igal0, igal1+1) 
         MP_fit_iFSPS(spec_or_photo, igals, noise=noise, nthreads=nthreads, 
                 nwalkers=nwalkers, burnin=burnin, niter=niter, overwrite=overwrite, justplot=justplot)
+    elif method == 'ispeculator': 
+        print('----------------------------------------') 
+        print('iSpeculator fitting %s of mini_mocha galaxies %i to %i' % (spec_or_photo, igal0, igal1))
+        print('using %i threads' % nthreads) 
+        igals = range(igal0, igal1+1) 
+        MP_fit_iSpeculator(spec_or_photo, igals, noise=noise, nthreads=nthreads, 
+                nwalkers=nwalkers, burnin=burnin, niter=niter, overwrite=overwrite, justplot=justplot)
+
     elif method == 'pfirefly': 
+        raise NotImplementedError('need to update prior set up') 
         for igal in range(igal0, igal1+1):
             fit_pFF_spectra(igal, noise=noise, iter_max=10, overwrite=overwrite)

@@ -947,7 +947,7 @@ class iSpeculator(iFSPS):
         output['theta_2sig_minus'] = lowlow
     
         w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs, dont_transform=True)
-        photo_model = self.model_photo(med, zred=zred, dont_transform=True)
+        photo_model = self.model_photo(med, zred=zred, filters=filters, dont_transform=True)
         output['wavelength_model'] = w_model
         output['flux_model'] = flux_model 
         output['photo_model'] = photo_model
@@ -1039,7 +1039,7 @@ class iSpeculator(iFSPS):
                 }
 
         # run emcee and get MCMC chains 
-        chain = self._emcee(
+        _chain = self._emcee(
                 self._lnPost, 
                 lnpost_args, 
                 lnpost_kwargs, 
@@ -1150,7 +1150,7 @@ class iSpeculator(iFSPS):
                 }
     
         # run emcee and get MCMC chains 
-        chain = self._emcee(
+        _chain = self._emcee(
                 self._lnPost_photo, 
                 lnpost_args, 
                 lnpost_kwargs, 
@@ -1210,26 +1210,27 @@ class iSpeculator(iFSPS):
             spectra generated from FSPS model(theta) in units of 1e-17 * erg/s/cm^2/Angstrom
         '''
         zred    = np.atleast_1d(zred)
-        tt_arr  = zz_arr.copy() 
+
+        # logmstar, bSFH1, bSFH2, bSFH3, bSFH4, bZ1, bZ2, tage, tau
+
+        zz_arr  = np.atleast_2d(zz_arr)
+        tt_arr  = zz_arr.copy()
         # transform back to SFH basis coefficients 
         if not dont_transform: 
             tt_arr[:,1:5] = self._transform_to_SFH_basis(zz_arr[:,1:5]) 
 
-        theta   = self._theta(tt_arr) 
-        ntheta  = len(theta['mass']) 
+        ntheta = tt_arr.shape[0] 
 
         if self.model_name == 'vanilla': 
             for i in range(ntheta):
-                tt_i = np.array([theta['bSFH1'][i], theta['bSFH2'][i], theta['bSFH3'][i], theta['bSFH4'][i], theta['bZ1'][i], theta['bZ2'][i], theta['tage'][i], theta['tau'][i]]) 
-
-                ssp_lum = self._emulator(tt_i) 
+                ssp_lum = self._emulator(tt_arr[i,1:9]) 
 
                 if i == 0: 
                     ssp_lums = np.zeros((ntheta, len(self._emu_wave)))
                 ssp_lums[i,:] = ssp_lum
 
         # mass normalization
-        lum_ssp = theta['mass'][:,None] * ssp_lums
+        lum_ssp = (10**tt_arr[:,0])[:,None] * ssp_lums
 
         # redshift the spectra
         w_z = self._emu_wave * (1. + zred)[:,None] 
@@ -1303,7 +1304,7 @@ class iSpeculator(iFSPS):
         layers.append(np.dot(layers[-1], self._emu_W[-1]) + self._emu_b[-1])
 
         # rescale PCAs, multiply up to spectrum, re-scale spectrum
-        flux = np.dot(layers[-1]*self._emu_pca_std + self._emu_pca_mean, self_emu_pcas)*self._emu_spec_std + self._emu_spec_mean
+        flux = np.dot(layers[-1]*self._emu_pca_std + self._emu_pca_mean, self._emu_pcas)*self._emu_spec_std + self._emu_spec_mean
         return 10**flux
 
     def _transform_theta(self, theta):
@@ -1319,10 +1320,9 @@ class iSpeculator(iFSPS):
         ''' read in pickle file that contains all the parameters required for the emulator
         model
         '''
-        fpkl = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
-                'dat', 'model_summary.pkl')
-        params = pickle.load(open(fpkl, 'rb'))
-        f.close()
+        fpkl = open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dat', 'model_summary.pkl'), 'rb')
+        params = pickle.load(fpkl)
+        fpkl.close()
 
         self._emu_W             = params[0] 
         self._emu_b             = params[1] 
@@ -1337,30 +1337,9 @@ class iSpeculator(iFSPS):
         self._emu_theta_std     = params[10]
         self._emu_wave          = params[11]
 
-        self._emu_n_layers = len(W) # number of network layers
+        self._emu_n_layers = len(self._emu_W) # number of network layers
         return None 
         
-    def _theta(self, tt_arr): 
-        ''' Given some theta array return dictionary of parameter values. 
-        This is synchronized with self.model_name
-        '''
-        theta = {} 
-        tt_arr = np.atleast_2d(tt_arr) 
-        if self.model_name == 'vanilla': 
-            # tt_arr columns: mass, 4 SFH bases, 2 Z bases, tage, tau
-            theta['mass']   = 10**tt_arr[:,0]
-            theta['bSFH1']  = tt_arr[:,1]
-            theta['bSFH2']  = tt_arr[:,2]
-            theta['bSFH3']  = tt_arr[:,3]
-            theta['bSFH4']  = tt_arr[:,4]
-            theta['bZ1']    = tt_arr[:,5]
-            theta['bZ2']    = tt_arr[:,6]
-            theta['tage']   = tt_arr[:,7]
-            theta['tau']    = tt_arr[:,8]
-        else: 
-            raise NotImplementedError
-        return theta
-
     def _transform_to_SFH_basis(self, zarr):
         ''' MCMC is sampled in a warped manifold transformation of the original basis manifold
         as specified in Betancourt(2013). This function transforms back to the original manifold
@@ -1388,6 +1367,20 @@ class iSpeculator(iFSPS):
         xarr[:,-1] = np.prod(zarr[:,:-1], axis=1) 
 
         return xarr 
+
+    def _get_bands(self, bands): 
+        ''' given bands
+        '''
+        if isinstance(bands, str): 
+            if bands == 'desi': 
+                bands_list = ['decam2014-g', 'decam2014-r', 'decam2014-z']#, 'wise2010-W1', 'wise2010-W2']#, 'wise2010-W3', 'wise2010-W4']
+            else: 
+                raise NotImplementedError("specified bands not implemented") 
+        elif isinstance(bands, list): 
+            bands_list = bands
+        else: 
+            raise NotImplementedError("specified bands not implemented") 
+        return bands_list 
     
     def _default_prior(self, f_fiber_prior=None): 
         ''' return default prior object. this prior spans the *transformed* SFH basis coefficients. 

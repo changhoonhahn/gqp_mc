@@ -3,8 +3,10 @@ import h5py
 import fsps
 import pickle
 import numpy as np 
-from scipy.special import gammainc
+from scipy.integrate import quad
 from scipy.stats import sigmaclip
+from scipy.special import gammainc
+from scipy.interpolate import interp1d
 # --- astropy --- 
 from astropy import units as U
 from astropy.cosmology import Planck13 as cosmo
@@ -831,6 +833,7 @@ class iSpeculator(iFSPS):
         self.model_name = model_name # store model name 
         self.cosmo = cosmo # cosmology  
         self._load_model_params() # load emulator parameters
+        self._read_NMF_bases() # read SFH and ZH basis 
 
     def MCMC_spectrophoto(self, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, prior=None, 
             mask=None, bands='desi',
@@ -1194,6 +1197,7 @@ class iSpeculator(iFSPS):
 
         :param zz_arr:
             array of parameters. theta[1:4] are the **transformed** SFH basis coefficients
+            # logmstar, bSFH1, bSFH2, bSFH3, bSFH4, bZ1, bZ2, tau
         :param zred: float,array (default: 0.1) 
             The output wavelength and spectra are redshifted.
         :param wavelength: (default: None)  
@@ -1210,11 +1214,14 @@ class iSpeculator(iFSPS):
             spectra generated from FSPS model(theta) in units of 1e-17 * erg/s/cm^2/Angstrom
         '''
         zred    = np.atleast_1d(zred)
+        tage    = self.cosmo.age(0.0).value - self.cosmo.age(zred).value 
 
         # logmstar, bSFH1, bSFH2, bSFH3, bSFH4, bZ1, bZ2, tage, tau
-
         zz_arr  = np.atleast_2d(zz_arr)
-        tt_arr  = zz_arr.copy()
+        tt_arr  = np.zeros((zz_arr.shape[0], zz_arr.shape[1]+1)) 
+        tt_arr[:,0]     = zz_arr[:,0]
+        tt_arr[:,-2]    = tage
+        zz_arr[:,-1]    = zz_arr[:,-1]
         # transform back to SFH basis coefficients 
         if not dont_transform: 
             tt_arr[:,1:5] = self._transform_to_SFH_basis(zz_arr[:,1:5]) 
@@ -1279,6 +1286,25 @@ class iSpeculator(iFSPS):
     
         maggies = filters.get_ab_maggies(spec * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom, wavelength=w.flatten()*U.Angstrom) # maggies 
         return np.array(list(maggies[0])) * 1e9
+    
+    def get_SFR(self, tt, dt=1.):
+        ''' given theta calculate SFR averaged over dt Gyr. 
+
+        :param tt: 
+           [log M*, b1SFH, b2SFH, b3SFH, b4SFH, g1ZH, g2ZH, tage, tau]  b's here are the original
+           SFH basis coefficients
+        '''
+        tt_sfh = tt[1:5]
+        sfh = np.dot(tt_sfh, self._nmf_sfh_basis) 
+
+        # integrate over SFH over timescale 
+        # integrate over SFH over timescale 
+        # integrate over SFH over timescale 
+        # integrate over SFH over timescale 
+        # integrate over SFH over timescale 
+        # integrate over SFH over timescale 
+        fsfh = interp1d(tt_sfh, sfh) 
+        return np.clip(avsfr, 0, np.inf), notoldenough 
    
     def _emulator(self, tt):
         ''' emulator for FSPS 
@@ -1390,9 +1416,9 @@ class iSpeculator(iFSPS):
             [min, max] of f_fiber prior. if specified, f_fiber is added as an extra parameter.
             This is for spectrophotometric fitting 
         '''
-        # M*, beta1', beta2', beta3', beta4', gamma1, gamma2, tage, tau  
-        prior_min = [8., 0., 0., 0., 0., 6.9e-5, 6.9e-5, 9.5, 0.]
-        prior_max = [13., 1., 1., 1., 1., 7.3e-3, 7.3e-3, 13.7, 3.]
+        # M*, beta1', beta2', beta3', beta4', gamma1, gamma2, tau  
+        prior_min = [8., 0., 0., 0., 0., 6.9e-5, 6.9e-5, 0.]
+        prior_max = [13., 1., 1., 1., 1., 7.3e-3, 7.3e-3, 3.]
 
         if f_fiber_prior is not None: 
             prior_min.append(f_fiber_prior[0]) 
@@ -1400,6 +1426,22 @@ class iSpeculator(iFSPS):
 
         return UniformPrior(np.array(prior_min), np.array(prior_max))
 
+    def _read_NMF_bases(self): 
+        ''' read NMF SFH and ZH bases 
+        '''
+        fsfh = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dat', 'NMF_2basis_SFH_components_nowgt_lin_Nc4.txt')
+        fzh = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dat', 'NMF_2basis_Z_components_nowgt_lin_Nc2.txt') 
+        ft = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dat', 'sfh_t_int.txt') 
+
+        nmf_sfh = np.loadtxt(fsfh) 
+        nmf_zh  = np.loadtxt(fzh) 
+        nmf_t   = np.loadtxt(ft) 
+
+        self._nmf_t_lookback    = nmf_t
+        self._nmf_sfh_basis     = nmf_sfh 
+        self._nmf_zh_basis      = nmf_zh
+        return None 
+    
 
 class pseudoFirefly(Fitter): 
     ''' modified version of Firefly

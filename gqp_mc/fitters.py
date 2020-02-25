@@ -1214,6 +1214,8 @@ class iSpeculator(iFSPS):
             spectra generated from FSPS model(theta) in units of 1e-17 * erg/s/cm^2/Angstrom
         '''
         zred    = np.atleast_1d(zred)
+        # check this!
+        # check this!
         tage    = self.cosmo.age(0.0).value - self.cosmo.age(zred).value 
 
         # logmstar, bSFH1, bSFH2, bSFH3, bSFH4, bZ1, bZ2, tage, tau

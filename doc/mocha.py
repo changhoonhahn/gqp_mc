@@ -330,7 +330,6 @@ def mini_mocha_comparison(sfr='100myr'):
     return None 
 
 
-
 def mock_challenge_photo(noise='none', dust=False, method='ifsps'): 
     ''' Compare properties inferred from forward modeled photometry to input properties
     '''
@@ -695,10 +694,10 @@ def photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', meth
     # read Lgal photometry of the mini_mocha mocks
     photo, _ = Data.Photometry(sim='lgal', noise=noise_specphoto.split('_')[1], lib='bc03', sample='mini_mocha')
 
-    Mstar_input = np.array(meta['logM_total'][:97]) # total mass 
-    logSFR_input= np.log10(np.array(meta['sfr_%s' % sfr][:97])) 
-    Z_MW_input  = meta['Z_MW'][:97]  # mass-weighted metallicity
-    tage_input  = meta['t_age_MW'][:97]  # mass-weighted age
+    Mstar_input     = np.array(meta['logM_total'][:97]) # total mass 
+    logSFR_input    = np.log10(np.array(meta['sfr_%s' % sfr][:97])) 
+    Z_MW_input      = meta['Z_MW'][:97]  # mass-weighted metallicity
+    tage_input      = meta['t_age_MW'][:97]  # mass-weighted age
     
     theta_inf_photo, theta_inf_specphoto = [], []
     for igal in range(97): 
@@ -713,13 +712,16 @@ def photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', meth
             fbf['theta_1sig_plus'][...], 
             fbf['theta_2sig_plus'][...]])
 
+        chain = fbf['mcmc_chain'][...]
+
         # calculate average SFR
         if method == 'ifsps': 
             ifsps = Fitters.iFSPS()
             if sfr == '1gyr': 
-                sfr_inf = ifsps._SFR_MCMC(fbf['mcmc_chain'][...], dt=1.)
+                sfr_inf = ifsps._SFR_MCMC(chain, dt=1.)
             elif sfr == '100myr': 
-                sfr_inf = ifsps._SFR_MCMC(fbf['mcmc_chain'][...], dt=0.1)
+                sfr_chain = ifsps.get_SFR(chain, dt=0.1)
+                sfr_inf = ifsps._SFR_MCMC(chain, dt=0.1)
             theta_inf_i = np.concatenate([theta_inf_i, np.atleast_2d(sfr_inf).T], axis=1) 
 
         theta_inf_photo.append(theta_inf_i) 

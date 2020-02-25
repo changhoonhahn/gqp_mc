@@ -20,8 +20,11 @@ def Photo_DESI(wave, spectra):
         fluxes of input spectra. This should be noiseless source spectra. 
         2D array Nspec x Nwave. In units of 10e-17 erg/s/cm2/A 
     '''
-    assert wave.shape[0] == spectra.shape[1] 
+    wave = np.atleast_2d(wave)
+    assert wave.shape[1] == spectra.shape[1] 
+
     n_spec = spectra.shape[0] # number of spectra 
+    if wave.shape[0] == 1: wave = np.tile(wave, (n_spec, 1))
 
     from astropy import units as U
     
@@ -38,7 +41,7 @@ def Photo_DESI(wave, spectra):
         # apply filters
         flux = np.array(filter_response.get_ab_maggies(
                 np.atleast_2d(spectrum) * 1e-17 * U.erg/U.s/U.cm**2/U.Angstrom, 
-                wave*U.Angstrom))
+                wave[i,:]*U.Angstrom))
         # convert to nanomaggies 
         fluxes[i,:] = 1e9 * np.array([flux[0][0], flux[0][1], flux[0][2], flux[0][3], flux[0][4], flux[0][5], flux[0][6]]) 
     

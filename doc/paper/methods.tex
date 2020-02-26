@@ -1,20 +1,21 @@
-\section{Methods for Inferring Galaxy Properties} \label{sec:methods}
+\section{Inferring Galaxy Properties from Photometry and Spectra} \label{sec:methods}
+\begin{itemize}
+    \item overview of SED fitting
+    \item describe our model (including description of speculator
+        \cite{alsing2020}). And what assumptions that go into it: IMF, SFH and
+        ZH bases, dust attenuation curve. 
+    \item refer to appendix about different set ups 
+    \item describe our MCMC sampling. James's work in convergence here.
+        Detailed profiling of SED fitting and projections for full BGS. 
+    \item be explicit about what physical properties are inferred from our SED
+        fitting: stellar masses, ages, metallicities, star-formation histories.
+        Expalin how we derive SFRs from the SFHs (i.e. our choice of 100Myr) 
+    \item Figure that shows the posteriors as well as the best-fit  
+    \item brief description of other standard SED fitting methods we include for
+        comparison: firefly, VESPA, CIGALE
+\end{itemize} 
+
 Analysis of the mocks in section~\ref{sec:sims}, using standard and newly developed codes. 
-
-Recover: stellar masses, ages, metallicities, star-formation histories. 
-
-\subsection{Fitting Methods}
-describe fiducial choices: IMF
-
-describe Rita's SFH and ZH bases. cite paper.
-
-description of firefly 
-
-description of iFSPS or FSPS emulator 
-
-descripttion of Rita's VESPA
-
-description of CIGALE
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % forecast table
@@ -25,10 +26,7 @@ description of CIGALE
 \begin{tabular}{ccccc} \toprule
 name & SFH & dust & IMF \\[3pt]
 \hline 
-iFSPS A  & vanilla & & \\
-iFSPS B  & rita's basis & & \\
-iFSPS C  & rita's basis & & \\
-iFSPS C' & rita's basis & & \\
+iFSPS C & rita's basis & & \\
 Firefly  & rita's basis & & \\
 VESPA    & & & \\
 CIGALE A & \textbf{delayed SFH} & Charlot $\&$ Fall 2000, Draine et al. 2014 & Salpter \\
@@ -40,30 +38,3 @@ CIGALE D & delayed SFH + additional burst & Charlot $\&$ Fall 2000, Draine et al
 \end{center}
 \end{table}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
-\subsection{various set ups}
-
-
-{\bf table}: table of all the different parameterizations of the fitters 
-
-iFSPS A: vanilla + simplest dust
-
-iFSPS B: more complex SFH + simple dust
-
-iFSPS C: more complex SFH + complex dust
-
-iFSPS C': more complex SFH + complex dust + different IMF 
-
-Firefly A (Firefly B?) 
-
-(VESPA B?) 
-
-CIGALE A
-
-CIGALE B
-
-CIGALE C
- 
-CIGALE C': with different IMF 

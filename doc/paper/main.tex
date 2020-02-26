@@ -1,0 +1,127 @@
+\documentclass[12pt, letterpaper, preprint]{aastex62}
+\input{vc}
+\usepackage{color}
+\usepackage{amsmath}
+\usepackage{natbib}
+\usepackage{ctable}
+\usepackage{bm}
+\usepackage[normalem]{ulem} % Added by MS for \sout -> not required for final version
+\usepackage{xspace}
+\usepackage{csvsimple} 
+
+% typesetting shih
+\linespread{1.08} % close to 10/13 spacing
+\setlength{\parindent}{1.08\baselineskip} % Bringhurst
+\setlength{\parskip}{0ex}
+\let\oldbibliography\thebibliography % killin' me.
+\renewcommand{\thebibliography}[1]{%
+  \oldbibliography{#1}%
+  \setlength{\itemsep}{0pt}%
+  \setlength{\parsep}{0pt}%
+  \setlength{\parskip}{0pt}%
+  \setlength{\bibsep}{0ex}
+  \raggedright
+}
+\setlength{\footnotesep}{0ex} % seriously?
+
+% citation alias
+
+% math shih
+\newcommand{\setof}[1]{\left\{{#1}\right\}}
+\newcommand{\given}{\,|\,}
+\newcommand{\lss}{{\small{LSS}}\xspace}
+
+\newcommand{\Om}{\Omega_{\rm m}} 
+\newcommand{\Ob}{\Omega_{\rm b}} 
+\newcommand{\OL}{\Omega_\Lambda}
+\newcommand{\smnu}{M_\nu}
+\newcommand{\sig}{\sigma_8} 
+\newcommand{\mmin}{M_{\rm min}}
+\newcommand{\BOk}{\widehat{B}_0} 
+\newcommand{\hmpc}{\,h/\mathrm{Mpc}}
+\newcommand{\bfi}[1]{\textbf{\textit{#1}}}
+\newcommand{\parti}[1]{\frac{\partial #1}{\partial \theta_i}}
+\newcommand{\partj}[1]{\frac{\partial #1}{\partial \theta_j}}
+\newcommand{\mpc}{h/{\rm Mpc}}
+\newcommand{\quij}{{\sc Quijote}~}
+
+\newcommand{\specialcell}[2][c]{%
+  \begin{tabular}[#1]{@{}c@{}}#2\end{tabular}}
+% text shih
+\newcommand{\foreign}[1]{\textsl{#1}}
+\newcommand{\etal}{\foreign{et~al.}}
+\newcommand{\opcit}{\foreign{Op.~cit.}}
+\newcommand{\documentname}{\textsl{Article}}
+\newcommand{\equationname}{equation}
+\newcommand{\bitem}{\begin{itemize}}
+\newcommand{\eitem}{\end{itemize}}
+\newcommand{\beq}{\begin{equation}}
+\newcommand{\eeq}{\end{equation}}
+
+%% collaborating
+\newcommand{\todo}[1]{\marginpar{\color{red}TODO}{\color{red}#1}}
+\definecolor{orange}{rgb}{1,0.5,0}
+\newcommand{\ch}[1]{{\color{orange}{\bf CH:} #1}}
+
+\begin{document}\sloppy\sloppypar\frenchspacing 
+
+\title{DESI Galaxy Quasar Physics Mock Challenge} 
+\date{\texttt{DRAFT~---~\githash~---~\gitdate~---~NOT READY FOR DISTRIBUTION}}
+
+\newcounter{affilcounter}
+\author{ChangHoon Hahn}
+\altaffiliation{hahn.changhoon@gmail.com}
+\affil{Lawrence Berkeley National Laboratory, 1 Cyclotron Rd, Berkeley CA 94720, USA}
+\affil{Berkeley Center for Cosmological Physics, University of California, Berkeley CA 94720, USA}
+
+\author{Gyubin Kwon}
+\author{Malgorzata Siudek} 
+\author{GQP WG}
+
+\begin{abstract}
+    In this project, we present the methodology for inferring physical
+    properties of galaxies from joint SED fitting of the DESI optical
+    photometry and spectroscopy. We construct realistic forward modeled DESI
+    data from star formation and chemical enrichment histories of galaxies in
+    the {\sc L-Galaxies} semi-analytic model and the {\sc Illustris TNG}
+    hydrodynamic simulations. Then, using these mock observations, we
+    demonstrate that the stellar mass and SFR posteriors from our SED fitting
+    are consistent with constraints from other SED fitting methods in the
+    literature and, more importantly, the input stellar masses and SFRs from
+    the simulations. The SED fitting we present and validate in this project
+    will be used to construct the PRObabilistic Value-Added Bright Galaxy
+    Survey (PROVABGS) from DESI observations. 
+\end{abstract}
+
+\keywords{
+keyword1 -- keyword2 -- keyword3
+}
+
+% --- intro ---  
+\input{intro}
+% --- sims ---  
+\input{sims} 
+% --- methods ---  
+\input{methods}
+% --- results ---  
+\input{results}
+% --- summary ---  
+\input{summary}
+
+\section*{Acknowledgements}
+It's a pleasure to thank
+...
+This material is based upon work supported by the U.S. Department of Energy,
+Office of Science, Office of High Energy Physics, under contract No.
+DE-AC02-05CH11231.  This project used resources of the National Energy Research
+Scientific Computing Center, a DOE Office of Science User Facility supported by
+the Office of Science of the U.S.  Department of Energy under Contract No.
+DE-AC02-05CH11231. 
+
+\appendix
+
+\bibliographystyle{mnras}
+\bibliography{gqpmc} 
+\end{document}
+
+

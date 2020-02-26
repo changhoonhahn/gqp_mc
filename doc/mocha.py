@@ -8,6 +8,7 @@ import os
 import h5py 
 import numpy as np 
 import corner as DFM 
+from scipy.stats import norm as Norm
 # --- gqp_mc ---
 from gqp_mc import util as UT 
 from gqp_mc import data as Data 
@@ -34,6 +35,7 @@ mpl.rcParams['legend.frameon'] = False
 
 
 dir_fig = os.path.join(UT.dat_dir(), 'mini_mocha') 
+dir_doc = '/Users/ChangHoon/projects/gqp_mc/doc/paper/figs/'
 dir_fbgs = '/Users/ChangHoon/data/feasiBGS/'
 
 
@@ -328,7 +330,6 @@ def mini_mocha_comparison(sfr='100myr'):
     fig.savefig(_ffig, bbox_inches='tight') 
     fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
     return None 
-
 
 
 def mock_challenge_photo(noise='none', dust=False, method='ifsps'): 
@@ -689,104 +690,114 @@ def photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', meth
     ''' Compare properties inferred from photometry versus spectrophotometry to see how much
     information is gained from adding spectra
     '''
+    import scipy.optimize as op
     assert noise_specphoto.split('_')[1] == noise_photo
     # read noiseless Lgal spectra of the spectral_challenge mocks
     specs, meta = Data.Spectra(sim='lgal', noise=noise_specphoto.split('_')[0], lib='bc03', sample='mini_mocha') 
     # read Lgal photometry of the mini_mocha mocks
     photo, _ = Data.Photometry(sim='lgal', noise=noise_specphoto.split('_')[1], lib='bc03', sample='mini_mocha')
 
-    Mstar_input = np.array(meta['logM_total'][:97]) # total mass 
-    logSFR_input= np.log10(np.array(meta['sfr_%s' % sfr][:97])) 
-    Z_MW_input  = meta['Z_MW'][:97]  # mass-weighted metallicity
-    tage_input  = meta['t_age_MW'][:97]  # mass-weighted age
-    
-    theta_inf_photo, theta_inf_specphoto = [], []
+    # --------------------------------------------------------------------------------
+    # true paramater values
+    logMstar_input  = np.array(meta['logM_total'][:97]) # total mass 
+    logSFR_input    = np.log10(np.array(meta['sfr_%s' % sfr][:97])) 
+    Z_MW_input      = meta['Z_MW'][:97]  # mass-weighted metallicity
+    tage_input      = meta['t_age_MW'][:97]  # mass-weighted age
+
+    # --------------------------------------------------------------------------------
+    # assemble all markov chains 
+    dlogMs_photo, dlogMs_specphoto = [], []
+    dlogSFR_photo, dlogSFR_specphoto = [], []
     for igal in range(97): 
         # read best-fit file and get inferred parameters from photometry
         _fbf = Fbestfit_photo(igal, noise=noise_photo, method=method) 
         fbf = h5py.File(_fbf, 'r')  
-
-        theta_inf_i = np.array([
-            fbf['theta_2sig_minus'][...], 
-            fbf['theta_1sig_minus'][...], 
-            fbf['theta_med'][...], 
-            fbf['theta_1sig_plus'][...], 
-            fbf['theta_2sig_plus'][...]])
-
+        # d log M* chain
+        chain = fbf['mcmc_chain'][...][::10]
+        dlogMs_chain = chain[:,0] - logMstar_input[igal] 
         # calculate average SFR
         if method == 'ifsps': 
             ifsps = Fitters.iFSPS()
             if sfr == '1gyr': 
-                sfr_inf = ifsps._SFR_MCMC(fbf['mcmc_chain'][...], dt=1.)
+                sfr_chain, _ = ifsps.get_SFR(chain, dt=1.)
             elif sfr == '100myr': 
-                sfr_inf = ifsps._SFR_MCMC(fbf['mcmc_chain'][...], dt=0.1)
-            theta_inf_i = np.concatenate([theta_inf_i, np.atleast_2d(sfr_inf).T], axis=1) 
+                sfr_chain, _ = ifsps.get_SFR(chain, dt=0.1)
+        dlogSFR_chain = np.log10(sfr_chain) - logSFR_input[igal]
 
-        theta_inf_photo.append(theta_inf_i) 
+        dlogMs_photo.append(dlogMs_chain)
+        dlogSFR_photo.append(dlogSFR_chain)
 
         # read best-fit file and get inferred parameters from spectrophoto
         _fbf = Fbestfit_specphoto(igal, noise=noise_specphoto, method=method) 
         fbf = h5py.File(_fbf, 'r')  
-
-        theta_inf_i = np.array([
-            fbf['theta_2sig_minus'][...], 
-            fbf['theta_1sig_minus'][...], 
-            fbf['theta_med'][...], 
-            fbf['theta_1sig_plus'][...], 
-            fbf['theta_2sig_plus'][...]])
-        
+        # d log M* chain
+        chain = fbf['mcmc_chain'][...][::10]
+        dlogMs_chain = chain[:,0] - logMstar_input[igal] 
+        # calculate average SFR
         if method == 'ifsps': 
             ifsps = Fitters.iFSPS()
             if sfr == '1gyr': 
-                sfr_inf = ifsps._SFR_MCMC(fbf['mcmc_chain'][...], dt=1.)
+                sfr_chain, _ = ifsps.get_SFR(chain, dt=1.)
             elif sfr == '100myr': 
-                sfr_inf = ifsps._SFR_MCMC(fbf['mcmc_chain'][...], dt=0.1)
-            theta_inf_i = np.concatenate([theta_inf_i, np.atleast_2d(sfr_inf).T], axis=1) 
+                sfr_chain, _ = ifsps.get_SFR(chain, dt=0.1)
+        dlogSFR_chain = np.log10(sfr_chain) - logSFR_input[igal]
 
-        theta_inf_specphoto.append(theta_inf_i) 
-    theta_inf_photo = np.array(theta_inf_photo) 
-    theta_inf_specphoto = np.array(theta_inf_specphoto) 
+        dlogMs_specphoto.append(dlogMs_chain)
+        dlogSFR_specphoto.append(dlogSFR_chain)
     
-    # inferred properties
-    Mstar_inf_photo = theta_inf_photo[:,:,0]
-    Mstar_inf_specphoto = theta_inf_specphoto[:,:,0]
+    dlogMs_photo = np.array(dlogMs_photo)  
+    dlogSFR_photo = np.array(dlogSFR_photo) 
+    dlogMs_specphoto = np.array(dlogMs_specphoto) 
+    dlogSFR_specphoto = np.array(dlogSFR_specphoto) 
 
+    # --------------------------------------------------------------------------------
+    # maximum likelihood for the population hyperparameters
     Mbins = np.linspace(9., 12., 16) 
     Mbin_mid = [] 
-    dMstar_photo, sig_dMstar_photo = [], []
-    dMstar_specphoto, sig_dMstar_specphoto = [], [] 
+    mu_dMstar_photo, sig_dMstar_photo = [], []
+    mu_dMstar_specphoto, sig_dMstar_specphoto = [], [] 
     for i_m in range(len(Mbins)-1): 
-        inmbin = ((Mstar_input > Mbins[i_m]) & (Mstar_input <= Mbins[i_m+1])) 
+        inmbin = ((logMstar_input > Mbins[i_m]) & (logMstar_input <= Mbins[i_m+1])) 
         if np.sum(inmbin) == 0: continue 
         Mbin_mid.append(0.5 * (Mbins[i_m] + Mbins[i_m+1])) 
+        print('%.f < log M* < %.f' % (Mbins[i_m], Mbins[i_m+1]))  
+        print('%i galaxies' % np.sum(inmbin))
 
-        dMstar_photo.append(np.average(Mstar_inf_photo[:,2][inmbin] - Mstar_input[inmbin])) 
-        dMstar_specphoto.append(np.average(Mstar_inf_specphoto[:,2][inmbin] - Mstar_input[inmbin])) 
+        L_pop_photo = lambda _theta: -1.*logL_pop(_theta[0], _theta[1], delta_chains=dlogMs_photo[inmbin])  
+        L_pop_specphoto = lambda _theta: -1.*logL_pop(_theta[0], _theta[1], delta_chains=dlogMs_specphoto[inmbin])  
 
-        sig_dMstar_photo.append(
-                np.sqrt(np.sum(
-                    np.max([Mstar_input[inmbin] - Mstar_inf_photo[inmbin,1], 
-                        Mstar_inf_photo[inmbin,3] - Mstar_input[inmbin]], axis=1)
-                    ))/np.float(np.sum(inmbin)))
-        sig_dMstar_specphoto.append(
-                np.sqrt(np.sum(
-                    np.max([Mstar_input[inmbin] - Mstar_inf_specphoto[inmbin,1], 
-                        Mstar_inf_specphoto[inmbin,3] - Mstar_input[inmbin]], axis=1)
-                    ))/np.float(np.sum(inmbin)))
-    dMstar_photo = np.array(dMstar_photo) 
+        min_photo = op.minimize(
+                L_pop_photo, 
+                np.array([0., 0.1]), # guess the middle of the prior 
+                method='L-BFGS-B', 
+                bounds=((None, None), (1e-4, None)),
+                options={'eps': np.array([0.01, 0.005]), 'maxiter': 100})
+        print(min_photo['x'])
+
+        min_specphoto = op.minimize(
+                L_pop_specphoto, 
+                np.array([0., 0.1]), # guess the middle of the prior 
+                method='L-BFGS-B', 
+                bounds=((None, None), (1e-4, None)),
+                options={'eps': np.array([0.01, 0.005]), 'maxiter': 100})
+        print(min_specphoto['x'])
+
+        mu_dMstar_photo.append(min_photo['x'][0]) 
+        sig_dMstar_photo.append(min_photo['x'][1]) 
+
+        mu_dMstar_specphoto.append(min_specphoto['x'][0]) 
+        sig_dMstar_specphoto.append(min_specphoto['x'][1]) 
+
+    mu_dMstar_photo = np.array(mu_dMstar_photo) 
     sig_dMstar_photo = np.array(sig_dMstar_photo) 
-    dMstar_specphoto = np.array(dMstar_specphoto) 
+    mu_dMstar_specphoto = np.array(mu_dMstar_specphoto) 
     sig_dMstar_specphoto = np.array(sig_dMstar_specphoto) 
     
-    # inferred SFRs
-    logSFR_inf_photo        = np.log10(theta_inf_photo[:,:,-1]) 
-    logSFR_inf_specphoto    = np.log10(theta_inf_specphoto[:,:,-1]) 
-
     # calculate delta log SFR 
     logSFRbins = np.linspace(-3., 3., 25) 
     logSFRbin_mid = [] 
-    dlogSFR_photo, sig_dlogSFR_photo = [], []
-    dlogSFR_specphoto, sig_dlogSFR_specphoto = [], [] 
+    mu_dlogSFR_photo, sig_dlogSFR_photo = [], []
+    mu_dlogSFR_specphoto, sig_dlogSFR_specphoto = [], [] 
     for i_m in range(len(Mbins)-1): 
         inbin = ((logSFR_input > logSFRbins[i_m]) & (logSFR_input <= logSFRbins[i_m+1])) 
         if sfr == '1gyr': 
@@ -794,72 +805,115 @@ def photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', meth
         elif sfr == '100myr': 
             inbin = inbin & (np.array(tage_input) > 0.1)
         if np.sum(inbin) == 0: continue 
+        print('%i galaxies' % np.sum(inbin))
         logSFRbin_mid.append(0.5 * (logSFRbins[i_m] + logSFRbins[i_m+1])) 
 
-        dlogSFR_photo.append(np.average(logSFR_inf_photo[:,2][inbin] - logSFR_input[inbin])) 
-        dlogSFR_specphoto.append(np.average(logSFR_inf_specphoto[:,2][inbin] - logSFR_input[inbin])) 
+        L_pop_photo = lambda _theta: -1.*logL_pop(_theta[0], _theta[1], delta_chains=dlogSFR_photo[inbin])  
+        L_pop_specphoto = lambda _theta: -1.*logL_pop(_theta[0], _theta[1], delta_chains=dlogSFR_specphoto[inbin])  
 
-        sig_dlogSFR_photo.append(
-                np.sqrt(np.sum(
-                    np.max([logSFR_input[inbin] - logSFR_inf_photo[inbin,1], 
-                        logSFR_inf_photo[inbin,3] - logSFR_input[inbin]], axis=1)
-                    ))/np.float(np.sum(inbin)))
-        sig_dlogSFR_specphoto.append(
-                np.sqrt(np.sum(
-                    np.max([logSFR_input[inbin] - logSFR_inf_specphoto[inbin,1], 
-                        logSFR_inf_specphoto[inbin,3] - logSFR_input[inbin]], axis=1)
-                    ))/np.float(np.sum(inbin)))
-    dlogSFR_photo = np.array(dlogSFR_photo) 
+        min_photo = op.minimize(
+                L_pop_photo, 
+                np.array([0., 0.1]), # guess the middle of the prior 
+                method='L-BFGS-B', 
+                bounds=((None, None), (1e-4, None)),
+                options={'eps': np.array([0.01, 0.005]), 'maxiter': 100})
+        print(min_photo['x'])
+
+        min_specphoto = op.minimize(
+                L_pop_specphoto, 
+                np.array([0., 0.1]), # guess the middle of the prior 
+                method='L-BFGS-B', 
+                bounds=((None, None), (1e-4, None)),
+                options={'eps': np.array([0.01, 0.005]), 'maxiter': 100})
+        print(min_specphoto['x'])
+
+        mu_dlogSFR_photo.append(min_photo['x'][0]) 
+        sig_dlogSFR_photo.append(min_photo['x'][1]) 
+
+        mu_dlogSFR_specphoto.append(min_specphoto['x'][0]) 
+        sig_dlogSFR_specphoto.append(min_specphoto['x'][1]) 
+
+    mu_dlogSFR_photo = np.array(mu_dlogSFR_photo) 
     sig_dlogSFR_photo = np.array(sig_dlogSFR_photo) 
-    dlogSFR_specphoto = np.array(dlogSFR_specphoto) 
+    mu_dlogSFR_specphoto = np.array(mu_dlogSFR_specphoto) 
     sig_dlogSFR_specphoto = np.array(sig_dlogSFR_specphoto) 
-
 
     fig = plt.figure(figsize=(12,5))
     # compare total stellar mass 
     sub = fig.add_subplot(121) 
     sub.plot([9., 12.], [0., 0.], c='k', ls='--')
-    sub.fill_between(Mbin_mid, dMstar_photo - sig_dMstar_photo, dMstar_photo + sig_dMstar_photo, 
+    sub.fill_between(Mbin_mid, mu_dMstar_photo - sig_dMstar_photo, mu_dMstar_photo + sig_dMstar_photo, 
             fc='C0', ec='none', alpha=0.5, label='Photometry only') 
-    sub.scatter(Mbin_mid, dMstar_photo, c='C0', s=2) 
-    sub.plot(Mbin_mid, dMstar_photo, c='C0') 
-    sub.fill_between(Mbin_mid, dMstar_specphoto - sig_dMstar_specphoto, dMstar_specphoto + sig_dMstar_specphoto, 
+    sub.scatter(Mbin_mid, mu_dMstar_photo, c='C0', s=2) 
+    sub.plot(Mbin_mid, mu_dMstar_photo, c='C0') 
+    sub.fill_between(Mbin_mid, mu_dMstar_specphoto - sig_dMstar_specphoto, mu_dMstar_specphoto + sig_dMstar_specphoto, 
             fc='C1', ec='none', alpha=0.5, label='Photometry+Spectroscopy') 
-    sub.scatter(Mbin_mid, dMstar_specphoto, c='C1', s=1) 
-    sub.plot(Mbin_mid, dMstar_specphoto, c='C1') 
+    sub.scatter(Mbin_mid, mu_dMstar_specphoto, c='C1', s=1) 
+    sub.plot(Mbin_mid, mu_dMstar_specphoto, c='C1') 
     #sub.scatter(Mstar_input, (Mstar_inf_photo[:,2]-Mstar_input), c='C0')
     #sub.scatter(Mstar_input, (Mstar_inf_specphoto[:,2]-Mstar_input), c='C1')
     sub.set_xlabel(r'$\log(~M_*~[M_\odot]~)$', fontsize=25)
     sub.set_xlim(9., 12.) 
-    sub.set_ylabel(r'$\log(~\widehat{M}_* / M_*~)$', fontsize=25)
+    sub.set_ylabel(r'$\Delta_{\log M_*}$', fontsize=25)
     sub.set_ylim(-1., 1.) 
     sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
     
     # compare SFR 
     sub = fig.add_subplot(122) 
     sub.plot([-3., 3.], [0., 0.], c='k', ls='--')
-    sub.fill_between(logSFRbin_mid, dlogSFR_photo - sig_dlogSFR_photo, dlogSFR_photo + sig_dlogSFR_photo, 
+    sub.fill_between(logSFRbin_mid, mu_dlogSFR_photo - sig_dlogSFR_photo, mu_dlogSFR_photo + sig_dlogSFR_photo, 
             fc='C0', ec='none', alpha=0.5, label='Photometry only') 
-    sub.scatter(logSFRbin_mid, dlogSFR_photo, c='C0', s=2) 
-    sub.plot(logSFRbin_mid, dlogSFR_photo, c='C0') 
-    sub.fill_between(logSFRbin_mid, dlogSFR_specphoto - sig_dlogSFR_specphoto, dlogSFR_specphoto + sig_dlogSFR_specphoto, 
+    sub.scatter(logSFRbin_mid, mu_dlogSFR_photo, c='C0', s=2) 
+    sub.plot(logSFRbin_mid, mu_dlogSFR_photo, c='C0') 
+    sub.fill_between(logSFRbin_mid, mu_dlogSFR_specphoto - sig_dlogSFR_specphoto, mu_dlogSFR_specphoto + sig_dlogSFR_specphoto, 
             fc='C1', ec='none', alpha=0.5, label='Photometry+Spectroscopy') 
-    sub.scatter(logSFRbin_mid, dlogSFR_specphoto, c='C1', s=1) 
-    sub.plot(logSFRbin_mid, dlogSFR_specphoto, c='C1') 
+    sub.scatter(logSFRbin_mid, mu_dlogSFR_specphoto, c='C1', s=1) 
+    sub.plot(logSFRbin_mid, mu_dlogSFR_specphoto, c='C1') 
     
     if sfr == '1gyr': lbl_sfr = '1Gyr'
     elif sfr == '100myr': lbl_sfr = '100Myr'
     sub.set_xlabel(r'$\log(~{\rm SFR}_{%s}~[M_\odot/yr]~)$' % lbl_sfr, fontsize=25)
     sub.set_xlim(-3., 1.) 
-    sub.set_ylabel(r'$\log(~\widehat{\rm SFR}_{%s} / {\rm SFR}_{%s}~)$' % (lbl_sfr, lbl_sfr), fontsize=25)
+    sub.set_ylabel(r'$\Delta_{\log{\rm SFR}_{%s}}$' % lbl_sfr, fontsize=25)
     sub.set_ylim(-3., 3.) 
     #sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
     
     fig.subplots_adjust(wspace=0.3)
-    _ffig = os.path.join(dir_fig, 'photo_vs_specphoto.%s.sfr_%s.vanilla.noise_%s_%s.png' % (method, sfr, noise_photo, noise_specphoto)) 
+    _ffig = os.path.join(dir_doc, 'photo_vs_specphoto.%s.sfr_%s.vanilla.noise_%s_%s.png' % (method, sfr, noise_photo, noise_specphoto)) 
     fig.savefig(_ffig, bbox_inches='tight') 
     fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
     return None 
+
+
+def logL_pop(mu_pop, sigma_pop, delta_chains=None, prior=None): 
+    ''' log likelihood of population variables mu, sigma
+    
+    :param mu_pop: 
+
+    :param sigma_pop: 
+
+    :param delta_chains: (default: None) 
+        Ngal x Niter 
+
+    :param prior: (default: None) 
+        prior function  
+    '''
+    if prior is None: prior = lambda x: 1. # uninformative prior default 
+
+    N = delta_chains.shape[0] 
+
+    logp_D_pop = 0. 
+    for i in range(N): 
+        K = len(delta_chains[i]) 
+        gauss = Norm(loc=mu_pop, scale=sigma_pop) 
+
+        p_Di_pop = np.sum(gauss.pdf(delta_chains[i])/prior(delta_chains[i]))/float(K)
+
+        logp_D_pop += np.log(p_Di_pop) 
+
+    #print('%.4f, %.4f, %.4f' % (mu_pop, sigma_pop, logp_D_pop)) 
+    if np.isnan(logp_D_pop): raise ValueError
+    return logp_D_pop     
 
 
 def Fbestfit_spec(igal, noise='none', method='ifsps'): 
@@ -938,8 +992,8 @@ if __name__=="__main__":
     #FM_photo()
     #FM_spec()
     #photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', method='ifsps', sfr='1gyr')
-    #photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', method='ifsps', sfr='100myr')
-    mini_mocha_comparison(sfr='100myr')
+    photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', method='ifsps', sfr='100myr')
+    #mini_mocha_comparison(sfr='100myr')
 
     #mock_challenge_photo(noise='none', dust=False, method='ifsps')
     #mock_challenge_photo(noise='none', dust=True, method='ifsps')

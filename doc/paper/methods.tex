@@ -1,0 +1,69 @@
+\section{Methods for Inferring Galaxy Properties} \label{sec:methods}
+Analysis of the mocks in section~\ref{sec:sims}, using standard and newly developed codes. 
+
+Recover: stellar masses, ages, metallicities, star-formation histories. 
+
+\subsection{Fitting Methods}
+describe fiducial choices: IMF
+
+describe Rita's SFH and ZH bases. cite paper.
+
+description of firefly 
+
+description of iFSPS or FSPS emulator 
+
+descripttion of Rita's VESPA
+
+description of CIGALE
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% forecast table
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{table}
+\caption{Table of the different parameterizations for the spectro-photometric fitting. The changes in each setup with respect to default configuration, CIGALE D, are bolted. } 
+\begin{center} 
+\begin{tabular}{ccccc} \toprule
+name & SFH & dust & IMF \\[3pt]
+\hline 
+iFSPS A  & vanilla & & \\
+iFSPS B  & rita's basis & & \\
+iFSPS C  & rita's basis & & \\
+iFSPS C' & rita's basis & & \\
+Firefly  & rita's basis & & \\
+VESPA    & & & \\
+CIGALE A & \textbf{delayed SFH} & Charlot $\&$ Fall 2000, Draine et al. 2014 & Salpter \\
+CIGALE B & delayed SFH + additional burst & \textbf{Calzetti et al. 2000, Dale et al. 2014} & Salpter \\
+CIGALE C & delayed SFH + additional burst & Charlot $\&$ Fall 2000, Draine et al. 2014 & \textbf{Chabrier} \\
+CIGALE D & delayed SFH + additional burst & Charlot $\&$ Fall 2000, Draine et al. 2014 & Salpeter \\[3pt]
+\hline            
+\end{tabular} \label{tab:setups}
+\end{center}
+\end{table}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+\subsection{various set ups}
+
+
+{\bf table}: table of all the different parameterizations of the fitters 
+
+iFSPS A: vanilla + simplest dust
+
+iFSPS B: more complex SFH + simple dust
+
+iFSPS C: more complex SFH + complex dust
+
+iFSPS C': more complex SFH + complex dust + different IMF 
+
+Firefly A (Firefly B?) 
+
+(VESPA B?) 
+
+CIGALE A
+
+CIGALE B
+
+CIGALE C
+ 
+CIGALE C': with different IMF 

@@ -35,6 +35,7 @@ mpl.rcParams['legend.frameon'] = False
 
 
 dir_fig = os.path.join(UT.dat_dir(), 'mini_mocha') 
+dir_doc = '/Users/ChangHoon/projects/gqp_mc/doc/paper/figs/'
 dir_fbgs = '/Users/ChangHoon/data/feasiBGS/'
 
 
@@ -853,7 +854,7 @@ def photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', meth
     #sub.scatter(Mstar_input, (Mstar_inf_specphoto[:,2]-Mstar_input), c='C1')
     sub.set_xlabel(r'$\log(~M_*~[M_\odot]~)$', fontsize=25)
     sub.set_xlim(9., 12.) 
-    sub.set_ylabel(r'$\Delta_{\log~M_*}$', fontsize=25)
+    sub.set_ylabel(r'$\Delta_{\log M_*}$', fontsize=25)
     sub.set_ylim(-1., 1.) 
     sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
     
@@ -873,12 +874,12 @@ def photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', meth
     elif sfr == '100myr': lbl_sfr = '100Myr'
     sub.set_xlabel(r'$\log(~{\rm SFR}_{%s}~[M_\odot/yr]~)$' % lbl_sfr, fontsize=25)
     sub.set_xlim(-3., 1.) 
-    sub.set_ylabel(r'$\Delta_{\log~{\rm SFR}_{%s}}$' % lbl_sfr, fontsize=25)
+    sub.set_ylabel(r'$\Delta_{\log{\rm SFR}_{%s}}$' % lbl_sfr, fontsize=25)
     sub.set_ylim(-3., 3.) 
     #sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
     
     fig.subplots_adjust(wspace=0.3)
-    _ffig = os.path.join(dir_fig, 'photo_vs_specphoto.%s.sfr_%s.vanilla.noise_%s_%s.png' % (method, sfr, noise_photo, noise_specphoto)) 
+    _ffig = os.path.join(dir_doc, 'photo_vs_specphoto.%s.sfr_%s.vanilla.noise_%s_%s.png' % (method, sfr, noise_photo, noise_specphoto)) 
     fig.savefig(_ffig, bbox_inches='tight') 
     fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
     return None 

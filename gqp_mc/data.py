@@ -62,9 +62,8 @@ def Spectra(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'):
         mock = h5py.File(os.path.join(dir_sample, 'lgal.%s.%s.hdf5' % (sample, lib)), 'r') 
         
         if 'bgs' in noise: iobs = int(noise.strip('bgs')) 
-    elif sim == 'tng': 
-        meta = 
-
+    #elif sim == 'tng': 
+    #    meta = 
 
     specs = {} 
     specs['frac_fiber'] = mock ['frac_fiber'][...] # fiber flux scaling factor 

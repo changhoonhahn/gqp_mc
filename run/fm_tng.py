@@ -4,22 +4,20 @@ forward model BGS photometry and spectroscopy for TNG spectra
 
 '''
 import os 
-import glob
 import h5py 
 import pickle 
 import numpy as np 
 import scipy as sp 
 # --- astropy --- 
 import astropy.units as u
-import astropy.constants as const
 from astropy.io import fits
-from astropy.table import Table
+import astropy.constants as const
 # --- gqp_mc ---
 import gqp_mc.fm as FM 
 import gqp_mc.util as UT 
 
 
-def fm_TNG(): 
+def fm_TNG_minimocha(): 
     ''' generate spectroscopy and photometry for the mini Mock Challenge (MoCha)
     
     * input: galaxy properties (SFH, ZH, etc), noiseless spectra 
@@ -40,41 +38,15 @@ def fm_TNG():
     ngal    = sed.shape[0]
     print('%i illustris tng galaxies' % ngal) 
     
-    # compile meta data 
-    meta = {} 
-    meta['logM_total']  = ftng['logmstar'][...][:ngal]
-    meta['sfr_100myr']  = 10.**ftng['logsfr.100'][...][:ngal]
-    
     _wave_s = wave * u.Angstrom
     _spec_s = sed * u.Lsun / u.Hz
 
     H0 = 70 * u.km / u.s / u.Mpc
     
-    # 0. assign redshifts to maximize the number of galaxies within r < 20. 
-    # **note that this will completely skew dn/dz but kept as a first pass.**
-    def rmag_z(z):
-        wave_s = (_wave_s * (1.+z)).value # redshift the spectra 
+    # 0a. assign redshifts z ~ U(0.001, 0.4) 
+    zred = np.random.uniform(0.001, 0.4, size=ngal) 
 
-        # convert fluxes 
-        _spec = _spec_s/(4.*np.pi * (z * const.c/H0).to(u.cm)**2) / _wave_s**2 * const.c 
-        spec_s = (_spec.to(u.erg / u.s / u.cm**2 / u.Angstrom)).value * 1e17
-
-        _, mags = FM.Photo_DESI(wave_s, spec_s) 
-        return mags[:,1]
-
-    zarr = np.linspace(0., 0.4, 41) 
-    zarr[0] = 0.0001 
-    rmags = np.array([rmag_z(_z) for _z in zarr]).T
-
-    zred = np.empty(ngal) 
-    for i in range(ngal): 
-        imax = np.abs(rmags[i,:] - 20.).argmin() 
-        zmax = zarr[imax]
-        zred[i] = np.random.uniform(0., zmax)
-
-    meta['redshift'] = zred # save to metadata 
-
-    # 1. generate 'true' photometry from noiseless spectra 
+    # 0b. generate 'true' photometry from noiseless spectra 
     wave_s = np.tile(_wave_s.value, (ngal,1)) # redshift wavelength
     wave_s *= (1.+zred[:,None])  
 
@@ -83,6 +55,20 @@ def fm_TNG():
     spec_s = (_spec.to(u.erg / u.s / u.cm**2 / u.Angstrom)).value * 1e17
 
     photo_true, _ = FM.Photo_DESI(wave_s, spec_s) 
+    
+    # r < 20 cut 
+    target_selection = (photo_true[:,1] <= 20.) 
+    
+    # compile meta data 
+    meta = {} 
+    meta['logM_total']  = ftng['logmstar'][...][:ngal][target_selection]
+    meta['sfr_100myr']  = 10.**ftng['logsfr.100'][...][:ngal][target_selection]
+    meta['redshift']    = zred[target_selection] # save to metadata 
+
+    # 1. generate 'true' photometry from noiseless spectra 
+    wave_s = wave_s[target_selection,:] 
+    spec_s = spec_s[target_selection,:]
+    photo_true = photo_true[target_selection,:] 
 
     # 2. assign uncertainties to the photometry using BGS targets from the Legacy survey 
     bgs_targets = h5py.File(os.path.join(UT.dat_dir(), 'bgs.1400deg2.rlim21.0.hdf5'), 'r')
@@ -146,7 +132,7 @@ def fm_TNG():
         # sky brightness of exposure 
         Isky = [wave_sky, sbright_sky[iexp]]
 
-        fbgs = os.path.join(UT.dat_dir(), 'tng', 'tng.mini_mocha.bgs_spec.%iof%i.fits' % (iexp+1, nexp)) 
+        fbgs = os.path.join(UT.dat_dir(), 'mini_mocha', 'tng.mini_mocha.bgs_spec.%iof%i.fits' % (iexp+1, nexp)) 
         
         # interpolate source spectra onto linearly spaced wavelengths 
         wlin = np.linspace(1e3, 2e4, 19000)
@@ -185,7 +171,7 @@ def fm_TNG():
     fmeta = os.path.join(UT.dat_dir(), 'mini_mocha', 'tng.mini_mocha.meta.p')
     pickle.dump(meta, open(fmeta, 'wb')) # meta-data
 
-    fout = h5py.File(os.path.join(UT.dat_dir(), 'tng', 'tng.mini_mocha.fm.hdf5'), 'w')
+    fout = h5py.File(os.path.join(UT.dat_dir(), 'mini_mocha', 'tng.mini_mocha.hdf5'), 'w')
 
     fout.create_dataset('redshift', data=zred)
     # photometry  
@@ -217,5 +203,28 @@ def fm_TNG():
     return None 
 
 
+'''
+    #def rmag_z(z):
+    #    wave_s = (_wave_s * (1.+z)).value # redshift the spectra 
+
+    #    # convert fluxes 
+    #    _spec = _spec_s/(4.*np.pi * (z * const.c/H0).to(u.cm)**2) / _wave_s**2 * const.c 
+    #    spec_s = (_spec.to(u.erg / u.s / u.cm**2 / u.Angstrom)).value * 1e17
+
+    #    _, mags = FM.Photo_DESI(wave_s, spec_s) 
+    #    return mags[:,1]
+
+    #zarr = np.linspace(0., 0.4, 41) 
+    #zarr[0] = 0.0001 
+    #rmags = np.array([rmag_z(_z) for _z in zarr]).T
+
+    #zred = np.empty(ngal) 
+    #for i in range(ngal): 
+    #    imax = np.abs(rmags[i,:] - 20.).argmin() 
+    #    zmax = zarr[imax]
+    #    zred[i] = np.random.uniform(0., zmax)
+'''
+
+
 if __name__=="__main__": 
-    fm_TNG()
+    fm_TNG_minimocha()

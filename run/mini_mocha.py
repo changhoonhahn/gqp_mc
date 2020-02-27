@@ -34,22 +34,25 @@ mpl.rcParams['ytick.major.width'] = 1.5
 mpl.rcParams['legend.frameon'] = False
 
 
-def construct_sample(): 
+def construct_sample(sim): 
     ''' construct the mini Mock Challenge photometry, spectroscopy 
     '''
-    # select the galaxies of the mini mock challenge
-    #Data._mini_mocha_galid() 
     # construct photometry and spectroscopy 
-    Data.make_mini_mocha()  
+    dir_run = os.path.dirname(os.path.realpath(__file__)) 
+    if sim == 'lgal': 
+        fscript = os.path.join(dir_run, 'fm_lgal.py')
+    elif sim == 'tng': 
+        fscript = os.path.join(dir_run, 'fm_tng.py')
+    os.system('python %s' % fscript)
     return None 
 
 
-def validate_sample(): 
+def validate_sample(sim): 
     ''' generate some plots to validate the mini Mock Challenge photometry
     and spectroscopy 
     '''
     # read photometry 
-    photo, _ = Data.Photometry(noise='legacy', sample='mini_mocha') 
+    photo, _ = Data.Photometry(sim=sim, noise='legacy', sample='mini_mocha') 
     photo_g = 22.5 - 2.5 * np.log10(photo['flux'][:,0])
     photo_r = 22.5 - 2.5 * np.log10(photo['flux'][:,1])
     photo_z = 22.5 - 2.5 * np.log10(photo['flux'][:,2])
@@ -83,15 +86,16 @@ def validate_sample():
     sub.set_xlim(-1., 3.) 
     sub.set_ylabel('$r-z$', fontsize=25) 
     sub.set_ylim(-1., 3.) 
-    ffig = os.path.join(UT.dat_dir(), 'mini_mocha', 'mini_mocha.photo.png')
+    ffig = os.path.join(UT.dat_dir(), 
+            'mini_mocha', 'mini_mocha.%s.photo.png' % sim)
     fig.savefig(ffig, bbox_inches='tight') 
     fig.savefig(UT.fig_tex(ffig, pdf=True), bbox_inches='tight') 
 
     # read spectra
-    spec_s, _ = Data.Spectra(noise='none', sample='mini_mocha') 
-    spec_bgs0, _ = Data.Spectra(noise='bgs0', sample='mini_mocha') 
-    spec_bgs1, _ = Data.Spectra(noise='bgs1', sample='mini_mocha') 
-    spec_bgs2, _ = Data.Spectra(noise='bgs2', sample='mini_mocha') 
+    spec_s, _ = Data.Spectra(sim=sim, noise='none', sample='mini_mocha') 
+    spec_bgs0, _ = Data.Spectra(sim=sim, noise='bgs0', sample='mini_mocha') 
+    spec_bgs1, _ = Data.Spectra(sim=sim, noise='bgs1', sample='mini_mocha') 
+    spec_bgs2, _ = Data.Spectra(sim=sim, noise='bgs2', sample='mini_mocha') 
         
     # read sky brightness
     _fsky = os.path.join(UT.dat_dir(), 'mini_mocha', 'bgs.exposure.surveysim.150s.v0p4.sample.hdf5') 
@@ -113,21 +117,24 @@ def validate_sample():
     _plt_photo = sub.errorbar([4750, 6350, 9250], [flux_g[0], flux_r[0], flux_z[0]], 
             [ivar_g[0]**-0.5, ivar_r[0]**-0.5, ivar_z[0]**-0.5], fmt='.r') 
 
-    _plt_lgal, = sub.plot(spec_s['wave'], spec_s['flux'][0,:], c='k', ls='-', lw=1) 
-    _plt_lgal0, = sub.plot(spec_s['wave'], spec_s['flux_unscaled'][0,:], c='k', ls=':', lw=0.25) 
+    _plt_sim, = sub.plot(spec_s['wave'][0,:], spec_s['flux'][0,:], c='k', ls='-', lw=1) 
+    _plt_sim0, = sub.plot(spec_s['wave'][0,:], spec_s['flux_unscaled'][0,:], c='k', ls=':', lw=0.25) 
 
     leg = sub.legend(
-            [_plt_lgal0, _plt_photo, _plt_lgal, _plt], 
-            ['LGal spectrum', 'LGal photometry', 'LGal fiber spectrum', 'LGal BGS spectra'],
+            [_plt_sim0, _plt_photo, _plt_sim, _plt], 
+            ['%s spectrum' % sim.upper(), '%s photometry' % sim.upper(), 
+                '%s fiber spectrum' % sim.upper(), '%s BGS spectra' % sim.upper()],
             loc='upper right', fontsize=17) 
     for legobj in leg.legendHandles:
         legobj.set_linewidth(2.0)
     sub.set_xlabel('Wavelength [$A$]', fontsize=20) 
     sub.set_xlim(3e3, 1e4) 
     sub.set_ylabel('flux [$10^{-17} erg/s/cm^2/A$', fontsize=20) 
-    sub.set_ylim(-2., 8.) 
+    if sim == 'lgal': sub.set_ylim(-2., 8.) 
+    elif sim == 'tng': sub.set_ylim(0., None) 
     
-    ffig = os.path.join(UT.dat_dir(), 'mini_mocha', 'mini_mocha.spectra.png')
+    ffig = os.path.join(UT.dat_dir(), 
+            'mini_mocha', 'mini_mocha.%s.spectra.png' % sim)
     fig.savefig(ffig, bbox_inches='tight') 
     fig.savefig(UT.fig_tex(ffig, pdf=True), bbox_inches='tight') 
     
@@ -849,21 +856,22 @@ def fit_pFF_spectra(igal, noise='none', iter_max=10, overwrite=False):
 if __name__=="__main__": 
     # >>> python mini_mocha.py
     spec_or_photo   = sys.argv[1]
+    sim             = sys.argv[2] 
 
     if spec_or_photo == 'construct':  
-        construct_sample()
-        validate_sample()
+        construct_sample(sim)
+        validate_sample(sim)
         sys.exit() 
 
-    igal0           = int(sys.argv[2]) 
-    igal1           = int(sys.argv[3]) 
-    noise           = sys.argv[4]
-    method          = sys.argv[5]
-    nthreads        = int(sys.argv[6]) 
-    nwalkers        = int(sys.argv[7]) 
-    burnin          = int(sys.argv[8]) 
-    niter           = int(sys.argv[9]) 
-    str_overwrite   = sys.argv[10]
+    igal0           = int(sys.argv[3]) 
+    igal1           = int(sys.argv[4]) 
+    noise           = sys.argv[5]
+    method          = sys.argv[6]
+    nthreads        = int(sys.argv[7]) 
+    nwalkers        = int(sys.argv[8]) 
+    burnin          = int(sys.argv[9]) 
+    niter           = int(sys.argv[10]) 
+    str_overwrite   = sys.argv[11]
     
     if str_overwrite == 'True': overwrite=True
     elif str_overwrite == 'False': overwrite=False

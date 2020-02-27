@@ -38,7 +38,8 @@ have access to the data
 # go to $GQPMC_DIR
 cd $GQPMC_DIR
 ln -s /global/projecta/projectdirs/desi/mocks/LGal_spectra/ Lgal
-ln -s /global/projecta/projectdirs/desi/mocks/LGal_spectra/mini_mocha mini_mocha 
+ln -s /global/projecta/projectdirs/desi/mocks/TNG_spectra/ tng 
+ln -s /global/projecta/projectdirs/desi/mocks/gqp_mini_mocha mini_mocha 
 ```
 
 You need to install FSPS if you want to use the iFSPS fitter ([https://github.com/cconroy20/fsps](https://github.com/cconroy20/fsps)). See below for some notes on installing FSPS on NERSC

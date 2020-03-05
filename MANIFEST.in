@@ -1,0 +1,2 @@
+include gqp_mc/dat/*pkl
+include gqp_mc/dat/*txt

@@ -3,10 +3,9 @@ import h5py
 import fsps
 import pickle
 import numpy as np 
-from scipy.integrate import quad
 from scipy.stats import sigmaclip
 from scipy.special import gammainc
-from scipy.interpolate import interp1d
+import scipy.interpolate as Interp
 # --- astropy --- 
 from astropy import units as U
 from astropy.cosmology import Planck13 as cosmo
@@ -61,9 +60,9 @@ class Fitter(object):
     def _default_prior(self): 
         ''' set self.prior to be default prior 
         '''
-        # thetas: mass, Z, tage, dust2, tau
-        prior_min = np.array([8., -3., 0., 0., 0.1])
-        prior_max = np.array([13., 1., 13., 10., 10.])
+        # thetas: mass, Z, dust2, tau
+        prior_min = np.array([8., -3., 0., 0.1])
+        prior_max = np.array([13., 1., 10., 10.])
         prior = UniformPrior(prior_min, prior_max)
         return prior  
 
@@ -84,7 +83,7 @@ class iFSPS(Fitter):
 
     :param model_name: (optional) 
         name of the model to use. This specifies the free parameters. For model_name == 'vanilla', 
-        the free parameters are mass, Z, tage, dust2, tau. (default: vanilla)
+        the free parameters are mass, Z, dust2, tau. (default: vanilla)
 
     :param cosmo: (optional) 
         astropy.cosmology object that specifies the cosmology.(default: astropy.cosmology.Planck13) 
@@ -201,12 +200,16 @@ class iFSPS(Fitter):
         output['theta_2sig_minus'] = lowlow
     
         w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs)
-        output['wavelength_model'] = w_model
-        output['flux_model'] = flux_model 
+        output['wavelength_model'] = w_model[0]
+        output['flux_spec_model'] = med[-1] * flux_model[0]
+        flux_model = self.model_photo(med, zred=zred, filters=filters)
+        output['flux_photo_model'] = flux_model 
        
         output['wavelength_data'] = wave_obs
-        output['flux_data'] = flux_obs
-        output['flux_ivar_data'] = flux_ivar_obs
+        output['flux_spec_data'] = flux_obs
+        output['flux_spec_ivar_data'] = flux_ivar_obs
+        output['flux_photo_data'] = photo_obs
+        output['flux_photo_ivar_data'] = photo_ivar_obs
         
         # save MCMC chain 
         output['prior_range'] = np.vstack([prior.min, prior.max]).T
@@ -309,12 +312,12 @@ class iFSPS(Fitter):
         output['theta_2sig_minus'] = lowlow
     
         w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs)
-        output['wavelength_model'] = w_model
-        output['flux_model'] = flux_model 
+        output['wavelength_model'] = w_model[0]
+        output['flux_spec_model'] = flux_model[0]
        
         output['wavelength_data'] = wave_obs
-        output['flux_data'] = flux_obs
-        output['flux_ivar_data'] = flux_ivar_obs
+        output['flux_spec_data'] = flux_obs
+        output['flux_spec_ivar_data'] = flux_ivar_obs
         
         # save prior and MCMC chain 
         output['prior_range'] = np.vstack([prior.min, prior.max]).T
@@ -419,9 +422,9 @@ class iFSPS(Fitter):
         output['theta_2sig_minus'] = lowlow
     
         flux_model = self.model_photo(med, zred=zred, filters=filters)
-        output['flux_model'] = flux_model 
-        output['flux_data'] = photo_obs
-        output['flux_ivar_data'] = photo_ivar_obs
+        output['flux_photo_model'] = flux_model
+        output['flux_photo_data'] = photo_obs
+        output['flux_photo_ivar_data'] = photo_ivar_obs
     
         # save prior and MCMC chain 
         output['prior_range'] = np.vstack([prior.min, prior.max]).T
@@ -456,12 +459,13 @@ class iFSPS(Fitter):
             spectra generated from FSPS model(theta) in units of 1e-17 * erg/s/cm^2/Angstrom
         '''
         zred    = np.atleast_1d(zred)
+        tage    = self.cosmo.age(zred).value # age of the universe at z=zred in Gyr
         theta   = self._theta(tt_arr) 
         ntheta  = len(theta['mass']) 
         mfrac   = np.zeros(ntheta)
 
-        if self.model_name == 'vanilla': 
-            for i, t, z, d, tau in zip(range(ntheta), theta['tage'], theta['Z'], theta['dust2'], theta['tau']): 
+        if self.model_name in ['vanilla', 'vanilla_kroupa']: 
+            for i, t, z, d, tau in zip(range(ntheta), tage, theta['Z'], theta['dust2'], theta['tau']): 
                 self.ssp.params['logzsol']  = np.log10(z/0.0190) # log(z/zsun) 
                 self.ssp.params['dust2']    = d # dust2 parameter in fsps 
                 self.ssp.params['tau']      = tau # sfh parameter 
@@ -474,13 +478,18 @@ class iFSPS(Fitter):
                     ssp_lums    = np.zeros((ntheta, len(w)))
                 ws[i,:] = w 
                 ssp_lums[i,:] = ssp_lum
-
-        elif self.model_name == 'dustless_vanilla': 
-            for i, t, z, tau in zip(range(ntheta), theta['tage'], theta['Z'], theta['tau']): 
+        elif self.model_name == 'vanilla_complexdust': 
+            for i, t, z, d1, d2, d3, tau in zip(range(ntheta), tage,
+                    theta['Z'], theta['dust1'], theta['dust2'],
+                    theta['dust_index'], theta['tau']): 
                 self.ssp.params['logzsol']  = np.log10(z/0.0190) # log(z/zsun) 
+                self.ssp.params['dust1']    = d1 # dust1 parameter in fsps 
+                self.ssp.params['dust2']    = d2 # dust2 parameter in fsps 
+                self.ssp.params['dust_index'] = d3 # dust2 parameter in fsps 
                 self.ssp.params['tau']      = tau # sfh parameter 
+
                 w, ssp_lum = self.ssp.get_spectrum(tage=t, peraa=True) 
-                
+
                 mfrac[i] = self.ssp.stellar_mass
                 if i == 0: 
                     ws          = np.zeros((ntheta, len(w)))
@@ -539,17 +548,39 @@ class iFSPS(Fitter):
         maggies = filters.get_ab_maggies(spec * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom, wavelength=w.flatten()*U.Angstrom) # maggies 
         return np.array(list(maggies[0])) * 1e9
     
-    def _SFR_MCMC(self, mcmc_chain, dt=1.): 
+    def _SFR_MCMC(self, mcmc_chain, zred, dt=1.): 
         ''' given mcmc_chain of parameters calculate the -2-sig, -1-sig, median, 1 sig, 2 sig SFR values 
         '''
-        avg_sfr, notoldenough  = self.get_SFR(mcmc_chain, dt=dt)
+        avg_sfr, notoldenough  = self.get_SFR(mcmc_chain, zred, dt=dt)
         return np.percentile(avg_sfr, [2.5, 16, 50, 84, 97.5])
-    
-    def get_SFR(self, tt, dt=1.):
-        ''' given theta calculate SFR averaged over dt Gyr
+
+    def add_logSFR_to_chain(self, mcmc_chain, zred, dt=1.): 
+        ''' calculate the logSFR for the parameters in the MC chain and add it
+        to the chain. 
         '''
+        logsfr_chain = np.log10(
+                np.array([self.get_SFR(tt, zred, dt=0.1) 
+                    for tt in mcmc_chain]))
+        mcmc_chain = np.concatenate([mcmc_chain, logsfr_chain], axis=1) 
+        return mcmc_chain 
+    
+    def get_SFR(self, tt, zred, dt=1.):
+        ''' given theta calculate SFR averaged over dt Gyr
+
+        :param tt: 
+            single paramter value. For model == 'vanilla', tt = [mass, Z, dust2, tau]. 
+        :param zred: 
+            redshift of galaxy 
+        :param dt: 
+            timescale of SFR in Gyr (default: 1.)
+        :return sfr: 
+            average SFR over dt Gyrs
+        '''
+        tage = self.cosmo.age(zred).value 
+        assert tage > dt
+
         theta = self._theta(tt)
-        if self.model_name == 'vanilla': 
+        if 'vanilla' in self.model_name:
             sf_trunc = 0.0
             sf_start = 0.0 
             sfh = 4
@@ -565,9 +596,6 @@ class iFSPS(Fitter):
         else: raise ValueError("get_SFR not supported for this SFH type.")
     
         tau = theta['tau']
-        tage = theta['tage']
-        
-        assert tage.min() > 0 
 
         tb = (tburst - sf_start) / tau
         tmax = (tage - sf_start) / tau
@@ -589,9 +617,7 @@ class iFSPS(Fitter):
         #avsfr *= times <= tage
         #avsfr[np.isfinite(avsfr)] = 0.0 # does not work for scalars
         avsfr *= theta['mass']
-
-        notoldenough = (dt > tage) 
-        return np.clip(avsfr, 0, np.inf), notoldenough 
+        return np.clip(avsfr, 0, np.inf)
 
     def _emcee(self, lnpost_fn, lnpost_args, lnpost_kwargs, nwalkers=100, burnin=100, niter=1000, silent=True): 
         ''' Runs MCMC (using emcee) for a given log posterior function.
@@ -622,7 +648,7 @@ class iFSPS(Fitter):
         self.sampler = emcee.EnsembleSampler(nwalkers, ndim, lnpost_fn, 
                 args=lnpost_args, kwargs=lnpost_kwargs)
         # initial walker positions 
-        p0 = [tt0 + 1.e-4 * dprior * np.random.randn(ndim) for i in range(nwalkers)]
+        p0 = [tt0 + 1.e-2 * dprior * np.random.randn(ndim) for i in range(nwalkers)]
 
         # burn in 
         if not silent: print('running burn-in') 
@@ -771,6 +797,18 @@ class iFSPS(Fitter):
                     sfh=4,                  # sfh type 
                     dust_type=2,            # Calzetti et al. (2000) attenuation curve. 
                     imf_type=1)             # chabrier 
+        elif self.model_name == 'vanilla_complexdust': 
+            ssp = fsps.StellarPopulation(
+                    zcontinuous=1,          # interpolate metallicities
+                    sfh=4,                  # sfh type 
+                    dust_type=4,            # Kriek & Conroy attenuation curve. 
+                    imf_type=1)             # chabrier 
+        elif self.model_name == 'vanilla_kroupa': 
+            ssp = fsps.StellarPopulation(
+                    zcontinuous=1,          # interpolate metallicities
+                    sfh=4,                  # sfh type 
+                    dust_type=2,            # Calzetti et al. (2000) attenuation curve. 
+                    imf_type=2)             # chabrier 
         else: 
             raise NotImplementedError
         return ssp 
@@ -781,13 +819,20 @@ class iFSPS(Fitter):
         '''
         theta = {} 
         tt_arr = np.atleast_2d(tt_arr) 
-        if self.model_name == 'vanilla': 
-            # tt_arr columns: mass, Z, tage, dust2, tau
+        if self.model_name in ['vanilla', 'vanilla_kroupa']: 
+            # tt_arr columns: mass, Z, dust2, tau
             theta['mass']   = 10**tt_arr[:,0]
             theta['Z']      = 10**tt_arr[:,1]
-            theta['tage']   = tt_arr[:,2]
+            theta['dust2']  = tt_arr[:,2]
+            theta['tau']    = tt_arr[:,3]
+        elif self.model_name == 'vanilla_complexdust': 
+            # tt_arr columns: mass, Z, dust1, dust2, dust_index, tau
+            theta['mass']   = 10**tt_arr[:,0]
+            theta['Z']      = 10**tt_arr[:,1]
+            theta['dust1']  = tt_arr[:,2]
             theta['dust2']  = tt_arr[:,3]
-            theta['tau']    = tt_arr[:,4]
+            theta['dust_index']  = tt_arr[:,4]
+            theta['tau']    = tt_arr[:,5]
         else: 
             raise NotImplementedError
         return theta
@@ -809,9 +854,15 @@ class iFSPS(Fitter):
     def _default_prior(self, f_fiber_prior=None): 
         ''' return default prior object 
         '''
-        # thetas: mass, Z, tage, dust2, tau
-        prior_min = [8., -3., 0., 0., 0.1]
-        prior_max = [13., 1., 13., 10., 10.]
+        if self.model_name in ['vanilla', 'vanilla_kroupa']: 
+            # thetas: mass, Z, dust2, tau
+            prior_min = [8., -3., 0., 0.1]
+            prior_max = [13., 1., 10., 10.]
+        elif self.model_name == 'vanilla_complexdust': 
+            # thetas: mass, Z, dust1, dust2, dust_index, tau
+            prior_min = [8., -3., 0., 0., -2.2, 0.1]
+            prior_max = [13., 1., 4., 4., 0.4, 10.]
+
         if f_fiber_prior is not None: 
             prior_min.append(f_fiber_prior[0])
             prior_max.append(f_fiber_prior[1])
@@ -829,11 +880,10 @@ class iSpeculator(iFSPS):
     (https://arxiv.org/abs/1010.3436). **The output chain however is transformed back to the original
     SFH coefficients.**
     '''
-    def __init__(self, model_name='vanilla', cosmo=cosmo): 
-        self.model_name = model_name # store model name 
+    def __init__(self, cosmo=cosmo): 
         self.cosmo = cosmo # cosmology  
         self._load_model_params() # load emulator parameters
-        self._read_NMF_bases() # read SFH and ZH basis 
+        self._load_NMF_bases() # read SFH and ZH basis 
 
     def MCMC_spectrophoto(self, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, prior=None, 
             mask=None, bands='desi',
@@ -893,10 +943,13 @@ class iSpeculator(iFSPS):
             - output['theta_1sig_minus'] : 1sigma below median 
             - output['theta_2sig_minus'] : 2sigma below median 
             - output['wavelength_model'] : wavelength of best-fit model 
-            - output['flux_model'] : flux of best-fit model 
+            - output['flux_spec_model'] : flux of best-fit model spectrum
+            - output['flux_photo_model'] : flux of best-fit model photometry 
             - output['wavelength_data'] : wavelength of observations 
-            - output['flux_data'] : flux of observations 
-            - output['flux_ivar_data'] = inverse variance of the observed flux. 
+            - output['flux_spec_data'] : flux of observed spectrum 
+            - output['flux_spec_ivar_data'] = inverse variance of the observed flux. 
+            - output['flux_photo_data'] : flux of observed photometry 
+            - output['flux_photo_viar_data'] :  inverse variance of observed photometry 
 
         notes: 
         -----
@@ -949,17 +1002,19 @@ class iSpeculator(iFSPS):
         output['theta_1sig_minus'] = low
         output['theta_2sig_minus'] = lowlow
     
-        w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs, dont_transform=True)
-        photo_model = self.model_photo(med, zred=zred, filters=filters, dont_transform=True)
-        output['wavelength_model'] = w_model
-        output['flux_model'] = flux_model 
-        output['photo_model'] = photo_model
+        w_model, flux_model = self.model(med[:-1], zred=zred,
+                wavelength=wave_obs, dont_transform=True) 
+        photo_model = self.model_photo(med[:-1], zred=zred, filters=filters,
+                dont_transform=True) 
+        output['wavelength_model'] = w_model[0]
+        output['flux_spec_model'] = med[-1] * flux_model[0]
+        output['flux_photo_model'] = photo_model
        
         output['wavelength_data'] = wave_obs
-        output['flux_data'] = flux_obs
-        output['flux_ivar_data'] = flux_ivar_obs
-        output['photo_data'] = photo_obs
-        output['photo_ivar_data'] = photo_ivar_obs
+        output['flux_spec_data'] = flux_obs
+        output['flux_spec_ivar_data'] = flux_ivar_obs
+        output['flux_photo_data'] = photo_obs
+        output['flux_photo_ivar_data'] = photo_ivar_obs
         
         # save MCMC chain 
         output['prior_range'] = np.vstack([prior.min, prior.max]).T
@@ -1023,10 +1078,10 @@ class iSpeculator(iFSPS):
             - output['theta_1sig_minus'] : 1sigma below median 
             - output['theta_2sig_minus'] : 2sigma below median 
             - output['wavelength_model'] : wavelength of best-fit model 
-            - output['flux_model'] : flux of best-fit model 
+            - output['flux_spec_model'] : flux of best-fit model spectrum
             - output['wavelength_data'] : wavelength of observations 
-            - output['flux_data'] : flux of observations 
-            - output['flux_ivar_data'] = inverse variance of the observed flux. 
+            - output['flux_spec_data'] : flux of observed spectrum 
+            - output['flux_spec_ivar_data'] = inverse variance of the observed flux. 
         '''
         # check mask 
         _mask = self._check_mask(mask, wave_obs, flux_ivar_obs, zred) 
@@ -1065,12 +1120,12 @@ class iSpeculator(iFSPS):
         output['theta_2sig_minus'] = lowlow
     
         w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs, dont_transform=True)
-        output['wavelength_model'] = w_model
-        output['flux_model'] = flux_model 
+        output['wavelength_model'] = w_model[0]
+        output['flux_spec_model'] = flux_model[0]
        
         output['wavelength_data'] = wave_obs
-        output['flux_data'] = flux_obs
-        output['flux_ivar_data'] = flux_ivar_obs
+        output['flux_spec_data'] = flux_obs
+        output['flux_spec_ivar_data'] = flux_ivar_obs
         
         # save prior and MCMC chain 
         output['prior_range'] = np.vstack([prior.min, prior.max]).T
@@ -1130,10 +1185,10 @@ class iSpeculator(iFSPS):
             - output['theta_1sig_minus'] : 1sigma below median 
             - output['theta_2sig_minus'] : 2sigma below median 
             - output['wavelength_model'] : wavelength of best-fit model 
-            - output['flux_model'] : flux of best-fit model 
-            - output['wavelength_data'] : wavelength of observations 
-            - output['flux_data'] : flux of observations 
-            - output['flux_ivar_data'] = inverse variance of the observed flux. 
+            - output['flux_photo_model'] : flux of best-fit model photometry 
+            - output['flux_photo_data'] : flux of observed photometry 
+            - output['flux_photo_ivar_data'] = inverse variance of the observed
+              photometry
         '''
         # get photometric bands  
         bands_list = self._get_bands(bands)
@@ -1176,9 +1231,9 @@ class iSpeculator(iFSPS):
         output['theta_2sig_minus'] = lowlow
     
         flux_model = self.model_photo(med, zred=zred, filters=filters, dont_transform=True)
-        output['flux_model'] = flux_model 
-        output['flux_data'] = photo_obs
-        output['flux_ivar_data'] = photo_ivar_obs
+        output['flux_photo_model'] = flux_model 
+        output['flux_photo_data'] = photo_obs
+        output['flux_photo_ivar_data'] = photo_ivar_obs
     
         # save prior and MCMC chain 
         output['prior_range'] = np.vstack([prior.min, prior.max]).T
@@ -1196,8 +1251,10 @@ class iSpeculator(iFSPS):
         not the actual coefficients! This method is called by the inference method. 
 
         :param zz_arr:
-            array of parameters. theta[1:4] are the **transformed** SFH basis coefficients
-            # logmstar, bSFH1, bSFH2, bSFH3, bSFH4, bZ1, bZ2, tau
+            array of parameters: [logmstar, bSFH1, bSFH2, bSFH3, bSFH4, bZ1,
+            bZ2, tau]. If dont_transform == False, zz_arr[1:4] are the
+            **transformed** SFH basis coefficients. If dont_transform == True,
+            zz_arr[1:4] are the SFH basis coefficients. 
         :param zred: float,array (default: 0.1) 
             The output wavelength and spectra are redshifted.
         :param wavelength: (default: None)  
@@ -1214,29 +1271,26 @@ class iSpeculator(iFSPS):
             spectra generated from FSPS model(theta) in units of 1e-17 * erg/s/cm^2/Angstrom
         '''
         zred    = np.atleast_1d(zred)
-        # check this!
-        # check this!
-        tage    = self.cosmo.age(0.0).value - self.cosmo.age(zred).value 
-
-        # logmstar, bSFH1, bSFH2, bSFH3, bSFH4, bZ1, bZ2, tage, tau
+        tage    = self.cosmo.age(zred).value # age of universe at zred 
+        # logmstar, b1SFH, b2SFH, b3SFH, b4SFH, g1ZH, g2ZH, tau
         zz_arr  = np.atleast_2d(zz_arr)
-        tt_arr  = np.zeros((zz_arr.shape[0], zz_arr.shape[1]+1)) 
-        tt_arr[:,0]     = zz_arr[:,0]
-        tt_arr[:,-2]    = tage
-        zz_arr[:,-1]    = zz_arr[:,-1]
+        ntheta  = zz_arr.shape[0] 
+
+        # logmstar, b1SFH, b2SFH, b3SFH, b4SFH, g1ZH, g2ZH, tau, tage
+        tt_arr = np.zeros((ntheta, zz_arr.shape[1]+1)) 
+        tt_arr[:,:zz_arr.shape[1]] = zz_arr
+        tt_arr[:,-1] = tage
         # transform back to SFH basis coefficients 
         if not dont_transform: 
             tt_arr[:,1:5] = self._transform_to_SFH_basis(zz_arr[:,1:5]) 
 
-        ntheta = tt_arr.shape[0] 
+        for i in range(ntheta):
+            # emulator input: b1SFH, b2SFH, b3SFH, b4SFH, g1ZH, g2ZH, tau, tage
+            ssp_lum = self._emulator(tt_arr[i,1:]) 
 
-        if self.model_name == 'vanilla': 
-            for i in range(ntheta):
-                ssp_lum = self._emulator(tt_arr[i,1:9]) 
-
-                if i == 0: 
-                    ssp_lums = np.zeros((ntheta, len(self._emu_wave)))
-                ssp_lums[i,:] = ssp_lum
+            if i == 0: 
+                ssp_lums = np.zeros((ntheta, len(self._emu_wave)))
+            ssp_lums[i,:] = ssp_lum
 
         # mass normalization
         lum_ssp = (10**tt_arr[:,0])[:,None] * ssp_lums
@@ -1289,51 +1343,57 @@ class iSpeculator(iFSPS):
         maggies = filters.get_ab_maggies(spec * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom, wavelength=w.flatten()*U.Angstrom) # maggies 
         return np.array(list(maggies[0])) * 1e9
     
-    def get_SFR(self, tt, dt=1.):
+    def get_SFR(self, tt, zred, dt=1.):
         ''' given theta calculate SFR averaged over dt Gyr. 
 
         :param tt: 
-           [log M*, b1SFH, b2SFH, b3SFH, b4SFH, g1ZH, g2ZH, tage, tau]  b's here are the original
+           [log M*, b1SFH, b2SFH, b3SFH, b4SFH, g1ZH, g2ZH, tau]  b's here are the original
            SFH basis coefficients
         '''
-        tt_sfh = tt[1:5]
-        sfh = np.dot(tt_sfh, self._nmf_sfh_basis) 
+        tage = self.cosmo.age(zred).value # age in Gyr
+        assert tage > dt 
+        t = np.linspace(0, tage, 50)
 
-        # integrate over SFH over timescale 
-        # integrate over SFH over timescale 
-        # integrate over SFH over timescale 
-        # integrate over SFH over timescale 
-        # integrate over SFH over timescale 
-        # integrate over SFH over timescale 
-        fsfh = interp1d(tt_sfh, sfh) 
-        return np.clip(avsfr, 0, np.inf), notoldenough 
+        tt_sfh = tt[1:5] # sfh bases 
+        
+        # caluclate normalized SFH
+        sfh = np.sum(np.array([
+            tt_sfh[i]*self._sfh_basis[i](t)/np.trapz(self._sfh_basis[i](t), t) 
+            for i in range(4)]), 
+            axis=0)
+        
+        # add up the stellar mass formed during the dt time period 
+        i_low = np.clip(np.abs(t - (tage - dt)).argmin(), None, 48) 
+        avsfr = np.trapz(sfh[i_low:], t[i_low:]) / (tage - t[i_low]) / 1e9
+        avsfr *= 10**tt[0]
+        return np.clip(np.atleast_1d(avsfr), 0, np.inf)
    
     def _emulator(self, tt):
         ''' emulator for FSPS 
 
         :param tt: 
-            array of parameters 
-
+            array [b1SFH, b2SFH, b3SFH, b4SFH, g1ZH, g2ZH, tau, tage]
         :return flux: 
-            FSPS flux in units of Lsun/A
+            FSPS SSP flux in units of Lsun/A
         '''
-        theta = self._transform_theta(tt)  # transform theta 
         # forward pass through the network
         act = []
-        layers = [theta]
+        offset = np.log(np.sum(tt[0:4]))
+        layers = [(self._transform_theta(tt) - self._emu_theta_mean)/self._emu_theta_std]
         for i in range(self._emu_n_layers-1):
-            # linear NN operation
+        
+            # linear network operation
             act.append(np.dot(layers[-1], self._emu_W[i]) + self._emu_b[i])
 
-            # activation function
+            # pass through activation function
             layers.append((self._emu_beta[i] + (1.-self._emu_beta[i])*1./(1.+np.exp(-self._emu_alpha[i]*act[-1])))*act[-1])
 
-        # final (linear) layer -> PCA coefficients
+        # final (linear) layer -> (normalized) PCA coefficients
         layers.append(np.dot(layers[-1], self._emu_W[-1]) + self._emu_b[-1])
 
-        # rescale PCAs, multiply up to spectrum, re-scale spectrum
-        flux = np.dot(layers[-1]*self._emu_pca_std + self._emu_pca_mean, self._emu_pcas)*self._emu_spec_std + self._emu_spec_mean
-        return 10**flux
+        # rescale PCA coefficients, multiply out PCA basis -> normalized spectrum, shift and re-scale spectrum -> output spectrum
+        logflux = np.dot(layers[-1]*self._emu_pca_std + self._emu_pca_mean, self._emu_pcas)*self._emu_spec_std + self._emu_spec_mean + offset
+        return np.exp(logflux)
 
     def _transform_theta(self, theta):
         ''' initial transform applied to input parameters (network is trained over a 
@@ -1348,7 +1408,9 @@ class iSpeculator(iFSPS):
         ''' read in pickle file that contains all the parameters required for the emulator
         model
         '''
-        fpkl = open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dat', 'model_summary.pkl'), 'rb')
+        fpkl = open(os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), 'dat', 
+            'model_summary64.pkl'), 'rb')
         params = pickle.load(fpkl)
         fpkl.close()
 
@@ -1428,20 +1490,38 @@ class iSpeculator(iFSPS):
 
         return UniformPrior(np.array(prior_min), np.array(prior_max))
 
-    def _read_NMF_bases(self): 
-        ''' read NMF SFH and ZH bases 
+    def _load_NMF_bases(self): 
+        ''' read NMF SFH and ZH bases and store it to object
         '''
-        fsfh = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dat', 'NMF_2basis_SFH_components_nowgt_lin_Nc4.txt')
-        fzh = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dat', 'NMF_2basis_Z_components_nowgt_lin_Nc2.txt') 
-        ft = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dat', 'sfh_t_int.txt') 
+        fsfh = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dat',
+                'NMF_2basis_SFH_components_nowgt_lin_Nc4.txt')
+        fzh = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dat',
+                'NMF_2basis_Z_components_nowgt_lin_Nc2.txt') 
+        ft = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dat',
+                'sfh_t_int.txt') 
 
         nmf_sfh = np.loadtxt(fsfh) 
         nmf_zh  = np.loadtxt(fzh) 
-        nmf_t   = np.loadtxt(ft) 
+        nmf_t   = np.loadtxt(ft) # look back time 
 
         self._nmf_t_lookback    = nmf_t
         self._nmf_sfh_basis     = nmf_sfh 
         self._nmf_zh_basis      = nmf_zh
+
+        Ncomp_sfh = self._nmf_sfh_basis.shape[0]
+        Ncomp_zh = self._nmf_zh_basis.shape[0]
+    
+        self._sfh_basis = [
+                Interp.InterpolatedUnivariateSpline(
+                    max(self._nmf_t_lookback) - self._nmf_t_lookback, 
+                    self._nmf_sfh_basis[i], k=1) 
+                for i in range(Ncomp_sfh)
+                ]
+        self._zh_basis = [
+                Interp.InterpolatedUnivariateSpline(
+                    max(self._nmf_t_lookback) - self._nmf_t_lookback, 
+                    self._nmf_zh_basis[i], k=1) 
+                for i in range(Ncomp_zh)]
         return None 
     
 

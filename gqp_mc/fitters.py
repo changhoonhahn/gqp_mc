@@ -907,11 +907,13 @@ class iSpeculator(iFSPS):
     (https://arxiv.org/abs/1010.3436). **The output chain however is transformed back to the original
     SFH coefficients.**
     '''
-    def __init__(self, cosmo=cosmo): 
+    def __init__(self, model_name='emulator', cosmo=cosmo): 
+        self.model_name = model_name 
         self.cosmo = cosmo # cosmology  
         self._load_model_params() # load emulator parameters
         self._load_NMF_bases() # read SFH and ZH basis 
-    
+        self._ssp_initiate() 
+
         # interpolators for speeding up cosmological calculations 
         _z = np.linspace(0, 0.4, 100)
         _tage = self.cosmo.age(_z).value
@@ -1317,15 +1319,19 @@ class iSpeculator(iFSPS):
         # transform back to SFH basis coefficients 
         if not dont_transform: 
             tt_arr[1:5] = self._transform_to_SFH_basis(zz_arr[1:5]) 
-
-        # emulator input: b1SFH, b2SFH, b3SFH, b4SFH, g1ZH, g2ZH, tau, tage
-        ssp_lum = self._emulator(tt_arr[1:]) 
+        
+        # input: b1SFH, b2SFH, b3SFH, b4SFH, g1ZH, g2ZH, tau, tage
+        if self.model_name == 'emulator': 
+            ssp_lum = self._emulator(tt_arr[1:]) 
+            w = self._emu_wave
+        elif 'fsps' in self.model_name: 
+            w, ssp_lum = self._fsps_model(tt_arr[1:]) 
 
         # mass normalization
         lum_ssp = (10**tt_arr[0]) * ssp_lum
 
         # redshift the spectra
-        w_z = self._emu_wave * (1. + zred)
+        w_z = w * (1. + zred)
         d_lum = self._d_lum_z_interp(zred) 
         flux_z = lum_ssp * UT.Lsun() / (4. * np.pi * d_lum**2) / (1. + zred) * 1e17 # 10^-17 ergs/s/cm^2/Ang
 
@@ -1459,7 +1465,7 @@ class iSpeculator(iFSPS):
         # rescale PCA coefficients, multiply out PCA basis -> normalized spectrum, shift and re-scale spectrum -> output spectrum
         logflux = np.dot(layers[-1]*self._emu_pca_std + self._emu_pca_mean, self._emu_pcas)*self._emu_spec_std + self._emu_spec_mean + offset
         return np.exp(logflux)
-
+    
     def _transform_theta(self, theta):
         ''' initial transform applied to input parameters (network is trained over a 
         transformed parameter set)
@@ -1469,6 +1475,55 @@ class iSpeculator(iFSPS):
         transformed_theta[2] = np.sqrt(theta[2])
         return transformed_theta
 
+    def _fsps_model(self, tt): 
+        ''' same model as emulator but using fsps 
+
+        :return flux: 
+            FSPS SSP flux in units of Lsun/A
+        '''
+        if self.model_name == 'fsps': 
+            tt_sfh  = tt[:4] 
+            tt_zh   = tt[4:6]
+            tt_dust = tt[6]
+            tage    = tt[7] 
+        elif self.model_name == 'fsps_complexdust': 
+            tt_sfh      = tt[:4] 
+            tt_zh       = tt[4:6]
+            tt_dust1    = tt[6]
+            tt_dust2    = tt[7]
+            tt_dust_index = tt[8]
+            tage        = tt[9] 
+
+        _t = np.linspace(0, tage, 50)
+        tages   = max(_t) - _t + 1e-8 
+
+        # Compute SFH and ZH
+        sfh = np.sum(np.array([
+            tt_sfh[i] *
+            self._sfh_basis[i](_t)/np.trapz(self._sfh_basis[i](_t), _t) 
+            for i in range(4)]), 
+            axis=0)
+        zh = np.sum(np.array([
+            tt_zh[i] * self._zh_basis[i](_t) 
+            for i in range(2)]), 
+            axis=0)
+     
+        for i, tage, m, z in zip(range(len(tages)), tages, sfh, zh): 
+            if m <= 0: # no star formation in this bin 
+                continue
+            self._ssp.params['logzsol'] = np.log10(z/0.0190) # log(Z/Zsun)
+            if self.model_name == 'fsps': 
+                self._ssp.params['dust2'] = tt_dust 
+            elif self.model_name == 'fsps_complexdust': 
+                self._ssp.params['dust1'] = tt_dust1
+                self._ssp.params['dust2'] = tt_dust2 
+                self._ssp.params['dust3'] = tt_dust_index
+            wave_rest, lum_i = self._ssp.get_spectrum(tage=tage, peraa=True) # in units of Lsun/AA
+            if i == 0: 
+                lum_ssp = np.zeros(len(wave_rest))
+            lum_ssp += m * lum_i 
+        return wave_rest, lum_ssp
+    
     def _load_model_params(self): 
         ''' read in pickle file that contains all the parameters required for the emulator
         model
@@ -1545,9 +1600,15 @@ class iSpeculator(iFSPS):
             [min, max] of f_fiber prior. if specified, f_fiber is added as an extra parameter.
             This is for spectrophotometric fitting 
         '''
-        # M*, beta1', beta2', beta3', beta4', gamma1, gamma2, tau  
+        # M*, beta1', beta2', beta3', beta4', gamma1, gamma2, tau (dust2) 
         prior_min = [8., 0., 0., 0., 0., 6.9e-5, 6.9e-5, 0.]
         prior_max = [13., 1., 1., 1., 1., 7.3e-3, 7.3e-3, 3.]
+
+        if self.model_name == 'fsps_complexdust': 
+            # M*, beta1', beta2', beta3', beta4', gamma1, gamma2, dust1, dust2,
+            # dust_index 
+            prior_min = [8., 0., 0., 0., 0., 6.9e-5, 6.9e-5, 0., 0., -2.2]
+            prior_max = [13., 1., 1., 1., 1., 7.3e-3, 7.3e-3, 3., 4., 0.4]
 
         if f_fiber_prior is not None: 
             prior_min.append(f_fiber_prior[0]) 
@@ -1588,6 +1649,27 @@ class iSpeculator(iFSPS):
                     self._nmf_zh_basis[i], k=1) 
                 for i in range(Ncomp_zh)]
         return None 
+    
+    def _ssp_initiate(self):
+        ''' for models that use fsps, initiate fsps.StellarPopulation object 
+        '''
+        if 'fsps' not in self.model_name: 
+            self._ssp = None
+        elif self.model_name == 'fsps': 
+            # initalize fsps object
+            self._ssp = fsps.StellarPopulation(
+                zcontinuous=1, # SSPs are interpolated to the value of logzsol before the spectra and magnitudes are computed
+                sfh=0, # single SSP
+                imf_type=1, # chabrier
+                dust_type=2 # Calzetti (2000) 
+                )
+        elif self.model_name == 'fsps_complexdust': 
+            self._ssp = fsps.StellarPopulation(
+                    zcontinuous=1,          # interpolate metallicities
+                    sfh=0,                  # sfh type 
+                    dust_type=4,            # Kriek & Conroy attenuation curve. 
+                    imf_type=1)             # chabrier 
+        return None  
     
 
 class pseudoFirefly(Fitter): 

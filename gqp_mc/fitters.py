@@ -93,7 +93,7 @@ class iFSPS(Fitter):
         self.model_name = model_name # store model name 
         self.cosmo      = cosmo # cosmology  
         self.ssp        = self._ssp_initiate() # initial ssp
-
+        
     def MCMC_spectrophoto(self, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, prior=None, 
             mask=None, bands='desi',
             nwalkers=100, burnin=100, niter=1000, writeout=None, silent=True): 
@@ -458,61 +458,39 @@ class iFSPS(Fitter):
         outspec : array 
             spectra generated from FSPS model(theta) in units of 1e-17 * erg/s/cm^2/Angstrom
         '''
-        zred    = np.atleast_1d(zred)
         tage    = self.cosmo.age(zred).value # age of the universe at z=zred in Gyr
         theta   = self._theta(tt_arr) 
-        ntheta  = len(theta['mass']) 
-        mfrac   = np.zeros(ntheta)
 
         if self.model_name in ['vanilla', 'vanilla_kroupa']: 
-            for i, t, z, d, tau in zip(range(ntheta), tage, theta['Z'], theta['dust2'], theta['tau']): 
-                self.ssp.params['logzsol']  = np.log10(z/0.0190) # log(z/zsun) 
-                self.ssp.params['dust2']    = d # dust2 parameter in fsps 
-                self.ssp.params['tau']      = tau # sfh parameter 
+            self.ssp.params['logzsol']  = np.log10(theta['Z']/0.0190) # log(z/zsun) 
+            self.ssp.params['dust2']    = theta['dust2'] # dust2 parameter in fsps 
+            self.ssp.params['tau']      = theta['tau'] # sfh parameter 
 
-                w, ssp_lum = self.ssp.get_spectrum(tage=t, peraa=True) 
-
-                mfrac[i] = self.ssp.stellar_mass
-                if i == 0: 
-                    ws          = np.zeros((ntheta, len(w)))
-                    ssp_lums    = np.zeros((ntheta, len(w)))
-                ws[i,:] = w 
-                ssp_lums[i,:] = ssp_lum
+            w, ssp_lum = self.ssp.get_spectrum(tage=tage, peraa=True) 
         elif self.model_name == 'vanilla_complexdust': 
-            for i, t, z, d1, d2, d3, tau in zip(range(ntheta), tage,
-                    theta['Z'], theta['dust1'], theta['dust2'],
-                    theta['dust_index'], theta['tau']): 
-                self.ssp.params['logzsol']  = np.log10(z/0.0190) # log(z/zsun) 
-                self.ssp.params['dust1']    = d1 # dust1 parameter in fsps 
-                self.ssp.params['dust2']    = d2 # dust2 parameter in fsps 
-                self.ssp.params['dust_index'] = d3 # dust2 parameter in fsps 
-                self.ssp.params['tau']      = tau # sfh parameter 
+            self.ssp.params['logzsol']  = np.log10(theta['Z']/0.0190) # log(z/zsun) 
+            self.ssp.params['dust1']    = theta['dust1'] # dust1 parameter in fsps 
+            self.ssp.params['dust2']    = theta['dust2'] # dust2 parameter in fsps 
+            self.ssp.params['dust_index'] = theta['dust_index'] # dust2 parameter in fsps 
+            self.ssp.params['tau']      = theta['tau'] # sfh parameter 
 
-                w, ssp_lum = self.ssp.get_spectrum(tage=t, peraa=True) 
-
-                mfrac[i] = self.ssp.stellar_mass
-                if i == 0: 
-                    ws          = np.zeros((ntheta, len(w)))
-                    ssp_lums    = np.zeros((ntheta, len(w)))
-                ws[i,:] = w 
-                ssp_lums[i,:] = ssp_lum
+            w, ssp_lum = self.ssp.get_spectrum(tage=tage, peraa=True) 
 
         # mass normalization
-        lum_ssp = theta['mass'][:,None] * ssp_lums
+        lum_ssp = theta['mass'] * ssp_lum
 
         # redshift the spectra
-        w_z = ws * (1. + zred)[:,None] 
+        w_z = w * (1. + zred)
         d_lum = self.cosmo.luminosity_distance(zred).to(U.cm).value # luminosity distance in cm
-        flux_z = lum_ssp * UT.Lsun() / (4. * np.pi * d_lum[:,None]**2) / (1. + zred)[:,None] * 1e17 # 10^-17 ergs/s/cm^2/Ang
+        flux_z = lum_ssp * UT.Lsun() / (4. * np.pi * d_lum**2) / (1. + zred) * 1e17 # 10^-17 ergs/s/cm^2/Ang
 
         if wavelength is None: 
             outwave = w_z
             outspec = flux_z
         else: 
-            outwave = np.atleast_2d(wavelength)
-            outspec = np.zeros((flux_z.shape[0], outwave.shape[1]))
-            for i, _w, _f in zip(range(outwave.shape[0]), w_z, flux_z): 
-                outspec[i,:] = np.interp(outwave[i,:], _w, _f, left=0, right=0)
+            outwave = wavelength
+            outspec = np.zeros(outwave.shape)
+            outspec = np.interp(outwave, w_z, flux_z, left=0, right=0)
 
         return outwave, outspec 
    
@@ -545,9 +523,49 @@ class iFSPS(Fitter):
 
         w, spec = self.model(tt_arr, zred=zred) # get spectra  
     
-        maggies = filters.get_ab_maggies(spec * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom, wavelength=w.flatten()*U.Angstrom) # maggies 
+        maggies = filters.get_ab_maggies(np.atleast_2d(spec) * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom, 
+            wavelength=w.flatten()*U.Angstrom) # maggies 
+
         return np.array(list(maggies[0])) * 1e9
+   
+    def _model_spectrophoto(self, tt_arr, zred=0.1, wavelength=None, filters=None, bands=None): 
+        ''' very simple wrapper for a fsps model with minimal overhead. Generates photometry 
+        in specified photometric bands 
+
+        :param tt_arr:
+            array of free parameters
+
+        :param zred:
+            redshift (default: 0.1) 
+
+        :param filters:             
+            speclite.filters filter object. Either filters or bands has to be specified. (default: None) 
+
+        :param bands: (optional) 
+            photometric bands to generate the photometry. Either bands or filters has to be 
+            specified. (default: None)  
+
+        :return outphoto:
+            array of photometric fluxes in nanomaggies in the specified bands 
+        '''
+        if filters is None: 
+            if bands is not None: 
+                bands_list = self._get_bands(bands) # get list of bands 
+                filters = specFilter.load_filters(*tuple(bands_list))
+            else: 
+                raise ValueError("specify either filters or bands") 
+
+        w, spec = self.model(tt_arr, zred=zred) # get spectra  
+
+        if wavelength is not None: 
+            outspec = np.zeros(wavelength.shape)
+            outspec = np.interp(wavelength, w, spec, left=0, right=0)
     
+        maggies = filters.get_ab_maggies(np.atleast_2d(spec) * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom,
+            wavelength=w.flatten()*U.Angstrom) # maggies 
+
+        return outspec, np.array(list(maggies[0])) * 1e9
+
     def _SFR_MCMC(self, mcmc_chain, zred, dt=1.): 
         ''' given mcmc_chain of parameters calculate the -2-sig, -1-sig, median, 1 sig, 2 sig SFR values 
         '''
@@ -667,29 +685,21 @@ class iFSPS(Fitter):
 
         :param tt_arr: 
             array of free parameters. last element is fspectrophoto factor 
-
         :param wave_obs:
             wavelength of 'observations'
-
         :param flux_obs: 
             flux of the observed spectra
-        
         :param flux_ivar_obs :
             inverse variance of of the observed spectra
-
         :param photo_obs: 
             flux of the observed photometry maggies  
-
         :param photo_ivar_obs :
             inverse variance of of the observed photometry  
-
         :param zred:
             redshift of the 'observations'
-
         :param mask: (optional) 
             A boolean array that specifies what part of the spectra to mask 
             out. (default: None) 
-
         :param prior: (optional) 
             callable prior object 
         '''
@@ -697,10 +707,30 @@ class iFSPS(Fitter):
         if not np.isfinite(lp): 
             return -np.inf
 
-        chi_tot = self._Chi2(tt_arr[:-1], wave_obs, flux_obs, flux_ivar_obs, zred, mask=mask, f_fiber=tt_arr[-1]) + \
-                self._Chi2_photo(tt_arr[:-1], photo_obs, photo_ivar_obs, zred, filters=filters, bands=bands)
+        chi_tot = self._Chi2_spectrophoto(tt_arr[:-1], wave_obs, flux_obs,
+                flux_ivar_obs, photo_obs, photo_ivar_obs, zred, mask=mask,
+                f_fiber=tt_arr[-1], filters=filters, bands=bands) 
 
-        return lp - 0.5 * chi_tot 
+        return lp - 0.5 * chi_tot
+
+    def _Chi2_spectrophoto(self, tt_arr, wave_obs, flux_obs, flux_ivar_obs, photo_obs,
+            photo_ivar_obs, zred, mask=None, f_fiber=1., filters=None,
+            bands=None): 
+        ''' calculated the chi-squared between the data and model spectra. 
+        '''
+        # model(theta) 
+        flux, photo = self._model_spectrophoto(tt_arr, zred=zred,
+                wavelength=wave_obs, filters=filters, bands=bands) 
+        # data - model(theta) with masking 
+        dflux = (f_fiber * flux[~mask] - flux_obs[~mask]) 
+        # calculate chi-squared for spectra
+        _chi2_spec = np.sum(dflux**2 * flux_ivar_obs[~mask]) 
+        # data - model(theta) for photometry  
+        dphoto = (photo - photo_obs) 
+        # calculate chi-squared for photometry 
+        _chi2_photo = np.sum(dphoto**2 * photo_ivar_obs) 
+
+        return _chi2_spec + _chi2_photo 
 
     def _lnPost(self, tt_arr, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, prior=None): 
         ''' calculate the log posterior 
@@ -738,7 +768,7 @@ class iFSPS(Fitter):
         # model(theta) 
         _, flux = self.model(tt_arr, zred=zred, wavelength=wave_obs) 
         # data - model(theta) with masking 
-        dflux = (f_fiber * flux[:,~mask] - flux_obs[~mask]) 
+        dflux = (f_fiber * flux[~mask] - flux_obs[~mask]) 
         # calculate chi-squared
         _chi2 = np.sum(dflux**2 * flux_ivar_obs[~mask]) 
         return _chi2
@@ -751,10 +781,8 @@ class iFSPS(Fitter):
 
         :param tt_arr: 
             array of free parameters
-
         :param flux_obs: 
             flux of the observed photometry maggies  
-
         :param flux_ivar_obs :
             inverse variance of of the observed spectra
 
@@ -814,25 +842,24 @@ class iFSPS(Fitter):
         return ssp 
     
     def _theta(self, tt_arr): 
-        ''' Given some theta array return dictionary of parameter values. 
+        ''' Given some theta 1D array return dictionary of parameter values. 
         This is synchronized with self.model_name
         '''
         theta = {} 
-        tt_arr = np.atleast_2d(tt_arr) 
         if self.model_name in ['vanilla', 'vanilla_kroupa']: 
             # tt_arr columns: mass, Z, dust2, tau
-            theta['mass']   = 10**tt_arr[:,0]
-            theta['Z']      = 10**tt_arr[:,1]
-            theta['dust2']  = tt_arr[:,2]
-            theta['tau']    = tt_arr[:,3]
+            theta['mass']   = 10**tt_arr[0]
+            theta['Z']      = 10**tt_arr[1]
+            theta['dust2']  = tt_arr[2]
+            theta['tau']    = tt_arr[3]
         elif self.model_name == 'vanilla_complexdust': 
             # tt_arr columns: mass, Z, dust1, dust2, dust_index, tau
-            theta['mass']   = 10**tt_arr[:,0]
-            theta['Z']      = 10**tt_arr[:,1]
-            theta['dust1']  = tt_arr[:,2]
-            theta['dust2']  = tt_arr[:,3]
-            theta['dust_index']  = tt_arr[:,4]
-            theta['tau']    = tt_arr[:,5]
+            theta['mass']   = 10**tt_arr[0]
+            theta['Z']      = 10**tt_arr[1]
+            theta['dust1']  = tt_arr[2]
+            theta['dust2']  = tt_arr[3]
+            theta['dust_index']  = tt_arr[4]
+            theta['tau']    = tt_arr[5]
         else: 
             raise NotImplementedError
         return theta
@@ -884,6 +911,16 @@ class iSpeculator(iFSPS):
         self.cosmo = cosmo # cosmology  
         self._load_model_params() # load emulator parameters
         self._load_NMF_bases() # read SFH and ZH basis 
+    
+        # interpolators for speeding up cosmological calculations 
+        _z = np.linspace(0, 0.4, 100)
+        _tage = self.cosmo.age(_z).value
+        _d_lum_cm = self.cosmo.luminosity_distance(_z).to(U.cm).value # luminosity distance in cm
+
+        self._tage_z_interp = \
+                Interp.InterpolatedUnivariateSpline(_z, _tage, k=3)
+        self._d_lum_z_interp = \
+                Interp.InterpolatedUnivariateSpline(_z, _d_lum_cm, k=3)
 
     def MCMC_spectrophoto(self, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, prior=None, 
             mask=None, bands='desi',
@@ -1006,8 +1043,8 @@ class iSpeculator(iFSPS):
                 wavelength=wave_obs, dont_transform=True) 
         photo_model = self.model_photo(med[:-1], zred=zred, filters=filters,
                 dont_transform=True) 
-        output['wavelength_model'] = w_model[0]
-        output['flux_spec_model'] = med[-1] * flux_model[0]
+        output['wavelength_model'] = w_model
+        output['flux_spec_model'] = med[-1] * flux_model
         output['flux_photo_model'] = photo_model
        
         output['wavelength_data'] = wave_obs
@@ -1120,8 +1157,8 @@ class iSpeculator(iFSPS):
         output['theta_2sig_minus'] = lowlow
     
         w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs, dont_transform=True)
-        output['wavelength_model'] = w_model[0]
-        output['flux_spec_model'] = flux_model[0]
+        output['wavelength_model'] = w_model
+        output['flux_spec_model'] = flux_model
        
         output['wavelength_data'] = wave_obs
         output['flux_spec_data'] = flux_obs
@@ -1270,45 +1307,34 @@ class iSpeculator(iFSPS):
         outspec : array 
             spectra generated from FSPS model(theta) in units of 1e-17 * erg/s/cm^2/Angstrom
         '''
-        zred    = np.atleast_1d(zred)
-        tage    = self.cosmo.age(zred).value # age of universe at zred 
-        # logmstar, b1SFH, b2SFH, b3SFH, b4SFH, g1ZH, g2ZH, tau
-        zz_arr  = np.atleast_2d(zz_arr)
-        ntheta  = zz_arr.shape[0] 
+        tage    = self._tage_z_interp(zred)
 
         # logmstar, b1SFH, b2SFH, b3SFH, b4SFH, g1ZH, g2ZH, tau, tage
-        tt_arr = np.zeros((ntheta, zz_arr.shape[1]+1)) 
-        tt_arr[:,:zz_arr.shape[1]] = zz_arr
-        tt_arr[:,-1] = tage
+        ntheta = zz_arr.shape[0]
+        tt_arr = np.zeros(ntheta+1) 
+        tt_arr[:ntheta] = zz_arr
+        tt_arr[-1] = tage
         # transform back to SFH basis coefficients 
         if not dont_transform: 
-            tt_arr[:,1:5] = self._transform_to_SFH_basis(zz_arr[:,1:5]) 
+            tt_arr[1:5] = self._transform_to_SFH_basis(zz_arr[1:5]) 
 
-        for i in range(ntheta):
-            # emulator input: b1SFH, b2SFH, b3SFH, b4SFH, g1ZH, g2ZH, tau, tage
-            ssp_lum = self._emulator(tt_arr[i,1:]) 
-
-            if i == 0: 
-                ssp_lums = np.zeros((ntheta, len(self._emu_wave)))
-            ssp_lums[i,:] = ssp_lum
+        # emulator input: b1SFH, b2SFH, b3SFH, b4SFH, g1ZH, g2ZH, tau, tage
+        ssp_lum = self._emulator(tt_arr[1:]) 
 
         # mass normalization
-        lum_ssp = (10**tt_arr[:,0])[:,None] * ssp_lums
+        lum_ssp = (10**tt_arr[0]) * ssp_lum
 
         # redshift the spectra
-        w_z = self._emu_wave * (1. + zred)[:,None] 
-        d_lum = self.cosmo.luminosity_distance(zred).to(U.cm).value # luminosity distance in cm
-        flux_z = lum_ssp * UT.Lsun() / (4. * np.pi * d_lum[:,None]**2) / (1. + zred)[:,None] * 1e17 # 10^-17 ergs/s/cm^2/Ang
+        w_z = self._emu_wave * (1. + zred)
+        d_lum = self._d_lum_z_interp(zred) 
+        flux_z = lum_ssp * UT.Lsun() / (4. * np.pi * d_lum**2) / (1. + zred) * 1e17 # 10^-17 ergs/s/cm^2/Ang
 
         if wavelength is None: 
             outwave = w_z
             outspec = flux_z
         else: 
-            outwave = np.atleast_2d(wavelength)
-            outspec = np.zeros((flux_z.shape[0], outwave.shape[1]))
-            for i, _w, _f in zip(range(outwave.shape[0]), w_z, flux_z): 
-                outspec[i,:] = np.interp(outwave[i,:], _w, _f, left=0, right=0)
-
+            outwave = wavelength
+            outspec = np.interp(outwave, w_z, flux_z, left=0, right=0)
         return outwave, outspec 
     
     def model_photo(self, zz_arr, zred=0.1, filters=None, bands=None, dont_transform=False): 
@@ -1340,8 +1366,47 @@ class iSpeculator(iFSPS):
 
         w, spec = self.model(zz_arr, zred=zred, dont_transform=dont_transform) # get SED  
     
-        maggies = filters.get_ab_maggies(spec * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom, wavelength=w.flatten()*U.Angstrom) # maggies 
+        maggies = filters.get_ab_maggies(np.atleast_2d(spec) * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom, wavelength=w*U.Angstrom) # maggies 
         return np.array(list(maggies[0])) * 1e9
+    
+    def _model_spectrophoto(self, tt_arr, zred=0.1, wavelength=None,
+            filters=None, bands=None, dont_transform=False): 
+        ''' very simple wrapper for a fsps model with minimal overhead. Generates photometry 
+        in specified photometric bands 
+
+        :param tt_arr:
+            array of free parameters
+
+        :param zred:
+            redshift (default: 0.1) 
+
+        :param filters:             
+            speclite.filters filter object. Either filters or bands has to be specified. (default: None) 
+
+        :param bands: (optional) 
+            photometric bands to generate the photometry. Either bands or filters has to be 
+            specified. (default: None)  
+
+        :return outphoto:
+            array of photometric fluxes in nanomaggies in the specified bands 
+        '''
+        if filters is None: 
+            if bands is not None: 
+                bands_list = self._get_bands(bands) # get list of bands 
+                filters = specFilter.load_filters(*tuple(bands_list))
+            else: 
+                raise ValueError("specify either filters or bands") 
+
+        w, spec = self.model(tt_arr, zred=zred, dont_transform=dont_transform) # get spectra  
+
+        if wavelength is not None: 
+            outspec = np.zeros(wavelength.shape)
+            outspec = np.interp(wavelength, w, spec, left=0, right=0)
+    
+        maggies = filters.get_ab_maggies(np.atleast_2d(spec) * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom,
+            wavelength=w.flatten()*U.Angstrom) # maggies 
+
+        return outspec, np.array(list(maggies[0])) * 1e9
     
     def get_SFR(self, tt, zred, dt=1.):
         ''' given theta calculate SFR averaged over dt Gyr. 

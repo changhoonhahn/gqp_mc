@@ -631,6 +631,8 @@ def fit_iSpeculator_spectra(igal, sim='lgal', noise='bgs0', nwalkers=100,
             meta['redshift'][igal]) 
     bestfit['prior_range'] = np.concatenate([bestfit['prior_range'],
         np.array([[-4., 4]])], axis=0) 
+
+    sub = fig.add_subplot(121)
     truths += [np.log10(meta['sfr_100myr'][igal])]
     labels += [r'$\log {\rm SFR}$'] 
     
@@ -688,6 +690,7 @@ def fit_iSpeculator_photometry(igal, sim='lgal', noise='legacy', nwalkers=100,
             r'$\gamma_2^{\rm ZH}$', r'$\tau$'] 
     
     print('--- input ---') 
+    print(meta['redshift'].min()) 
     print('z = %f' % meta['redshift'][igal])
     print('log M* total = %f' % meta['logM_total'][igal])
     

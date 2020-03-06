@@ -557,7 +557,7 @@ def MP_fit_iFSPS(spec_or_photo, igals, sim='lgal', noise='none',
     return None 
 
 # --- iSpeculator --- 
-def fit_iSpeculator_spectra(igal, sim='lgal', noise='bgs0', nwalkers=100,
+def fit_iSpeculator_spectra(igal, sim='lgal', noise='bgs0', model='emulator', nwalkers=100,
         burnin=100, niter=1000, overwrite=False, justplot=False):
     ''' Fit Lgal spectra. `noise` specifies whether to fit spectra without noise or 
     with BGS-like noise. Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
@@ -572,6 +572,14 @@ def fit_iSpeculator_spectra(igal, sim='lgal', noise='bgs0', nwalkers=100,
     '''
     # read noiseless Lgal spectra of the spectral_challenge mocks 
     specs, meta = Data.Spectra(sim=sim, noise=noise, lib='bc03', sample='mini_mocha') 
+    
+    if meta['redshift'][igal] < 0.1: 
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        return None 
 
     model       = 'vanilla'
     w_obs       = specs['wave']
@@ -592,7 +600,7 @@ def fit_iSpeculator_spectra(igal, sim='lgal', noise='bgs0', nwalkers=100,
     f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', 'ispeculator', 
             '%s.spec.noise_%s.%s.%i.hdf5' % (sim, noise, model, igal))
 
-    ispeculator = Fitters.iSpeculator() 
+    ispeculator = Fitters.iSpeculator(model_name=model) 
     if not justplot: 
         if os.path.isfile(f_bf): 
             if not overwrite: 
@@ -660,8 +668,9 @@ def fit_iSpeculator_spectra(igal, sim='lgal', noise='bgs0', nwalkers=100,
     return None 
 
 
-def fit_iSpeculator_photometry(igal, sim='lgal', noise='legacy', nwalkers=100,
-        burnin=100, niter=1000, overwrite=False, justplot=False): 
+def fit_iSpeculator_photometry(igal, sim='lgal', noise='legacy',
+        model='emulator', nwalkers=100, burnin=100, niter=1000,
+        overwrite=False, justplot=False): 
     ''' Fit simulated photometry. `noise` specifies whether to fit spectra without noise or 
     with legacy-like noise. `dust` specifies whether to if spectra w/ dust or not. 
     Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
@@ -680,6 +689,14 @@ def fit_iSpeculator_photometry(igal, sim='lgal', noise='legacy', nwalkers=100,
     # read Lgal photometry of the mini_mocha mocks 
     photo, meta = Data.Photometry(sim='lgal', noise=noise, lib='bc03', sample='mini_mocha') 
     
+    if meta['redshift'][igal] < 0.1: 
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        return None 
+    
     model       = 'vanilla'
     photo_obs   = photo['flux'][igal,:3]
     ivar_obs    = photo['ivar'][igal,:3]
@@ -697,7 +714,7 @@ def fit_iSpeculator_photometry(igal, sim='lgal', noise='legacy', nwalkers=100,
     f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', 'ispeculator', 
             '%s.photo.noise_%s.%s.%i.hdf5' % (sim, noise, model, igal))
     
-    ispeculator = Fitters.iSpeculator() 
+    ispeculator = Fitters.iSpeculator(model_name=model) 
     if not justplot: 
         if os.path.isfile(f_bf): 
             if not overwrite: 
@@ -764,7 +781,8 @@ def fit_iSpeculator_photometry(igal, sim='lgal', noise='legacy', nwalkers=100,
 
 
 def fit_iSpeculator_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
-        nwalkers=100, burnin=100, niter=1000, overwrite=False, justplot=False):
+        model='emulator', nwalkers=100, burnin=100, niter=1000,
+        overwrite=False, justplot=False):
     ''' Fit Lgal spectra. `noise` specifies whether to fit spectra without noise or 
     with BGS-like noise. Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
 
@@ -782,6 +800,14 @@ def fit_iSpeculator_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
     specs, meta = Data.Spectra(sim='lgal', noise=noise_spec, lib='bc03', sample='mini_mocha') 
     # read Lgal photometry of the mini_mocha mocks 
     photo, _ = Data.Photometry(sim='lgal', noise=noise_photo, lib='bc03', sample='mini_mocha') 
+    
+    if meta['redshift'][igal] < 0.1: 
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        return None 
 
     w_obs       = specs['wave']
     flux_obs    = specs['flux'][igal]
@@ -809,7 +835,7 @@ def fit_iSpeculator_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
     f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', 'ispeculator', 
             '%s.specphoto.noise_%s.%s.%i.hdf5' % (sim, noise, model, igal))
 
-    ispeculator = Fitters.iSpeculator() 
+    ispeculator = Fitters.iSpeculator(model_name=model) 
 
     if not justplot: 
         if os.path.isfile(f_bf): 
@@ -890,7 +916,7 @@ def fit_iSpeculator_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
     return None 
 
 
-def MP_fit_iSpeculator(spec_or_photo, igals, noise='none', nthreads=1, nwalkers=100, burnin=100, niter=1000, overwrite=False, justplot=False): 
+def MP_fit_iSpeculator(spec_or_photo, igals, noise='none', model='emulator', nthreads=1, nwalkers=100, burnin=100, niter=1000, overwrite=False, justplot=False): 
     ''' multiprocessing wrapepr for fit_spectra and fit_photometry. This does *not* parallelize 
     the MCMC sampling of individual fits but rather runs multiple fits simultaneously. 
     
@@ -916,6 +942,7 @@ def MP_fit_iSpeculator(spec_or_photo, igals, noise='none', nthreads=1, nwalkers=
 
     kwargs = {
             'noise': noise, 
+            'model': model,
             'nwalkers': nwalkers,
             'burnin': burnin,
             'niter': niter, 
@@ -1050,7 +1077,7 @@ if __name__=="__main__":
         print('iSpeculator fitting %s of mini_mocha galaxies %i to %i' % (spec_or_photo, igal0, igal1))
         print('using %i threads' % nthreads) 
         igals = range(igal0, igal1+1) 
-        MP_fit_iSpeculator(spec_or_photo, igals, noise=noise, nthreads=nthreads, 
+        MP_fit_iSpeculator(spec_or_photo, igals, noise=noise, model=model, nthreads=nthreads, 
                 nwalkers=nwalkers, burnin=burnin, niter=niter, overwrite=overwrite, justplot=justplot)
     elif method == 'pfirefly': 
         raise NotImplementedError('need to update prior set up') 

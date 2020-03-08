@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --qos=regular
-#SBATCH --time=05:00:00
+#SBATCH --time=03:00:00
 #SBATCH --constraint=haswell
 #SBATCH -N 1
 #SBATCH -J MM_iSpec 
@@ -14,11 +14,12 @@ module load python
 source activate gqp
 source ~/.bashrc.ext 
 
-sim=lgal
+sim=tng
 i0=0
 i1=97
 n_cpu=32
 
+export OMP_NUM_THREADS=1
 
 ######################################################
 # ifsps  
@@ -37,8 +38,9 @@ n_cpu=32
 #    spec $sim $i0 $i1 bgs0 ispeculator NA $n_cpu 20 100 1000 True 
 #python -W ignore /global/homes/c/chahah/projects/gqp_mc/run/mini_mocha.py \
 #    photo $sim $i0 $i1 legacy ispeculator NA $n_cpu 20 100 1000 True
+#srun -n 1 -c $n_cpu\
 python -W ignore /global/homes/c/chahah/projects/gqp_mc/run/mini_mocha.py \
-    specphoto $sim $i0 $i1 bgs0_legacy ispeculator NA $n_cpu 40 200 2000 True
+    specphoto $sim $i0 $i1 bgs0_legacy ispeculator emulator $n_cpu 40 200 4000 True
 
 now=$(date +"%T")
 echo "end time ... $now"

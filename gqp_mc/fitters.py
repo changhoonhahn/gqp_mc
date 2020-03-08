@@ -560,9 +560,13 @@ class iFSPS(Fitter):
         if wavelength is not None: 
             outspec = np.zeros(wavelength.shape)
             outspec = np.interp(wavelength, w, spec, left=0, right=0)
-    
-        maggies = filters.get_ab_maggies(np.atleast_2d(spec) * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom,
-            wavelength=w.flatten()*U.Angstrom) # maggies 
+        
+        try: 
+            maggies = filters.get_ab_maggies(np.atleast_2d(spec) * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom,
+                wavelength=w.flatten()*U.Angstrom) # maggies 
+        except ValueError: 
+            print('redshift = %f' % zred)
+            raise ValueError
 
         return outspec, np.array(list(maggies[0])) * 1e9
 

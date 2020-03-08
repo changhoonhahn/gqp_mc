@@ -801,7 +801,7 @@ def fit_iSpeculator_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
     # read Lgal photometry of the mini_mocha mocks 
     photo, _ = Data.Photometry(sim='lgal', noise=noise_photo, lib='bc03', sample='mini_mocha') 
     
-    if meta['redshift'][igal] < 0.1: 
+    if meta['redshift'][igal] < 0.101: 
         # current Speculator wavelength doesn't extend far enough
         # current Speculator wavelength doesn't extend far enough
         # current Speculator wavelength doesn't extend far enough

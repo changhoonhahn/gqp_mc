@@ -576,14 +576,14 @@ class iFSPS(Fitter):
         avg_sfr, notoldenough  = self.get_SFR(mcmc_chain, zred, dt=dt)
         return np.percentile(avg_sfr, [2.5, 16, 50, 84, 97.5])
 
-    def add_logSFR_to_chain(self, mcmc_chain, zred, dt=1.): 
+    def add_logSFR_to_chain(self, mcmc_chain, zred, dt=0.1): 
         ''' calculate the logSFR for the parameters in the MC chain and add it
         to the chain. 
         '''
         logsfr_chain = np.log10(
                 np.array([self.get_SFR(tt, zred, dt=0.1) 
                     for tt in mcmc_chain]))
-        mcmc_chain = np.concatenate([mcmc_chain, np.atleast_2d(logsfr_chain).T], axis=1) 
+        mcmc_chain = np.concatenate([mcmc_chain, np.atleast_2d(logsfr_chain)], axis=1) 
         return mcmc_chain 
     
     def get_SFR(self, tt, zred, dt=1.):

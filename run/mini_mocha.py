@@ -140,6 +140,424 @@ def validate_sample(sim):
     
     return None 
 
+
+# --- iSpeculator --- 
+def fit_iSpeculator_spectra(igal, sim='lgal', noise='bgs0', model='emulator', nwalkers=100,
+        burnin=100, niter=1000, overwrite=False, justplot=False):
+    ''' Fit Lgal spectra. `noise` specifies whether to fit spectra without noise or 
+    with BGS-like noise. Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
+
+    :param igal: 
+        index of Lgal galaxy within the spectral_challenge 
+    :param noise: 
+        If 'bgs1'...'bgs8', fit BGS-like spectra. (default: 'none') 
+    :param justplot: 
+        If True, skip the fitting and plot the best-fit. This is mainly implemented 
+        because I'm having issues plotting in NERSC. (default: False) 
+    '''
+    # read noiseless Lgal spectra of the spectral_challenge mocks 
+    specs, meta = Data.Spectra(sim=sim, noise=noise, lib='bc03', sample='mini_mocha') 
+    
+    if meta['redshift'][igal] < 0.1: 
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        return None 
+
+    model       = 'vanilla'
+    w_obs       = specs['wave']
+    flux_obs    = specs['flux'][igal]
+    ivar_obs    = specs['ivar'][igal]
+    truths      = [meta['logM_fiber'][igal], None, None, None, None, None,
+            None, None] 
+    labels      = [r'$\log M_*^{\rm fib}$', r'$\beta_1^{\rm SFH}$',
+            r'$\beta_2^{\rm SFH}$', r'$\beta_3^{\rm SFH}$', 
+            r'$\beta_4^{\rm SFH}$', r'$\gamma_1^{\rm ZH}$', 
+            r'$\gamma_2^{\rm ZH}$', r'$\tau$']
+
+    print('--- input ---') 
+    print('z = %f' % meta['redshift'][igal])
+    print('log M* total = %f' % meta['logM_total'][igal])
+    print('log M* fiber = %f' % meta['logM_fiber'][igal])
+
+    f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', 'ispeculator', 
+            '%s.spec.noise_%s.%s.%i.hdf5' % (sim, noise, model, igal))
+
+    ispeculator = Fitters.iSpeculator(model_name=model) 
+    if not justplot: 
+        if os.path.isfile(f_bf): 
+            if not overwrite: 
+                print("** CAUTION: %s already exists **" % os.path.basename(f_bf)) 
+        # initiating fit
+        
+        prior = ispeculator._default_prior(f_fiber_prior=None)
+
+        bestfit = ispeculator.MCMC_spec(
+                w_obs, 
+                flux_obs, 
+                ivar_obs, 
+                meta['redshift'][igal], 
+                mask='emline', 
+                prior=prior, 
+                nwalkers=nwalkers, 
+                burnin=burnin, 
+                niter=niter, 
+                writeout=f_bf,
+                silent=False)
+    else: 
+        # read in best-fit file with mcmc chain
+        fbestfit = h5py.File(f_bf, 'r')  
+        bestfit = {} 
+        for k in fbestfit.keys(): 
+            bestfit[k] = fbestfit[k][...]
+
+    print('--- bestfit ---') 
+    print('written to %s' % f_bf) 
+    print('log M* = %f' % bestfit['theta_med'][0])
+    print('log Z = %f' % bestfit['theta_med'][1]) 
+    print('---------------') 
+
+    # calculate sfr_100myr for MC chain add it in 
+    bestfit['mcmc_chain'] = ispeculator.add_logSFR_to_chain(bestfit['mcmc_chain'],
+            meta['redshift'][igal]) 
+    bestfit['prior_range'] = np.concatenate([bestfit['prior_range'],
+        np.array([[-4., 4]])], axis=0) 
+
+    sub = fig.add_subplot(121)
+    truths += [np.log10(meta['sfr_100myr'][igal])]
+    labels += [r'$\log {\rm SFR}$'] 
+    
+    try: 
+        # plotting on nersc never works.
+        if os.environ['NERSC_HOST'] == 'cori': return None 
+    except KeyError: 
+        # corner plot of the posteriors 
+        fig = DFM.corner(bestfit['mcmc_chain'], range=bestfit['prior_range'], quantiles=[0.16, 0.5, 0.84], 
+                levels=[0.68, 0.95], nbin=40, smooth=True, 
+                truths=truths, labels=labels, label_kwargs={'fontsize': 20}) 
+        fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
+        plt.close()
+        
+        fig = plt.figure(figsize=(10,5))
+        sub = fig.add_subplot(111)
+        sub.plot(w_obs, flux_obs, c='k', lw=1, label='data')
+        sub.plot(bestfit['wavelength_model'], bestfit['flux_spec_model'], c='C1',
+                ls='--', lw=1, label='iSpeculator') 
+        sub.legend(loc='upper right', fontsize=15) 
+        sub.set_xlabel('wavelength [$A$]', fontsize=20) 
+        sub.set_xlim(3600., 9800.)
+        fig.savefig(f_bf.replace('.hdf5', '.bestfit.png'), bbox_inches='tight') 
+        plt.close()
+    return None 
+
+
+def fit_iSpeculator_photometry(igal, sim='lgal', noise='legacy',
+        model='emulator', nwalkers=100, burnin=100, niter=1000,
+        overwrite=False, justplot=False): 
+    ''' Fit simulated photometry. `noise` specifies whether to fit spectra without noise or 
+    with legacy-like noise. `dust` specifies whether to if spectra w/ dust or not. 
+    Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
+
+    :param igal: 
+        index of Lgal galaxy within the spectral_challenge 
+
+    :param noise: 
+        If 'none', fit noiseless photometry. 
+        If 'legacy', fit Legacy-like photometry. (default: 'none') 
+
+    :param justplot: 
+        If True, skip the fitting and plot the best-fit. This is mainly implemented 
+        because I'm having issues plotting in NERSC. (default: False) 
+    '''
+    # read Lgal photometry of the mini_mocha mocks 
+    photo, meta = Data.Photometry(sim='lgal', noise=noise, lib='bc03', sample='mini_mocha') 
+    
+    if meta['redshift'][igal] < 0.1: 
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        return None 
+    
+    model       = 'vanilla'
+    photo_obs   = photo['flux'][igal,:3]
+    ivar_obs    = photo['ivar'][igal,:3]
+    truths      = [meta['logM_total'][igal], None, None, None, None, None, None, None]
+    labels      = ['$\log M_*$', r'$\beta_1^{\rm SFH}$', 
+            r'$\beta_2^{\rm SFH}$', r'$\beta_3^{\rm SFH}$', 
+            r'$\beta_4^{\rm SFH}$', r'$\gamma_1^{\rm ZH}$', 
+            r'$\gamma_2^{\rm ZH}$', r'$\tau$'] 
+    
+    print('--- input ---') 
+    print(meta['redshift'].min()) 
+    print('z = %f' % meta['redshift'][igal])
+    print('log M* total = %f' % meta['logM_total'][igal])
+    
+    f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', 'ispeculator', 
+            '%s.photo.noise_%s.%s.%i.hdf5' % (sim, noise, model, igal))
+    
+    ispeculator = Fitters.iSpeculator(model_name=model) 
+    if not justplot: 
+        if os.path.isfile(f_bf): 
+            if not overwrite: 
+                print("** CAUTION: %s already exists **" % os.path.basename(f_bf)) 
+                return None 
+        # initiate fitting
+
+        prior = ispeculator._default_prior(f_fiber_prior=None)
+
+        bestfit = ispeculator.MCMC_photo(
+                photo_obs, 
+                ivar_obs,
+                meta['redshift'][igal], 
+                bands='desi', 
+                prior=prior, 
+                nwalkers=nwalkers, 
+                burnin=burnin, 
+                niter=niter, 
+                writeout=f_bf,
+                silent=False)
+    else: 
+        # read in best-fit file with mcmc chain
+        fbestfit = h5py.File(f_bf, 'r')  
+        bestfit = {} 
+        for k in fbestfit.keys(): 
+            bestfit[k] = fbestfit[k][...]
+    print('--- bestfit ---') 
+    print('written to %s ---' % f_bf)
+    print('log M* = %f' % bestfit['theta_med'][0])
+    print('log Z = %f' % bestfit['theta_med'][1]) 
+    print('---------------') 
+    
+    # calculate sfr_100myr for MC chain add it in 
+    bestfit['mcmc_chain'] = ispeculator.add_logSFR_to_chain(bestfit['mcmc_chain'],
+            meta['redshift'][igal]) 
+    bestfit['prior_range'] = np.concatenate([bestfit['prior_range'],
+        np.array([[-4., 4]])], axis=0) 
+    truths += [np.log10(meta['sfr_100myr'][igal])]
+    labels += [r'$\log {\rm SFR}$'] 
+    
+    try: 
+        # plotting on nersc never works.
+        if os.environ['NERSC_HOST'] == 'cori': return None 
+    except KeyError: 
+        fig = DFM.corner(bestfit['mcmc_chain'], range=bestfit['prior_range'], quantiles=[0.16, 0.5, 0.84], 
+                levels=[0.68, 0.95], nbin=40, smooth=True, 
+                truths=truths, labels=labels, label_kwargs={'fontsize': 20}) 
+        fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
+        plt.close() 
+        
+        fig = plt.figure(figsize=(5,3))
+        sub = fig.add_subplot(111)
+        sub.errorbar(np.arange(len(photo_obs)), photo_obs,
+                yerr=ivar_obs**-0.5, fmt='.k', label='data')
+        sub.scatter(np.arange(len(photo_obs)), bestfit['flux_photo_model'], c='C1',
+                label='iSpeculator') 
+        sub.legend(loc='upper left', markerscale=3, handletextpad=0.2, fontsize=15) 
+        sub.set_xticks([0, 1, 2]) 
+        sub.set_xticklabels(['$g$', '$r$', '$z$']) 
+        sub.set_xlim(-0.5, len(photo_obs)-0.5)
+        fig.savefig(f_bf.replace('.hdf5', '.bestfit.png'), bbox_inches='tight') 
+        plt.close()
+    return None 
+
+
+def fit_iSpeculator_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
+        model='emulator', nwalkers=100, burnin=100, niter=1000,
+        overwrite=False, justplot=False):
+    ''' Fit Lgal spectra. `noise` specifies whether to fit spectra without noise or 
+    with BGS-like noise. Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
+
+    :param igal: 
+        index of Lgal galaxy within the spectral_challenge 
+    :param noise: 
+        If 'bgs1'...'bgs8', fit BGS-like spectra. (default: 'none') 
+    :param justplot: 
+        If True, skip the fitting and plot the best-fit. This is mainly implemented 
+        because I'm having issues plotting in NERSC. (default: False) 
+    '''
+    noise_spec = noise.split('_')[0]
+    noise_photo = noise.split('_')[1]
+    # read noiseless Lgal spectra of the spectral_challenge mocks 
+    specs, meta = Data.Spectra(sim='lgal', noise=noise_spec, lib='bc03', sample='mini_mocha') 
+    # read Lgal photometry of the mini_mocha mocks 
+    photo, _ = Data.Photometry(sim='lgal', noise=noise_photo, lib='bc03', sample='mini_mocha') 
+    
+    if meta['redshift'][igal] < 0.101: 
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        # current Speculator wavelength doesn't extend far enough
+        return None 
+
+    w_obs       = specs['wave']
+    flux_obs    = specs['flux'][igal]
+    ivar_obs    = specs['ivar'][igal]
+    photo_obs       = photo['flux'][igal,:3]
+    photo_ivar_obs  = photo['ivar'][igal,:3]
+
+    # get fiber flux factor prior range based on measured fiber flux 
+    f_fiber_true = (photo['fiberflux_r_meas'][igal]/photo['flux_r_true'][igal]) 
+    f_fiber_min = (photo['fiberflux_r_meas'][igal] - 3.*photo['fiberflux_r_ivar'][igal]**-0.5)/photo['flux'][igal,1]
+    f_fiber_max = (photo['fiberflux_r_meas'][igal] + 3.*photo['fiberflux_r_ivar'][igal]**-0.5)/photo['flux'][igal,1]
+    f_fiber_prior = [f_fiber_min, f_fiber_max]
+
+    truths      = [meta['logM_total'][igal], None, None, None, None, None, None, None, f_fiber_true]
+    labels      = ['$\log M_*$', r'$\beta_1^{\rm SFH}$', 
+            r'$\beta_2^{\rm SFH}$', r'$\beta_3^{\rm SFH}$', 
+            r'$\beta_4^{\rm SFH}$', r'$\gamma_1^{\rm ZH}$', 
+            r'$\gamma_2^{\rm ZH}$', r'$\tau$', r'$f_{\rm fiber}$']
+
+    print('--- input ---') 
+    print('z = %f' % meta['redshift'][igal])
+    print('log M* total = %f' % meta['logM_total'][igal])
+    print('log M* fiber = %f' % meta['logM_fiber'][igal])
+
+    f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', 'ispeculator', 
+            '%s.specphoto.noise_%s.%s.%i.hdf5' % (sim, noise, model, igal))
+
+    ispeculator = Fitters.iSpeculator(model_name=model) 
+
+    if justplot or not overwrite: 
+        # read in best-fit file with mcmc chain
+        fbestfit = h5py.File(f_bf, 'r')  
+        bestfit = {} 
+        for k in fbestfit.keys(): 
+            bestfit[k] = fbestfit[k][...]
+        fbestfit.close() 
+    else: 
+        if os.path.isfile(f_bf) and not overwrite: 
+            print("** CAUTION: %s already exists **" % os.path.basename(f_bf)) 
+        # initiating fit
+        prior = ispeculator._default_prior(f_fiber_prior=f_fiber_prior)
+
+        bestfit = ispeculator.MCMC_spectrophoto(
+                w_obs, 
+                flux_obs, 
+                ivar_obs, 
+                photo_obs, 
+                photo_ivar_obs, 
+                meta['redshift'][igal], 
+                mask='emline', 
+                prior=prior, 
+                nwalkers=nwalkers, 
+                burnin=burnin, 
+                niter=niter, 
+                writeout=f_bf,
+                silent=False)
+
+    print('--- bestfit ---') 
+    print('written to %s' % f_bf) 
+    print('log M* total = %f' % bestfit['theta_med'][0])
+    print('log M* fiber = %f' % (bestfit['theta_med'][0] + np.log10(bestfit['theta_med'][-1])))
+    print('---------------') 
+    
+    if bestfit['mcmc_chain'].shape[1] == len(truths): 
+        # calculate sfr_100myr for MC chain add it in 
+        bestfit['mcmc_chain'] = ispeculator.add_logSFR_to_chain(bestfit['mcmc_chain'],
+                meta['redshift'][igal], dt=0.1) 
+        bestfit['prior_range'] = np.concatenate([bestfit['prior_range'],
+            np.array([[-4., 4]])], axis=0) 
+        
+        fbestfit = h5py.File(f_bf, 'w')  
+        for k in bestfit.keys(): 
+            fbestfit[k] = bestfit[k] 
+        fbestfit.close() 
+
+    truths += [np.log10(meta['sfr_100myr'][igal])]
+    labels += [r'$\log {\rm SFR}_{\rm 100 Myr}$'] 
+        
+    try: 
+        # plotting on nersc never works.
+        if os.environ['NERSC_HOST'] == 'cori': return None 
+    except KeyError: 
+        # corner plot of the posteriors 
+        fig = DFM.corner(bestfit['mcmc_chain'], range=bestfit['prior_range'], quantiles=[0.16, 0.5, 0.84], 
+                levels=[0.68, 0.95], nbin=40, smooth=True, 
+                truths=truths, labels=labels, label_kwargs={'fontsize': 20}) 
+        fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
+        plt.close() 
+        
+        fig = plt.figure(figsize=(18,5))
+        gs = mpl.gridspec.GridSpec(1, 2, figure=fig, width_ratios=[1,3], wspace=0.2) 
+        sub = plt.subplot(gs[0]) 
+        sub.errorbar(np.arange(len(photo_obs)), photo_obs,
+                yerr=photo_ivar_obs**-0.5, fmt='.k', label='data')
+        sub.scatter(np.arange(len(photo_obs)), bestfit['flux_photo_model'], c='C1',
+                label='iFSPS') 
+        sub.legend(loc='upper left', markerscale=3, handletextpad=0.2, fontsize=15) 
+        sub.set_xticks([0, 1, 2, 3, 4]) 
+        sub.set_xticklabels(['$g$', '$r$', '$z$', 'W1', 'W2']) 
+        sub.set_xlim(-0.5, len(photo_obs)-0.5)
+
+        sub = plt.subplot(gs[1]) 
+        sub.plot(w_obs, flux_obs, c='k', lw=1, label='data')
+        sub.plot(bestfit['wavelength_model'], bestfit['flux_spec_model'], c='C1',
+                ls='--', lw=1, label='iFSPS') 
+        sub.legend(loc='upper right', fontsize=15) 
+        sub.set_xlabel('wavelength [$A$]', fontsize=20) 
+        sub.set_xlim(3600., 9800.)
+
+        fig.savefig(f_bf.replace('.hdf5', '.bestfit.png'), bbox_inches='tight') 
+        plt.close()
+    return None 
+
+
+def MP_fit_iSpeculator(spec_or_photo, igals, noise='none', model='emulator', nthreads=1, nwalkers=100, burnin=100, niter=1000, overwrite=False, justplot=False): 
+    ''' multiprocessing wrapepr for fit_spectra and fit_photometry. This does *not* parallelize 
+    the MCMC sampling of individual fits but rather runs multiple fits simultaneously. 
+    
+    :param spec_or_photo: 
+        fit spectra or photometry 
+
+    :param igals: 
+        array/list of spectral_challenge galaxy indices
+
+    :param noise: 
+        If 'none', fit noiseless spectra. 
+        If 'bgs1'...'bgs8', fit BGS-like spectra. (default: 'none') 
+
+    :param dust: 
+        If True, fit the spectra w/ dust using a model with dust 
+        If False, fit the spectra w/o dust using a model without dust. 
+        (default: False) 
+
+    :param nthreads: 
+        Number of threads. If nthreads == 1, just runs fit_spectra
+    '''
+    args = igals # galaxy indices 
+
+    kwargs = {
+            'noise': noise, 
+            'model': model,
+            'nwalkers': nwalkers,
+            'burnin': burnin,
+            'niter': niter, 
+            'overwrite': overwrite, 
+            'justplot': justplot
+            }
+    if spec_or_photo == 'spec': 
+        fit_func = fit_iSpeculator_spectra
+    elif spec_or_photo == 'photo': 
+        fit_func = fit_iSpeculator_photometry
+    elif spec_or_photo == 'specphoto': 
+        fit_func = fit_iSpeculator_spectrophotometry
+
+    if nthreads > 1: 
+        pool = Pool(processes=nthreads) 
+        pool.map(partial(fit_func, **kwargs), args)
+        pool.close()
+        pool.terminate()
+        pool.join()
+    else: 
+        # single thread, loop over 
+        for igal in args: fit_func(igal, **kwargs)
+    return None 
+
 # --- iFSPS --- 
 def fit_iFSPS_spectra(igal, sim='lgal', noise='bgs0', model='vanilla',
         nwalkers=100, burnin=100, niter=1000, overwrite=False, justplot=False):
@@ -544,417 +962,6 @@ def MP_fit_iFSPS(spec_or_photo, igals, sim='lgal', noise='none',
         fit_func = fit_iFSPS_photometry
     elif spec_or_photo == 'specphoto': 
         fit_func = fit_iFSPS_spectrophotometry
-
-    if nthreads > 1: 
-        pool = Pool(processes=nthreads) 
-        pool.map(partial(fit_func, **kwargs), args)
-        pool.close()
-        pool.terminate()
-        pool.join()
-    else: 
-        # single thread, loop over 
-        for igal in args: fit_func(igal, **kwargs)
-    return None 
-
-# --- iSpeculator --- 
-def fit_iSpeculator_spectra(igal, sim='lgal', noise='bgs0', model='emulator', nwalkers=100,
-        burnin=100, niter=1000, overwrite=False, justplot=False):
-    ''' Fit Lgal spectra. `noise` specifies whether to fit spectra without noise or 
-    with BGS-like noise. Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
-
-    :param igal: 
-        index of Lgal galaxy within the spectral_challenge 
-    :param noise: 
-        If 'bgs1'...'bgs8', fit BGS-like spectra. (default: 'none') 
-    :param justplot: 
-        If True, skip the fitting and plot the best-fit. This is mainly implemented 
-        because I'm having issues plotting in NERSC. (default: False) 
-    '''
-    # read noiseless Lgal spectra of the spectral_challenge mocks 
-    specs, meta = Data.Spectra(sim=sim, noise=noise, lib='bc03', sample='mini_mocha') 
-    
-    if meta['redshift'][igal] < 0.1: 
-        # current Speculator wavelength doesn't extend far enough
-        # current Speculator wavelength doesn't extend far enough
-        # current Speculator wavelength doesn't extend far enough
-        # current Speculator wavelength doesn't extend far enough
-        # current Speculator wavelength doesn't extend far enough
-        return None 
-
-    model       = 'vanilla'
-    w_obs       = specs['wave']
-    flux_obs    = specs['flux'][igal]
-    ivar_obs    = specs['ivar'][igal]
-    truths      = [meta['logM_fiber'][igal], None, None, None, None, None,
-            None, None] 
-    labels      = [r'$\log M_*^{\rm fib}$', r'$\beta_1^{\rm SFH}$',
-            r'$\beta_2^{\rm SFH}$', r'$\beta_3^{\rm SFH}$', 
-            r'$\beta_4^{\rm SFH}$', r'$\gamma_1^{\rm ZH}$', 
-            r'$\gamma_2^{\rm ZH}$', r'$\tau$']
-
-    print('--- input ---') 
-    print('z = %f' % meta['redshift'][igal])
-    print('log M* total = %f' % meta['logM_total'][igal])
-    print('log M* fiber = %f' % meta['logM_fiber'][igal])
-
-    f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', 'ispeculator', 
-            '%s.spec.noise_%s.%s.%i.hdf5' % (sim, noise, model, igal))
-
-    ispeculator = Fitters.iSpeculator(model_name=model) 
-    if not justplot: 
-        if os.path.isfile(f_bf): 
-            if not overwrite: 
-                print("** CAUTION: %s already exists **" % os.path.basename(f_bf)) 
-        # initiating fit
-        
-        prior = ispeculator._default_prior(f_fiber_prior=None)
-
-        bestfit = ispeculator.MCMC_spec(
-                w_obs, 
-                flux_obs, 
-                ivar_obs, 
-                meta['redshift'][igal], 
-                mask='emline', 
-                prior=prior, 
-                nwalkers=nwalkers, 
-                burnin=burnin, 
-                niter=niter, 
-                writeout=f_bf,
-                silent=False)
-    else: 
-        # read in best-fit file with mcmc chain
-        fbestfit = h5py.File(f_bf, 'r')  
-        bestfit = {} 
-        for k in fbestfit.keys(): 
-            bestfit[k] = fbestfit[k][...]
-
-    print('--- bestfit ---') 
-    print('written to %s' % f_bf) 
-    print('log M* = %f' % bestfit['theta_med'][0])
-    print('log Z = %f' % bestfit['theta_med'][1]) 
-    print('---------------') 
-
-    # calculate sfr_100myr for MC chain add it in 
-    bestfit['mcmc_chain'] = ispeculator.add_logSFR_to_chain(bestfit['mcmc_chain'],
-            meta['redshift'][igal]) 
-    bestfit['prior_range'] = np.concatenate([bestfit['prior_range'],
-        np.array([[-4., 4]])], axis=0) 
-
-    sub = fig.add_subplot(121)
-    truths += [np.log10(meta['sfr_100myr'][igal])]
-    labels += [r'$\log {\rm SFR}$'] 
-    
-    try: 
-        # plotting on nersc never works.
-        if os.environ['NERSC_HOST'] == 'cori': return None 
-    except KeyError: 
-        # corner plot of the posteriors 
-        fig = DFM.corner(bestfit['mcmc_chain'], range=bestfit['prior_range'], quantiles=[0.16, 0.5, 0.84], 
-                levels=[0.68, 0.95], nbin=40, smooth=True, 
-                truths=truths, labels=labels, label_kwargs={'fontsize': 20}) 
-        fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
-        plt.close()
-        
-        fig = plt.figure(figsize=(10,5))
-        sub = fig.add_subplot(111)
-        sub.plot(w_obs, flux_obs, c='k', lw=1, label='data')
-        sub.plot(bestfit['wavelength_model'], bestfit['flux_spec_model'], c='C1',
-                ls='--', lw=1, label='iSpeculator') 
-        sub.legend(loc='upper right', fontsize=15) 
-        sub.set_xlabel('wavelength [$A$]', fontsize=20) 
-        sub.set_xlim(3600., 9800.)
-        fig.savefig(f_bf.replace('.hdf5', '.bestfit.png'), bbox_inches='tight') 
-        plt.close()
-    return None 
-
-
-def fit_iSpeculator_photometry(igal, sim='lgal', noise='legacy',
-        model='emulator', nwalkers=100, burnin=100, niter=1000,
-        overwrite=False, justplot=False): 
-    ''' Fit simulated photometry. `noise` specifies whether to fit spectra without noise or 
-    with legacy-like noise. `dust` specifies whether to if spectra w/ dust or not. 
-    Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
-
-    :param igal: 
-        index of Lgal galaxy within the spectral_challenge 
-
-    :param noise: 
-        If 'none', fit noiseless photometry. 
-        If 'legacy', fit Legacy-like photometry. (default: 'none') 
-
-    :param justplot: 
-        If True, skip the fitting and plot the best-fit. This is mainly implemented 
-        because I'm having issues plotting in NERSC. (default: False) 
-    '''
-    # read Lgal photometry of the mini_mocha mocks 
-    photo, meta = Data.Photometry(sim='lgal', noise=noise, lib='bc03', sample='mini_mocha') 
-    
-    if meta['redshift'][igal] < 0.1: 
-        # current Speculator wavelength doesn't extend far enough
-        # current Speculator wavelength doesn't extend far enough
-        # current Speculator wavelength doesn't extend far enough
-        # current Speculator wavelength doesn't extend far enough
-        # current Speculator wavelength doesn't extend far enough
-        return None 
-    
-    model       = 'vanilla'
-    photo_obs   = photo['flux'][igal,:3]
-    ivar_obs    = photo['ivar'][igal,:3]
-    truths      = [meta['logM_total'][igal], None, None, None, None, None, None, None]
-    labels      = ['$\log M_*$', r'$\beta_1^{\rm SFH}$', 
-            r'$\beta_2^{\rm SFH}$', r'$\beta_3^{\rm SFH}$', 
-            r'$\beta_4^{\rm SFH}$', r'$\gamma_1^{\rm ZH}$', 
-            r'$\gamma_2^{\rm ZH}$', r'$\tau$'] 
-    
-    print('--- input ---') 
-    print(meta['redshift'].min()) 
-    print('z = %f' % meta['redshift'][igal])
-    print('log M* total = %f' % meta['logM_total'][igal])
-    
-    f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', 'ispeculator', 
-            '%s.photo.noise_%s.%s.%i.hdf5' % (sim, noise, model, igal))
-    
-    ispeculator = Fitters.iSpeculator(model_name=model) 
-    if not justplot: 
-        if os.path.isfile(f_bf): 
-            if not overwrite: 
-                print("** CAUTION: %s already exists **" % os.path.basename(f_bf)) 
-                return None 
-        # initiate fitting
-
-        prior = ispeculator._default_prior(f_fiber_prior=None)
-
-        bestfit = ispeculator.MCMC_photo(
-                photo_obs, 
-                ivar_obs,
-                meta['redshift'][igal], 
-                bands='desi', 
-                prior=prior, 
-                nwalkers=nwalkers, 
-                burnin=burnin, 
-                niter=niter, 
-                writeout=f_bf,
-                silent=False)
-    else: 
-        # read in best-fit file with mcmc chain
-        fbestfit = h5py.File(f_bf, 'r')  
-        bestfit = {} 
-        for k in fbestfit.keys(): 
-            bestfit[k] = fbestfit[k][...]
-    print('--- bestfit ---') 
-    print('written to %s ---' % f_bf)
-    print('log M* = %f' % bestfit['theta_med'][0])
-    print('log Z = %f' % bestfit['theta_med'][1]) 
-    print('---------------') 
-    
-    # calculate sfr_100myr for MC chain add it in 
-    bestfit['mcmc_chain'] = ispeculator.add_logSFR_to_chain(bestfit['mcmc_chain'],
-            meta['redshift'][igal]) 
-    bestfit['prior_range'] = np.concatenate([bestfit['prior_range'],
-        np.array([[-4., 4]])], axis=0) 
-    truths += [np.log10(meta['sfr_100myr'][igal])]
-    labels += [r'$\log {\rm SFR}$'] 
-    
-    try: 
-        # plotting on nersc never works.
-        if os.environ['NERSC_HOST'] == 'cori': return None 
-    except KeyError: 
-        fig = DFM.corner(bestfit['mcmc_chain'], range=bestfit['prior_range'], quantiles=[0.16, 0.5, 0.84], 
-                levels=[0.68, 0.95], nbin=40, smooth=True, 
-                truths=truths, labels=labels, label_kwargs={'fontsize': 20}) 
-        fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
-        plt.close() 
-        
-        fig = plt.figure(figsize=(5,3))
-        sub = fig.add_subplot(111)
-        sub.errorbar(np.arange(len(photo_obs)), photo_obs,
-                yerr=ivar_obs**-0.5, fmt='.k', label='data')
-        sub.scatter(np.arange(len(photo_obs)), bestfit['flux_photo_model'], c='C1',
-                label='iSpeculator') 
-        sub.legend(loc='upper left', markerscale=3, handletextpad=0.2, fontsize=15) 
-        sub.set_xticks([0, 1, 2]) 
-        sub.set_xticklabels(['$g$', '$r$', '$z$']) 
-        sub.set_xlim(-0.5, len(photo_obs)-0.5)
-        fig.savefig(f_bf.replace('.hdf5', '.bestfit.png'), bbox_inches='tight') 
-        plt.close()
-    return None 
-
-
-def fit_iSpeculator_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
-        model='emulator', nwalkers=100, burnin=100, niter=1000,
-        overwrite=False, justplot=False):
-    ''' Fit Lgal spectra. `noise` specifies whether to fit spectra without noise or 
-    with BGS-like noise. Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
-
-    :param igal: 
-        index of Lgal galaxy within the spectral_challenge 
-    :param noise: 
-        If 'bgs1'...'bgs8', fit BGS-like spectra. (default: 'none') 
-    :param justplot: 
-        If True, skip the fitting and plot the best-fit. This is mainly implemented 
-        because I'm having issues plotting in NERSC. (default: False) 
-    '''
-    noise_spec = noise.split('_')[0]
-    noise_photo = noise.split('_')[1]
-    # read noiseless Lgal spectra of the spectral_challenge mocks 
-    specs, meta = Data.Spectra(sim='lgal', noise=noise_spec, lib='bc03', sample='mini_mocha') 
-    # read Lgal photometry of the mini_mocha mocks 
-    photo, _ = Data.Photometry(sim='lgal', noise=noise_photo, lib='bc03', sample='mini_mocha') 
-    
-    if meta['redshift'][igal] < 0.101: 
-        # current Speculator wavelength doesn't extend far enough
-        # current Speculator wavelength doesn't extend far enough
-        # current Speculator wavelength doesn't extend far enough
-        # current Speculator wavelength doesn't extend far enough
-        # current Speculator wavelength doesn't extend far enough
-        return None 
-
-    w_obs       = specs['wave']
-    flux_obs    = specs['flux'][igal]
-    ivar_obs    = specs['ivar'][igal]
-    photo_obs       = photo['flux'][igal,:3]
-    photo_ivar_obs  = photo['ivar'][igal,:3]
-
-    # get fiber flux factor prior range based on measured fiber flux 
-    f_fiber_true = (photo['fiberflux_r_meas'][igal]/photo['flux_r_true'][igal]) 
-    f_fiber_min = (photo['fiberflux_r_meas'][igal] - 3.*photo['fiberflux_r_ivar'][igal]**-0.5)/photo['flux'][igal,1]
-    f_fiber_max = (photo['fiberflux_r_meas'][igal] + 3.*photo['fiberflux_r_ivar'][igal]**-0.5)/photo['flux'][igal,1]
-    f_fiber_prior = [f_fiber_min, f_fiber_max]
-
-    truths      = [meta['logM_total'][igal], None, None, None, None, None, None, None, f_fiber_true]
-    labels      = ['$\log M_*$', r'$\beta_1^{\rm SFH}$', 
-            r'$\beta_2^{\rm SFH}$', r'$\beta_3^{\rm SFH}$', 
-            r'$\beta_4^{\rm SFH}$', r'$\gamma_1^{\rm ZH}$', 
-            r'$\gamma_2^{\rm ZH}$', r'$\tau$', r'$f_{\rm fiber}$']
-
-    print('--- input ---') 
-    print('z = %f' % meta['redshift'][igal])
-    print('log M* total = %f' % meta['logM_total'][igal])
-    print('log M* fiber = %f' % meta['logM_fiber'][igal])
-
-    f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', 'ispeculator', 
-            '%s.specphoto.noise_%s.%s.%i.hdf5' % (sim, noise, model, igal))
-
-    ispeculator = Fitters.iSpeculator(model_name=model) 
-
-    if not justplot: 
-        if os.path.isfile(f_bf): 
-            if not overwrite: 
-                print("** CAUTION: %s already exists **" % os.path.basename(f_bf)) 
-        # initiating fit
-
-        prior = ispeculator._default_prior(f_fiber_prior=f_fiber_prior)
-
-        bestfit = ispeculator.MCMC_spectrophoto(
-                w_obs, 
-                flux_obs, 
-                ivar_obs, 
-                photo_obs, 
-                photo_ivar_obs, 
-                meta['redshift'][igal], 
-                mask='emline', 
-                prior=prior, 
-                nwalkers=nwalkers, 
-                burnin=burnin, 
-                niter=niter, 
-                writeout=f_bf,
-                silent=False)
-    else: 
-        # read in best-fit file with mcmc chain
-        fbestfit = h5py.File(f_bf, 'r')  
-        bestfit = {} 
-        for k in fbestfit.keys(): 
-            bestfit[k] = fbestfit[k][...]
-
-    print('--- bestfit ---') 
-    print('written to %s' % f_bf) 
-    print('log M* total = %f' % bestfit['theta_med'][0])
-    print('log M* fiber = %f' % (bestfit['theta_med'][0] + np.log10(bestfit['theta_med'][-1])))
-    print('---------------') 
-    
-    # calculate sfr_100myr for MC chain add it in 
-    bestfit['mcmc_chain'] = ispeculator.add_logSFR_to_chain(bestfit['mcmc_chain'],
-            meta['redshift'][igal]) 
-    bestfit['prior_range'] = np.concatenate([bestfit['prior_range'],
-        np.array([[-4., 4]])], axis=0) 
-    truths += [np.log10(meta['sfr_100myr'][igal])]
-    labels += [r'$\log {\rm SFR}$'] 
-    
-    try: 
-        # plotting on nersc never works.
-        if os.environ['NERSC_HOST'] == 'cori': return None 
-    except KeyError: 
-        # corner plot of the posteriors 
-        fig = DFM.corner(bestfit['mcmc_chain'], range=bestfit['prior_range'], quantiles=[0.16, 0.5, 0.84], 
-                levels=[0.68, 0.95], nbin=40, smooth=True, 
-                truths=truths, labels=labels, label_kwargs={'fontsize': 20}) 
-        fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
-        plt.close() 
-        
-        fig = plt.figure(figsize=(18,5))
-        gs = mpl.gridspec.GridSpec(1, 2, figure=fig, width_ratios=[1,3], wspace=0.2) 
-        sub = plt.subplot(gs[0]) 
-        sub.errorbar(np.arange(len(photo_obs)), photo_obs,
-                yerr=photo_ivar_obs**-0.5, fmt='.k', label='data')
-        sub.scatter(np.arange(len(photo_obs)), bestfit['flux_photo_model'], c='C1',
-                label='iFSPS') 
-        sub.legend(loc='upper left', markerscale=3, handletextpad=0.2, fontsize=15) 
-        sub.set_xticks([0, 1, 2, 3, 4]) 
-        sub.set_xticklabels(['$g$', '$r$', '$z$', 'W1', 'W2']) 
-        sub.set_xlim(-0.5, len(photo_obs)-0.5)
-
-        sub = plt.subplot(gs[1]) 
-        sub.plot(w_obs, flux_obs, c='k', lw=1, label='data')
-        sub.plot(bestfit['wavelength_model'], bestfit['flux_spec_model'], c='C1',
-                ls='--', lw=1, label='iFSPS') 
-        sub.legend(loc='upper right', fontsize=15) 
-        sub.set_xlabel('wavelength [$A$]', fontsize=20) 
-        sub.set_xlim(3600., 9800.)
-
-        fig.savefig(f_bf.replace('.hdf5', '.bestfit.png'), bbox_inches='tight') 
-        plt.close()
-    return None 
-
-
-def MP_fit_iSpeculator(spec_or_photo, igals, noise='none', model='emulator', nthreads=1, nwalkers=100, burnin=100, niter=1000, overwrite=False, justplot=False): 
-    ''' multiprocessing wrapepr for fit_spectra and fit_photometry. This does *not* parallelize 
-    the MCMC sampling of individual fits but rather runs multiple fits simultaneously. 
-    
-    :param spec_or_photo: 
-        fit spectra or photometry 
-
-    :param igals: 
-        array/list of spectral_challenge galaxy indices
-
-    :param noise: 
-        If 'none', fit noiseless spectra. 
-        If 'bgs1'...'bgs8', fit BGS-like spectra. (default: 'none') 
-
-    :param dust: 
-        If True, fit the spectra w/ dust using a model with dust 
-        If False, fit the spectra w/o dust using a model without dust. 
-        (default: False) 
-
-    :param nthreads: 
-        Number of threads. If nthreads == 1, just runs fit_spectra
-    '''
-    args = igals # galaxy indices 
-
-    kwargs = {
-            'noise': noise, 
-            'model': model,
-            'nwalkers': nwalkers,
-            'burnin': burnin,
-            'niter': niter, 
-            'overwrite': overwrite, 
-            'justplot': justplot
-            }
-    if spec_or_photo == 'spec': 
-        fit_func = fit_iSpeculator_spectra
-    elif spec_or_photo == 'photo': 
-        fit_func = fit_iSpeculator_photometry
-    elif spec_or_photo == 'specphoto': 
-        fit_func = fit_iSpeculator_spectrophotometry
 
     if nthreads > 1: 
         pool = Pool(processes=nthreads) 

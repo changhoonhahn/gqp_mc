@@ -1532,7 +1532,7 @@ class iSpeculator(iFSPS):
             elif self.model_name == 'fsps_complexdust': 
                 self._ssp.params['dust1'] = tt_dust1
                 self._ssp.params['dust2'] = tt_dust2 
-                self._ssp.params['dust3'] = tt_dust_index
+                self._ssp.params['dust_index'] = tt_dust_index
             wave_rest, lum_i = self._ssp.get_spectrum(tage=tage, peraa=True) # in units of Lsun/AA
 
             if i == 0: 

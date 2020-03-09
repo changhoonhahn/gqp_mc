@@ -1468,7 +1468,18 @@ class iSpeculator(iFSPS):
 
         # rescale PCA coefficients, multiply out PCA basis -> normalized spectrum, shift and re-scale spectrum -> output spectrum
         logflux = np.dot(layers[-1]*self._emu_pca_std + self._emu_pca_mean, self._emu_pcas)*self._emu_spec_std + self._emu_spec_mean + offset
-        return np.exp(logflux)
+        flux = np.exp(logflux)
+        
+        # normalization for the SSP SED because the SED is not normalized by
+        # the integral of the SFH. This normalization should be incorporated
+        # into the training set of Speculator rather than here, but for now
+        # hacked together. 
+        _t = np.linspace(0, tt[7], 50)
+        norm_sfh = np.sum([tt[:4][i] * 
+            self._sfh_basis[i](_t)/np.trapz(self._sfh_basis[i](_t), _t) for i
+            in range(4)])
+        flux /= norm_sfh
+        return flux 
     
     def _transform_theta(self, theta):
         ''' initial transform applied to input parameters (network is trained over a 
@@ -1511,7 +1522,7 @@ class iSpeculator(iFSPS):
             tt_zh[i] * self._zh_basis[i](_t) 
             for i in range(2)]), 
             axis=0)
-     
+        
         for i, tage, m, z in zip(range(len(tages)), tages, sfh, zh): 
             if m <= 0: # no star formation in this bin 
                 continue
@@ -1523,9 +1534,12 @@ class iSpeculator(iFSPS):
                 self._ssp.params['dust2'] = tt_dust2 
                 self._ssp.params['dust3'] = tt_dust_index
             wave_rest, lum_i = self._ssp.get_spectrum(tage=tage, peraa=True) # in units of Lsun/AA
+
             if i == 0: 
                 lum_ssp = np.zeros(len(wave_rest))
             lum_ssp += m * lum_i 
+
+        lum_ssp /= np.sum(sfh)
         return wave_rest, lum_ssp
     
     def _load_model_params(self): 

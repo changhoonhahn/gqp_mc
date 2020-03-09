@@ -258,7 +258,7 @@ def speculator():
     return None 
 
 
-def mini_mocha_comparison(method='ifsps', sim='lgal', sfr='100myr'):
+def mini_mocha_comparison(method='ifsps', model=None, sim='lgal', sfr='100myr'):
     ''' ultimate comparison between the different SED fitting methods 
     '''
     # read noiseless Lgal spectra of the spectral_challenge mocks
@@ -276,25 +276,26 @@ def mini_mocha_comparison(method='ifsps', sim='lgal', sfr='100myr'):
 
     igals, theta_inf = [], [] 
     for igal in range(ngal):  
-        _fbf = Fbestfit_specphoto(igal, sim=sim, noise='bgs0_legacy', method=method) 
+        _fbf = Fbestfit_specphoto(igal, sim=sim, noise='bgs0_legacy',
+                method=method, model=model) 
         if not os.path.isfile(_fbf): continue 
         fbf = h5py.File(_fbf, 'r')  
 
-        chain = ifitter.add_logSFR_to_chain(fbf['mcmc_chain'],
-                meta['redshift'][igal], dt=dt) 
-        theta_inf_i = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
+        #chain = ifitter.add_logSFR_to_chain(fbf['mcmc_chain'],
+        #        meta['redshift'][igal], dt=dt) 
+        theta_inf_i = np.percentile(fbf['mcmc_chain'][...], [2.5, 16, 50, 84, 97.5], axis=0)
         
         fbf.close() 
         igals.append(igal) 
         theta_inf.append(theta_inf_i) 
-
-    igals = np.array(igals) 
+    
+    igals = np.array(igals).astype(int) 
     theta_inf = np.array(theta_inf) 
 
     # input properties 
-    Mstar_input = meta['logM_total'][igals] # total mass 
-    M_fib_input = meta['logM_fiber'][igals] 
-    logSFR_input= np.log10(meta['sfr_%s' % sfr][igals])
+    Mstar_input = [meta['logM_total'][i] for i in igals] # total mass 
+    M_fib_input = [meta['logM_fiber'][i] for i in igals] 
+    logSFR_input= np.log10([meta['sfr_%s' % sfr][i] for i in igals])
 
     # inferred properties
     Mstar_inf   = theta_inf[:,:,0]
@@ -310,7 +311,7 @@ def mini_mocha_comparison(method='ifsps', sim='lgal', sfr='100myr'):
     sub.set_xlim(9., 12.) 
     sub.set_ylim(9., 12.) 
     sub.set_yticks([9., 10., 11., 12.]) 
-    sub.set_title(r'$\log~M_*$', fontsize=25)
+    sub.set_title(r'$\log M_*$', fontsize=25)
 
     # compare SFR 
     sub = fig.add_subplot(122) 
@@ -321,8 +322,8 @@ def mini_mocha_comparison(method='ifsps', sim='lgal', sfr='100myr'):
     sub.set_ylim(-3., 2.) 
     sub.set_yticks([-2., 0., 2.]) 
     if sfr == '1gyr': lbl_sfr = '1Gyr'
-    elif sfr == '100myr': lbl_sfr = '100Myr'
-    sub.set_title(r'$\log~{\rm SFR}_{%s}$' % lbl_sfr, fontsize=25)
+    elif sfr == '100myr': lbl_sfr = r'100{\rm Myr}'
+    sub.set_title(r'$\log{\rm SFR}_{%s}$' % lbl_sfr, fontsize=25)
 
     bkgd = fig.add_subplot(111, frameon=False)
     bkgd.set_xlabel(r'$\theta_{\rm true}$', fontsize=25) 
@@ -1139,8 +1140,8 @@ if __name__=="__main__":
     #photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', method='ifsps', sfr='100myr')
     #eta_Delta(noise='bgs0_legacy', method='ifsps', sfr='100myr')
 
-    mini_mocha_comparison(method='ifsps', sfr='100myr')
-    mini_mocha_comparison(method='ispeculator', sfr='100myr')
+    #mini_mocha_comparison(method='ifsps', sfr='100myr')
+    mini_mocha_comparison(method='ispeculator', model='emulator', sfr='100myr')
 
     #mock_challenge_photo(noise='none', dust=False, method='ifsps')
     #mock_challenge_photo(noise='none', dust=True, method='ifsps')

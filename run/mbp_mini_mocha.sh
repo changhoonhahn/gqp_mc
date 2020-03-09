@@ -2,8 +2,8 @@
 #source activate gqp
 
 sim='lgal'
-i0=43
-i1=96
+i0=0
+i1=0
 
 echo 'fitting galaxies # '$i0' to '$i1
 #python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py construct $sim
@@ -24,7 +24,7 @@ echo 'fitting galaxies # '$i0' to '$i1
 #python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
 #    specphoto $sim $i0 $i1 bgs0_legacy ispeculator NA 1 40 100 1000 True
 python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
-    specphoto $sim $i0 $i1 bgs0_legacy ispeculator emulator 1 40 200 4000 False 
+    specphoto $sim $i0 $i1 bgs0_legacy ispeculator emulator 1 40 200 4000 True 
 
 # --- iSpeculator fitting w/ fsps --- 
 #python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \

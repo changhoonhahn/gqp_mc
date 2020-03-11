@@ -583,7 +583,13 @@ class iFSPS(Fitter):
         logsfr_chain = np.log10(
                 np.array([self.get_SFR(tt, zred, dt=0.1) 
                     for tt in mcmc_chain]))
-        mcmc_chain = np.concatenate([mcmc_chain, np.atleast_2d(logsfr_chain)], axis=1) 
+        
+        nchain = mcmc_chain.shape[0] 
+        if (np.atleast_2d(logsfr_chain)).shape[0] == nchain: 
+            mcmc_chain = np.concatenate([mcmc_chain, np.atleast_2d(logsfr_chain)], axis=1) 
+        else: 
+            mcmc_chain = np.concatenate([mcmc_chain,
+                np.atleast_2d(logsfr_chain).T], axis=1) 
         return mcmc_chain 
     
     def get_SFR(self, tt, zred, dt=1.):

@@ -300,5 +300,5 @@ def _lgal_metadata(galids):
 
 
 if __name__=="__main__": 
-    fm_Lgal_minimocha()
+    fm_Lgal_mini_mocha()
 

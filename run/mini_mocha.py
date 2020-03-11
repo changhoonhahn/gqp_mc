@@ -507,7 +507,9 @@ def fit_iSpeculator_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
     return None 
 
 
-def MP_fit_iSpeculator(spec_or_photo, igals, noise='none', model='emulator', nthreads=1, nwalkers=100, burnin=100, niter=1000, overwrite=False, justplot=False): 
+def MP_fit_iSpeculator(spec_or_photo, igals, sim='lgal', noise='none',
+        model='emulator', nthreads=1, nwalkers=100, burnin=100, niter=1000,
+        overwrite=False, justplot=False): 
     ''' multiprocessing wrapepr for fit_spectra and fit_photometry. This does *not* parallelize 
     the MCMC sampling of individual fits but rather runs multiple fits simultaneously. 
     
@@ -842,13 +844,21 @@ def fit_iFSPS_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
 
     f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', 'ifsps',
             '%s.specphoto.noise_%s.%s.%i.hdf5' % (sim, noise, model, igal))
-    if not justplot: 
-        if os.path.isfile(f_bf): 
-            if not overwrite: 
-                print("** CAUTION: %s already exists **" % os.path.basename(f_bf)) 
-        # initiating fit
-        ifsps = Fitters.iFSPS(model_name=model) 
+    
+    # initiating fit
+    ifsps = Fitters.iFSPS(model_name=model) 
 
+    if justplot or not overwrite: 
+        # read in best-fit file with mcmc chain
+        fbestfit = h5py.File(f_bf, 'r')  
+        bestfit = {} 
+        for k in fbestfit.keys(): 
+            bestfit[k] = fbestfit[k][...]
+        fbestfit.close() 
+    else: 
+        if os.path.isfile(f_bf) and not overwrite: 
+            print("** CAUTION: %s already exists **" % os.path.basename(f_bf)) 
+        
         prior = ifsps._default_prior(f_fiber_prior=f_fiber_prior)
 
         bestfit = ifsps.MCMC_spectrophoto(
@@ -865,27 +875,26 @@ def fit_iFSPS_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
                 niter=niter, 
                 writeout=f_bf,
                 silent=False)
-    else: 
-        # read in best-fit file with mcmc chain
-        fbestfit = h5py.File(f_bf, 'r')  
-        bestfit = {} 
-        for k in fbestfit.keys(): 
-            bestfit[k] = fbestfit[k][...]
 
     print('--- bestfit ---') 
     print('written to %s' % f_bf) 
     print('log M* total = %f' % bestfit['theta_med'][0])
     print('log M* fiber = %f' % (bestfit['theta_med'][0] + np.log10(bestfit['theta_med'][-1])))
-    print('f_fiber = %f' % bestfit['theta_med'][-1]) 
-    print('log Z = %f' % bestfit['theta_med'][1]) 
     print('---------------') 
-    # calculate sfr_100myr for MC chain add it in 
-    bestfit['mcmc_chain'] = ifsps.add_logSFR_to_chain(bestfit['mcmc_chain'],
-            meta['redshift'][igal]) 
-    bestfit['prior_range'] = np.concatenate([bestfit['prior_range'],
-        np.array([[-4., 4]])], axis=0) 
+    if bestfit['mcmc_chain'].shape[1] == len(truths): 
+        # calculate sfr_100myr for MC chain add it in 
+        bestfit['mcmc_chain'] = ifsps.add_logSFR_to_chain(bestfit['mcmc_chain'],
+                meta['redshift'][igal], dt=0.1) 
+        bestfit['prior_range'] = np.concatenate([bestfit['prior_range'],
+            np.array([[-4., 4]])], axis=0) 
+        
+        fbestfit = h5py.File(f_bf, 'w')  
+        for k in bestfit.keys(): 
+            fbestfit[k] = bestfit[k] 
+        fbestfit.close() 
+
     truths += [np.log10(meta['sfr_100myr'][igal])]
-    labels += [r'$\log {\rm SFR}$'] 
+    labels += [r'$\log {\rm SFR}_{\rm 100 Myr}$'] 
     
     try: 
         # plotting on nersc never works.
@@ -1084,7 +1093,7 @@ if __name__=="__main__":
         print('iSpeculator fitting %s of mini_mocha galaxies %i to %i' % (spec_or_photo, igal0, igal1))
         print('using %i threads' % nthreads) 
         igals = range(igal0, igal1+1) 
-        MP_fit_iSpeculator(spec_or_photo, igals, noise=noise, model=model, nthreads=nthreads, 
+        MP_fit_iSpeculator(spec_or_photo, igals, sim=sim, noise=noise, model=model, nthreads=nthreads, 
                 nwalkers=nwalkers, burnin=burnin, niter=niter, overwrite=overwrite, justplot=justplot)
     elif method == 'pfirefly': 
         raise NotImplementedError('need to update prior set up') 

@@ -272,17 +272,16 @@ def fit_iSpeculator_photometry(igal, sim='lgal', noise='legacy',
         because I'm having issues plotting in NERSC. (default: False) 
     '''
     # read Lgal photometry of the mini_mocha mocks 
-    photo, meta = Data.Photometry(sim='lgal', noise=noise, lib='bc03', sample='mini_mocha') 
-    
-    if meta['redshift'][igal] < 0.1: 
+    photo, meta = Data.Photometry(sim=sim, noise=noise, lib='bc03', sample='mini_mocha') 
+
+    if meta['redshift'][igal] < 0.101: 
         # current Speculator wavelength doesn't extend far enough
         # current Speculator wavelength doesn't extend far enough
         # current Speculator wavelength doesn't extend far enough
         # current Speculator wavelength doesn't extend far enough
         # current Speculator wavelength doesn't extend far enough
         return None 
-    
-    model       = 'vanilla'
+
     photo_obs   = photo['flux'][igal,:3]
     ivar_obs    = photo['ivar'][igal,:3]
     truths      = [meta['logM_total'][igal], None, None, None, None, None, None, None]
@@ -292,20 +291,25 @@ def fit_iSpeculator_photometry(igal, sim='lgal', noise='legacy',
             r'$\gamma_2^{\rm ZH}$', r'$\tau$'] 
     
     print('--- input ---') 
-    print(meta['redshift'].min()) 
     print('z = %f' % meta['redshift'][igal])
     print('log M* total = %f' % meta['logM_total'][igal])
     
     f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', 'ispeculator', 
             '%s.photo.noise_%s.%s.%i.hdf5' % (sim, noise, model, igal))
     
+    # initiating fit
     ispeculator = Fitters.iSpeculator(model_name=model) 
-    if not justplot: 
-        if os.path.isfile(f_bf): 
-            if not overwrite: 
-                print("** CAUTION: %s already exists **" % os.path.basename(f_bf)) 
-                return None 
-        # initiate fitting
+
+    if (justplot or not overwrite) and os.path.isfile(f_bf): 
+        # read in best-fit file with mcmc chain
+        fbestfit = h5py.File(f_bf, 'r')  
+        bestfit = {} 
+        for k in fbestfit.keys(): 
+            bestfit[k] = fbestfit[k][...]
+        fbestfit.close() 
+    else: 
+        if os.path.isfile(f_bf) and not overwrite: 
+            print("** CAUTION: %s already exists **" % os.path.basename(f_bf)) 
 
         prior = ispeculator._default_prior(f_fiber_prior=None)
 
@@ -320,26 +324,27 @@ def fit_iSpeculator_photometry(igal, sim='lgal', noise='legacy',
                 niter=niter, 
                 writeout=f_bf,
                 silent=False)
-    else: 
-        # read in best-fit file with mcmc chain
-        fbestfit = h5py.File(f_bf, 'r')  
-        bestfit = {} 
-        for k in fbestfit.keys(): 
-            bestfit[k] = fbestfit[k][...]
+
     print('--- bestfit ---') 
-    print('written to %s ---' % f_bf)
-    print('log M* = %f' % bestfit['theta_med'][0])
-    print('log Z = %f' % bestfit['theta_med'][1]) 
+    print('written to %s' % f_bf) 
+    print('log M* total = %f' % bestfit['theta_med'][0])
     print('---------------') 
     
-    # calculate sfr_100myr for MC chain add it in 
-    bestfit['mcmc_chain'] = ispeculator.add_logSFR_to_chain(bestfit['mcmc_chain'],
-            meta['redshift'][igal]) 
-    bestfit['prior_range'] = np.concatenate([bestfit['prior_range'],
-        np.array([[-4., 4]])], axis=0) 
+    if bestfit['mcmc_chain'].shape[1] == len(truths): 
+        # calculate sfr_100myr for MC chain add it in 
+        bestfit['mcmc_chain'] = ispeculator.add_logSFR_to_chain(bestfit['mcmc_chain'],
+                meta['redshift'][igal], dt=0.1) 
+        bestfit['prior_range'] = np.concatenate([bestfit['prior_range'],
+            np.array([[-4., 4]])], axis=0) 
+        
+        fbestfit = h5py.File(f_bf, 'w')  
+        for k in bestfit.keys(): 
+            fbestfit[k] = bestfit[k] 
+        fbestfit.close() 
+
     truths += [np.log10(meta['sfr_100myr'][igal])]
-    labels += [r'$\log {\rm SFR}$'] 
-    
+    labels += [r'$\log {\rm SFR}_{\rm 100 Myr}$'] 
+        
     try: 
         # plotting on nersc never works.
         if os.environ['NERSC_HOST'] == 'cori': return None 
@@ -382,9 +387,9 @@ def fit_iSpeculator_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
     noise_spec = noise.split('_')[0]
     noise_photo = noise.split('_')[1]
     # read noiseless Lgal spectra of the spectral_challenge mocks 
-    specs, meta = Data.Spectra(sim='lgal', noise=noise_spec, lib='bc03', sample='mini_mocha') 
+    specs, meta = Data.Spectra(sim=sim, noise=noise_spec, lib='bc03', sample='mini_mocha') 
     # read Lgal photometry of the mini_mocha mocks 
-    photo, _ = Data.Photometry(sim='lgal', noise=noise_photo, lib='bc03', sample='mini_mocha') 
+    photo, _ = Data.Photometry(sim=sim, noise=noise_photo, lib='bc03', sample='mini_mocha') 
     
     if meta['redshift'][igal] < 0.101: 
         # current Speculator wavelength doesn't extend far enough
@@ -422,7 +427,7 @@ def fit_iSpeculator_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
 
     ispeculator = Fitters.iSpeculator(model_name=model) 
 
-    if justplot or not overwrite: 
+    if (justplot or not overwrite) and os.path.isfile(f_bf): 
         # read in best-fit file with mcmc chain
         fbestfit = h5py.File(f_bf, 'r')  
         bestfit = {} 
@@ -534,6 +539,7 @@ def MP_fit_iSpeculator(spec_or_photo, igals, sim='lgal', noise='none',
     args = igals # galaxy indices 
 
     kwargs = {
+            'sim': sim, 
             'noise': noise, 
             'model': model,
             'nwalkers': nwalkers,

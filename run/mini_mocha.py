@@ -444,7 +444,7 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
     print('log M* total = %f' % meta['logM_total'][igal])
     print('log M* fiber = %f' % meta['logM_fiber'][igal])
 
-    f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', 'ispeculator', 
+    f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', method, 
             '%s.specphoto.noise_%s.%s.%i.hdf5' % (sim, noise, model, igal))
     
     if method == 'ifsps': 
@@ -489,7 +489,7 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
     
     if bestfit['mcmc_chain'].shape[1] == len(truths): 
         # calculate sfr_100myr for MC chain add it in 
-        bestfit['mcmc_chain'] = ispeculator.add_logSFR_to_chain(bestfit['mcmc_chain'],
+        bestfit['mcmc_chain'] = ifitter.add_logSFR_to_chain(bestfit['mcmc_chain'],
                 meta['redshift'][igal], dt=0.1) 
         bestfit['prior_range'] = np.concatenate([bestfit['prior_range'],
             np.array([[-4., 4]])], axis=0) 

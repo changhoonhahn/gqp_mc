@@ -54,10 +54,10 @@ def fm_TNG_minimocha():
     _spec = _spec_s/(4.*np.pi * (zred[:,None] * const.c/H0).to(u.cm)**2) / _wave_s**2 * const.c 
     spec_s = (_spec.to(u.erg / u.s / u.cm**2 / u.Angstrom)).value * 1e17
 
-    photo_true, _ = FM.Photo_DESI(wave_s, spec_s) 
-    
+    photo_true, mag_true = FM.Photo_DESI(wave_s, spec_s) 
+
     # r < 20 cut 
-    target_selection = (photo_true[:,1] <= 20.) 
+    target_selection = (mag_true[:,1] <= 20.) 
     
     # compile meta data 
     meta = {} 

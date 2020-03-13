@@ -258,80 +258,96 @@ def speculator():
     return None 
 
 
-def mini_mocha_comparison(method='ifsps', model=None, sim='lgal', sfr='100myr'):
+def mini_mocha_comparison(sim='lgal', method='ifsps', model=None, sfr='100myr'):
     ''' ultimate comparison between the different SED fitting methods 
     '''
-    # read noiseless Lgal spectra of the spectral_challenge mocks
-    specs, meta = Data.Spectra(sim=sim, noise='bgs0', lib='bc03', sample='mini_mocha') 
-    # read Lgal photometry of the mini_mocha mocks
-    photo, _ = Data.Photometry(sim=sim, noise='legacy', lib='bc03', sample='mini_mocha')
-
     if sfr == '100myr': dt = 0.1
-    
     ngal = 97
+    sims = ['lgal', 'tng'] 
     
-    fig = plt.figure(figsize=(8,4))
-    if method == 'ifsps': ifitter = Fitters.iFSPS()
-    elif method == 'ispeculator': ifitter = Fitters.iSpeculator()
-
-    igals, theta_inf = [], [] 
-    for igal in range(ngal):  
-        _fbf = Fbestfit_specphoto(igal, sim=sim, noise='bgs0_legacy',
-                method=method, model=model) 
-        if not os.path.isfile(_fbf): continue 
-        fbf = h5py.File(_fbf, 'r')  
-
-        #chain = ifitter.add_logSFR_to_chain(fbf['mcmc_chain'],
-        #        meta['redshift'][igal], dt=dt) 
-        theta_inf_i = np.percentile(fbf['mcmc_chain'][...], [2.5, 16, 50, 84, 97.5], axis=0)
+    Mstar_inputs, logSFR_inputs = [], [] 
+    Mstar_infs, logSFR_infs = [], [] 
+    for sim in sims: 
+        # read noiseless Lgal spectra of the spectral_challenge mocks
+        specs, meta = Data.Spectra(sim=sim, noise='bgs0', lib='bc03', sample='mini_mocha') 
+        # read Lgal photometry of the mini_mocha mocks
+        photo, _ = Data.Photometry(sim=sim, noise='legacy', lib='bc03', sample='mini_mocha')
         
-        fbf.close() 
-        igals.append(igal) 
-        theta_inf.append(theta_inf_i) 
+        if method == 'ifsps': ifitter = Fitters.iFSPS()
+        elif method == 'ispeculator': ifitter = Fitters.iSpeculator()
+
+        igals, theta_inf = [], [] 
+        for igal in range(ngal):  
+            _fbf = Fbestfit_specphoto(igal, sim=sim, noise='bgs0_legacy',
+                    method=method, model=model)
+            if not os.path.isfile(_fbf): 
+                print('     %s does not exist' % _fbf)
+                continue 
+            fbf = h5py.File(_fbf, 'r')  
+            mcmc_chain = fbf['mcmc_chain'][...].copy() 
+            fbf.close() 
+
+            _theta_inf = np.percentile(mcmc_chain, [2.5, 16, 50, 84, 97.5], axis=0)
+
+            igals.append(igal) 
+            theta_inf.append(_theta_inf) 
+
+        igals = np.array(igals)
+
+        # input properties 
+        Mstar_input = [meta['logM_total'][i] for i in igals] # total mass 
+        logSFR_input= np.log10([meta['sfr_%s' % sfr][i] for i in igals])
+
+        # inferred properties
+        Mstar_inf   = np.array([_tt[:,0] for _tt in theta_inf])
+        logSFR_inf  = np.array([_tt[:,-1] for _tt in theta_inf])
+
+        Mstar_inputs.append(Mstar_input) 
+        logSFR_inputs.append(logSFR_input) 
+        
+        Mstar_infs.append(Mstar_inf) 
+        logSFR_infs.append(logSFR_inf) 
     
-    igals = np.array(igals).astype(int) 
-    theta_inf = np.array(theta_inf) 
+    fig = plt.figure(figsize=(8,8))
+    for i in range(len(sims)):
+        Mstar_input = Mstar_inputs[i] 
+        Mstar_inf = Mstar_infs[i]
+        logSFR_input = logSFR_inputs[i]
+        logSFR_inf = logSFR_infs[i]
 
-    # input properties 
-    Mstar_input = [meta['logM_total'][i] for i in igals] # total mass 
-    M_fib_input = [meta['logM_fiber'][i] for i in igals] 
-    logSFR_input= np.log10([meta['sfr_%s' % sfr][i] for i in igals])
+        # compare total stellar mass 
+        sub = fig.add_subplot(2,2,2*i+1) 
+        sub.errorbar(Mstar_input, Mstar_inf[:,2], 
+                yerr=[Mstar_inf[:,2]-Mstar_inf[:,1], Mstar_inf[:,3]-Mstar_inf[:,2]], fmt='.C0')
+        sub.plot([9., 12.], [9., 12.], c='k', ls='--') 
+        sub.text(0.05, 0.95, sims[i].upper(), ha='left', va='top', transform=sub.transAxes, fontsize=25)
 
-    # inferred properties
-    Mstar_inf   = theta_inf[:,:,0]
-    logSFR_inf  = theta_inf[:,:,-1]
-    
-    # compare total stellar mass 
-    sub = fig.add_subplot(121) 
-    sub.errorbar(Mstar_input, Mstar_inf[:,2], 
-            yerr=[Mstar_inf[:,2]-Mstar_inf[:,1], Mstar_inf[:,3]-Mstar_inf[:,2]], fmt='.C0')
-    sub.plot([9., 12.], [9., 12.], c='k', ls='--') 
-    sub.text(0.05, 0.95, method, ha='left', va='top', transform=sub.transAxes, fontsize=25)
+        sub.set_xlim(9., 12.) 
+        if i == 0: sub.set_xticklabels([])
+        sub.set_ylim(9., 12.) 
+        sub.set_yticks([9., 10., 11., 12.]) 
+        if i == 0: sub.set_title(r'$\log M_*$', fontsize=25)
 
-    sub.set_xlim(9., 12.) 
-    sub.set_ylim(9., 12.) 
-    sub.set_yticks([9., 10., 11., 12.]) 
-    sub.set_title(r'$\log M_*$', fontsize=25)
-
-    # compare SFR 
-    sub = fig.add_subplot(122) 
-    sub.errorbar(logSFR_input, logSFR_inf[:,2], 
-            yerr=[logSFR_inf[:,2]-logSFR_inf[:,1], logSFR_inf[:,3]-logSFR_inf[:,2]], fmt='.C0')
-    sub.plot([-3., 2.], [-3., 2.], c='k', ls='--') 
-    sub.set_xlim(-3., 2.) 
-    sub.set_ylim(-3., 2.) 
-    sub.set_yticks([-2., 0., 2.]) 
-    if sfr == '1gyr': lbl_sfr = '1Gyr'
-    elif sfr == '100myr': lbl_sfr = r'100{\rm Myr}'
-    sub.set_title(r'$\log{\rm SFR}_{%s}$' % lbl_sfr, fontsize=25)
+        # compare SFR 
+        sub = fig.add_subplot(2,2,2*i+2) 
+        sub.errorbar(logSFR_input, logSFR_inf[:,2], 
+                yerr=[logSFR_inf[:,2]-logSFR_inf[:,1], logSFR_inf[:,3]-logSFR_inf[:,2]], fmt='.C0')
+        sub.plot([-3., 2.], [-3., 2.], c='k', ls='--') 
+        sub.set_xlim(-3., 2.) 
+        if i == 0: sub.set_xticklabels([])
+        sub.set_ylim(-3., 2.) 
+        sub.set_yticks([-2., 0., 2.]) 
+        if sfr == '1gyr': lbl_sfr = '1Gyr'
+        elif sfr == '100myr': lbl_sfr = r'100{\rm Myr}'
+        if i == 0: sub.set_title(r'$\log{\rm SFR}_{%s}$' % lbl_sfr, fontsize=25)
 
     bkgd = fig.add_subplot(111, frameon=False)
     bkgd.set_xlabel(r'$\theta_{\rm true}$', fontsize=25) 
     bkgd.set_ylabel(r'$\widehat{\theta}$', labelpad=10, fontsize=25) 
     bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
     fig.subplots_adjust(wspace=0.225, hspace=0.1)
-    _ffig = os.path.join(dir_doc, 'mini_mocha.%s.sfr_%s.comparison.png' %
-            (method, sfr)) 
+    _ffig = os.path.join(dir_doc, 'mini_mocha.%s.%s.sfr_%s.comparison.png' %
+            (method, model, sfr)) 
     fig.savefig(_ffig, bbox_inches='tight') 
     fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
     return None 
@@ -691,68 +707,73 @@ def mini_mocha_specphoto(noise='bgs0_legacy', method='ifsps', sfr='1gyr'):
     return None 
 
 
-def photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', method='ifsps', sfr='1gyr'):  
+def photo_vs_specphoto(sim='lgal', noise_photo='legacy', noise_specphoto='bgs0_legacy',
+        method='ifsps', model='vanilla'):  
     ''' Compare properties inferred from photometry versus spectrophotometry to see how much
     information is gained from adding spectra
     '''
     assert noise_specphoto.split('_')[1] == noise_photo
     # read noiseless Lgal spectra of the spectral_challenge mocks
-    specs, meta = Data.Spectra(sim='lgal', noise=noise_specphoto.split('_')[0], lib='bc03', sample='mini_mocha') 
+    specs, meta = Data.Spectra(sim=sim, noise=noise_specphoto.split('_')[0], lib='bc03', sample='mini_mocha') 
     # read Lgal photometry of the mini_mocha mocks
-    photo, _ = Data.Photometry(sim='lgal', noise=noise_specphoto.split('_')[1], lib='bc03', sample='mini_mocha')
+    photo, _ = Data.Photometry(sim=sim, noise=noise_specphoto.split('_')[1], lib='bc03', sample='mini_mocha')
 
-    # --------------------------------------------------------------------------------
-    # true paramater values
-    logMstar_input  = np.array(meta['logM_total'][:97]) # total mass 
-    logSFR_input    = np.log10(np.array(meta['sfr_%s' % sfr][:97])) 
-    Z_MW_input      = meta['Z_MW'][:97]  # mass-weighted metallicity
-    tage_input      = meta['t_age_MW'][:97]  # mass-weighted age
-
+    logMstar_sim  = np.array(meta['logM_total']) # total mass 
+    logSFR_sim    = np.log10(np.array(meta['sfr_100myr'])) 
     # --------------------------------------------------------------------------------
     # assemble all markov chains 
+    igals = [] 
     dlogMs_photo, dlogMs_specphoto = [], []
     dlogSFR_photo, dlogSFR_specphoto = [], []
     for igal in range(97): 
         # read best-fit file and get inferred parameters from photometry
-        _fbf = Fbestfit_photo(igal, noise=noise_photo, method=method) 
-        fbf = h5py.File(_fbf, 'r')  
+        _fbf0 = Fbestfit_photo(igal, sim=sim, noise=noise_photo, method=method,
+                model=model) 
+        _fbf1 = Fbestfit_specphoto(igal, sim=sim, noise=noise_specphoto,
+                method=method, model=model) 
+        
+        if os.path.isfile(_fbf0) and os.path.isfile(_fbf1):
+            pass 
+        else: 
+            print('     %s does not exist' % _fbf0)
+            continue 
+
+        fbf = h5py.File(_fbf0, 'r')  
         # d log M* chain
         chain = fbf['mcmc_chain'][...][::10]
-        dlogMs_chain = chain[:,0] - logMstar_input[igal] 
-        # calculate average SFR
-        if method == 'ifsps': 
-            ifsps = Fitters.iFSPS()
-            if sfr == '1gyr': 
-                sfr_chain, _ = ifsps.get_SFR(chain, dt=1.)
-            elif sfr == '100myr': 
-                sfr_chain, _ = ifsps.get_SFR(chain, dt=0.1)
-        dlogSFR_chain = np.log10(sfr_chain) - logSFR_input[igal]
+        dlogMs_chain = chain[:,0] - logMstar_sim[igal] 
+        # d log SFR        
+        dlogSFR_chain = chain[:,-1] - logSFR_sim[igal]
+        
+        if np.any(np.isnan(dlogSFR_chain)) or np.any(np.isnan(dlogMs_chain)):
+            print('%i has NaNs' % igal)
+            continue 
 
         dlogMs_photo.append(dlogMs_chain)
         dlogSFR_photo.append(dlogSFR_chain)
 
         # read best-fit file and get inferred parameters from spectrophoto
-        _fbf = Fbestfit_specphoto(igal, noise=noise_specphoto, method=method) 
-        fbf = h5py.File(_fbf, 'r')  
+        fbf = h5py.File(_fbf1, 'r')  
         # d log M* chain
         chain = fbf['mcmc_chain'][...][::10]
-        dlogMs_chain = chain[:,0] - logMstar_input[igal] 
-        # calculate average SFR
-        if method == 'ifsps': 
-            ifsps = Fitters.iFSPS()
-            if sfr == '1gyr': 
-                sfr_chain, _ = ifsps.get_SFR(chain, dt=1.)
-            elif sfr == '100myr': 
-                sfr_chain, _ = ifsps.get_SFR(chain, dt=0.1)
-        dlogSFR_chain = np.log10(sfr_chain) - logSFR_input[igal]
+        dlogMs_chain = chain[:,0] - logMstar_sim[igal] 
+        dlogSFR_chain = chain[:,-1] - logSFR_sim[igal]
 
         dlogMs_specphoto.append(dlogMs_chain)
         dlogSFR_specphoto.append(dlogSFR_chain)
+            
+        igals.append(igal) 
     
     dlogMs_photo = np.array(dlogMs_photo)  
     dlogSFR_photo = np.array(dlogSFR_photo) 
     dlogMs_specphoto = np.array(dlogMs_specphoto) 
     dlogSFR_specphoto = np.array(dlogSFR_specphoto) 
+
+    # --------------------------------------------------------------------------------
+    # true paramater values
+    igals = np.asarray(igals).astype(int)
+    logMstar_input  = np.asarray(meta['logM_total'])[igals] # total mass 
+    logSFR_input    = np.log10(np.asarray(meta['sfr_100myr'])[igals]) 
 
     # --------------------------------------------------------------------------------
     # maximum likelihood for the population hyperparameters
@@ -804,10 +825,6 @@ def photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', meth
     mu_dlogSFR_specphoto, sig_dlogSFR_specphoto = [], [] 
     for i_m in range(len(Mbins)-1): 
         inbin = ((logSFR_input > logSFRbins[i_m]) & (logSFR_input <= logSFRbins[i_m+1])) 
-        if sfr == '1gyr': 
-            inbin = inbin & (np.array(tage_input) > 1.0) 
-        elif sfr == '100myr': 
-            inbin = inbin & (np.array(tage_input) > 0.1)
         if np.sum(inbin) == 0: continue 
         print('%i galaxies' % np.sum(inbin))
         logSFRbin_mid.append(0.5 * (logSFRbins[i_m] + logSFRbins[i_m+1])) 
@@ -874,73 +891,76 @@ def photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', meth
     sub.scatter(logSFRbin_mid, mu_dlogSFR_specphoto, c='C1', s=1) 
     sub.plot(logSFRbin_mid, mu_dlogSFR_specphoto, c='C1') 
     
-    if sfr == '1gyr': lbl_sfr = '1Gyr'
-    elif sfr == '100myr': lbl_sfr = '100Myr'
-    sub.set_xlabel(r'$\log(~{\rm SFR}_{%s}~[M_\odot/yr]~)$' % lbl_sfr, fontsize=25)
+    sub.set_xlabel(r'$\log(~{\rm SFR}_{100Myr}~[M_\odot/yr]~)$', fontsize=25)
     sub.set_xlim(-3., 1.) 
-    sub.set_ylabel(r'$\Delta_{\log{\rm SFR}_{%s}}$' % lbl_sfr, fontsize=25)
+    sub.set_ylabel(r'$\Delta_{\log{\rm SFR}_{100Myr}}$', fontsize=25)
     sub.set_ylim(-3., 3.) 
     #sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
     
     fig.subplots_adjust(wspace=0.3)
-    _ffig = os.path.join(dir_doc, 'photo_vs_specphoto.%s.sfr_%s.vanilla.noise_%s_%s.png' % (method, sfr, noise_photo, noise_specphoto)) 
+    _ffig = os.path.join(dir_doc,
+            'photo_vs_specphoto.%s.%s.%s.noise_%s_%s.png' % 
+            (sim, method, model, noise_photo, noise_specphoto)) 
     fig.savefig(_ffig, bbox_inches='tight') 
     fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
     return None 
 
 
-def eta_Delta(noise='bgs0_legacy', method='ifsps', sfr='1gyr'):  
+def eta_Delta(sim='lgal', noise='bgs0_legacy', method='ifsps', model='vanilla'):  
     ''' population hyperparameters eta_Delta as a function of different
     galaxy properties (r mag, color, etc) 
     '''
     # --------------------------------------------------------------------------------
     # read noiseless Lgal spectra of the spectral_challenge mocks
-    specs, meta = Data.Spectra(sim='lgal', noise=noise.split('_')[0], lib='bc03', sample='mini_mocha') 
+    specs, meta = Data.Spectra(sim=sim, noise=noise.split('_')[0], lib='bc03', sample='mini_mocha') 
     # read Lgal photometry of the mini_mocha mocks
-    photo, _ = Data.Photometry(sim='lgal', noise=noise.split('_')[1], lib='bc03', sample='mini_mocha')
-
+    photo, _ = Data.Photometry(sim=sim, noise=noise.split('_')[1], lib='bc03', sample='mini_mocha')
     # --------------------------------------------------------------------------------
     # true paramater values
     # --------------------------------------------------------------------------------
-    logMstar_input  = np.array(meta['logM_total'][:97]) # total mass 
-    logSFR_input    = np.log10(np.array(meta['sfr_%s' % sfr][:97])) 
+    logMstar_all    = np.array(meta['logM_total']) # total mass 
+    logSFR_all      = np.log10(np.array(meta['sfr_100myr'])) 
 
-    r_mag = 22.5 - 2.5 * np.log10(photo['flux_r_true'][:97]) # true r-band magnitude
-    g_r = (22.5 - 2.5 * np.log10(photo['flux_g_true'][:97])) - r_mag 
-    r_z = r_mag - (22.5 - 2.5 * np.log10(photo['flux_z_true'][:97]))
+    r_mag = 22.5 - 2.5 * np.log10(photo['flux_r_true']) # true r-band magnitude
+    g_r = (22.5 - 2.5 * np.log10(photo['flux_g_true'])) - r_mag 
+    r_z = r_mag - (22.5 - 2.5 * np.log10(photo['flux_z_true']))
     # --------------------------------------------------------------------------------
     # assemble all markov chains 
     # --------------------------------------------------------------------------------
-    dlogMs, dlogSFR = [], []
+    igals, dlogMs, dlogSFR = [], [], []
     for igal in range(97): 
         # read best-fit file and get inferred parameters from spectrophoto
-        _fbf = Fbestfit_specphoto(igal, noise=noise, method=method) 
+        _fbf = Fbestfit_specphoto(igal, sim=sim, noise=noise, 
+                method=method, model=model) 
+        if not os.path.isfile(_fbf):
+            print('     %s does not exist' % _fbf)
+            continue 
         fbf = h5py.File(_fbf, 'r')  
-        # d log M* chain
+
+        # d log M* and d log SFR of chain
         chain = fbf['mcmc_chain'][...][::10]
-        dlogMs_chain = chain[:,0] - logMstar_input[igal] 
-        # calculate average SFR
-        if method == 'ifsps': 
-            ifsps = Fitters.iFSPS()
-            if sfr == '1gyr': 
-                sfr_chain, _ = ifsps.get_SFR(chain, dt=1.)
-            elif sfr == '100myr': 
-                sfr_chain, _ = ifsps.get_SFR(chain, dt=0.1)
-        sfr_chain = np.clip(sfr_chain, 1e-9, None)
-        dlogSFR_chain = np.log10(sfr_chain) - logSFR_input[igal]
-        print(dlogSFR_chain)
+        dlogMs_chain = chain[:,0] - logMstar_all[igal] 
+        dlogSFR_chain = chain[:,-1] - logSFR_all[igal]
+
+        if np.any(np.isnan(dlogSFR_chain)) or np.any(np.isnan(dlogMs_chain)):
+            print('%i has NaNs' % igal)
+            continue 
 
         dlogMs.append(dlogMs_chain)
         dlogSFR.append(dlogSFR_chain)
 
+        igals.append(igal) 
+
+    igals = np.asarray(igals).astype(int)
     dlogMs = np.array(dlogMs) 
     dlogSFR = np.array(dlogSFR) 
+
     # --------------------------------------------------------------------------------
     # get MAP for the population hyperparameters
     # --------------------------------------------------------------------------------
-    props       = [r_mag, g_r, r_z]
+    props       = [r_mag[igals], g_r[igals], r_z[igals]]
     prop_lbl    = ['$r$ magnitude', '$g - r$ color', '$r - z$ color']
-    prop_lim    = [(15, 20), (0., 2.), (0., 2.)]
+    prop_lim    = [(19, 20), (0., 2.), (0., 1.)]
 
     hyper = [] 
     for i, prop in enumerate(props): 
@@ -967,8 +987,7 @@ def eta_Delta(noise='bgs0_legacy', method='ifsps', sfr='1gyr'):
             mu_dMstar.append(min_hyper['x'][0]) 
             sig_dMstar.append(min_hyper['x'][1]) 
             
-            L_pop_sfr = lambda _theta: -1.*logL_pop(_theta[0], _theta[1],
-                    delta_chains=dlogSFR[inbin])  
+            L_pop_sfr = lambda _theta: -1.*logL_pop(_theta[0], _theta[1], delta_chains=dlogSFR[inbin])  
 
             min_hyper = op.minimize(
                     L_pop_sfr, 
@@ -997,30 +1016,28 @@ def eta_Delta(noise='bgs0_legacy', method='ifsps', sfr='1gyr'):
         sub.fill_between(prop_mid, mu_dmstar - sig_dmstar, mu_dmstar + sig_dmstar, 
                 fc='C0', ec='none', alpha=0.5) 
         sub.scatter(prop_mid, mu_dmstar, c='C0', s=2) 
-        sub.plot(prop_mid, mu_dsfr, c='C0') 
+        sub.plot(prop_mid, mu_dmstar, c='C0') 
 
         sub.set_xlim(prop_lim[i][0], prop_lim[i][1]) 
         if i == 0: sub.set_ylabel(r'$\Delta_{\log M_*}$', fontsize=25)
         sub.set_ylim(-1., 1.) 
-        sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
+        #sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
     
         # SFR hyperparametrs
-        sub = fig.add_subplot(2,len(props),len(prop)+i+1) 
+        sub = fig.add_subplot(2,len(props),len(props)+i+1) 
         sub.plot([prop_lim[i][0], prop_lim[i][1]], [0., 0.], c='k', ls='--')
         sub.fill_between(prop_mid, mu_dsfr - sig_dsfr, mu_dsfr + sig_dsfr, 
                 fc='C0', ec='none', alpha=0.5) 
         sub.scatter(prop_mid, mu_dsfr, c='C0', s=2) 
         sub.plot(prop_mid, mu_dsfr, c='C0') 
         
-        if sfr == '1gyr': lbl_sfr = '1Gyr'
-        elif sfr == '100myr': lbl_sfr = '100Myr'
         sub.set_xlabel(prop_lbl[i], fontsize=25)
         sub.set_xlim(prop_lim[i][0], prop_lim[i][1]) 
-        if i == 0: sub.set_ylabel(r'$\Delta_{\log{\rm SFR}_{%s}}$' % lbl_sfr, fontsize=25)
+        if i == 0: sub.set_ylabel(r'$\Delta_{\log{\rm SFR}_{100Myr}}$', fontsize=25)
         sub.set_ylim(-3., 3.) 
     
     fig.subplots_adjust(wspace=0.3)
-    _ffig = os.path.join(dir_doc, 'eta_Delta.%s.sfr_%s.vanilla.noise_%ss.png' % (method, sfr, noise)) 
+    _ffig = os.path.join(dir_doc, 'eta_Delta.%s.%s.%s.noise_%s.png' % (sim, method, model, noise)) 
     fig.savefig(_ffig, bbox_inches='tight') 
     fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
     return None 
@@ -1047,13 +1064,25 @@ def logL_pop(mu_pop, sigma_pop, delta_chains=None, prior=None):
     for i in range(N): 
         K = len(delta_chains[i]) 
         gauss = Norm(loc=mu_pop, scale=sigma_pop) 
+    
+        if np.any(np.isnan(delta_chains[i])): 
+            p_Di_pop = 0.
+        else: 
+            p_Di_pop = np.sum(gauss.pdf(delta_chains[i])/prior(delta_chains[i]))/float(K)
 
-        p_Di_pop = np.sum(gauss.pdf(delta_chains[i])/prior(delta_chains[i]))/float(K)
+        # clip likelihood at 1e-8 
+        logp_D_pop += np.log(np.clip(p_Di_pop, 1e-8, None)) 
 
-        logp_D_pop += np.log(p_Di_pop) 
-
-    #print('%.4f, %.4f, %.4f' % (mu_pop, sigma_pop, logp_D_pop)) 
-    if np.isnan(logp_D_pop): raise ValueError
+    if np.isnan(logp_D_pop): 
+        for i in range(N): 
+            K = len(delta_chains[i]) 
+            print(i)
+            gauss = Norm(loc=mu_pop, scale=sigma_pop) 
+            print('mu:', mu_pop, 'sigma:', sigma_pop) 
+            print(delta_chains[i]) 
+            p_Di_pop = np.sum(gauss.pdf(delta_chains[i])/prior(delta_chains[i]))/float(K)
+            print(p_Di_pop) 
+        raise ValueError
     return logp_D_pop     
 
 
@@ -1082,7 +1111,7 @@ def Fbestfit_spec(igal, noise='none', method='ifsps'):
     return f_bf
 
 
-def Fbestfit_photo(igal, noise='none', method='ifsps'): 
+def Fbestfit_photo(igal, sim='lgal', noise='legacy', method='ifsps', model='vanilla'): 
     ''' file name of best-fit of photometry of spectral_challenge galaxy #igal
 
     :param igal: 
@@ -1098,12 +1127,8 @@ def Fbestfit_photo(igal, noise='none', method='ifsps'):
     :param method: 
         fitting method. (default: ifsps)
     '''
-    model = 'vanilla'
-
-    if method == 'ifsps': 
-        f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', 'ifsps', 'lgal.photo.noise_%s.%s.%i.hdf5' % (noise, model, igal))
-    elif method == 'pfirefly': 
-        f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', 'pff', 'lgal.photo.noise_%s.%s.%i.hdf5' % (noise, model, igal))
+    f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', method, 
+            '%s.photo.noise_%s.%s.%i.hdf5' % (sim, noise, model, igal))
     return f_bf
 
 
@@ -1136,12 +1161,17 @@ if __name__=="__main__":
     
     #speculator()
 
-    #photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', method='ifsps', sfr='1gyr')
-    #photo_vs_specphoto(noise_photo='legacy', noise_specphoto='bgs0_legacy', method='ifsps', sfr='100myr')
-    #eta_Delta(noise='bgs0_legacy', method='ifsps', sfr='100myr')
+    #mini_mocha_comparison(method='ifsps', model='vanilla', sfr='100myr')
+    #mini_mocha_comparison(method='ispeculator', model='emulator', sfr='100myr')
 
-    #mini_mocha_comparison(method='ifsps', sfr='100myr')
-    mini_mocha_comparison(method='ispeculator', model='emulator', sfr='100myr')
+    photo_vs_specphoto(sim='lgal', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
+            method='ifsps', model='vanilla')
+    #photo_vs_specphoto(sim='lgal', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
+    #        method='ispeculator', model='emulator')
+    #photo_vs_specphoto(sim='tng', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
+    #        method='ispeculator', model='emulator')
+    eta_Delta(sim='lgal', noise='bgs0_legacy', method='ifsps', model='vanilla')
+    #eta_Delta(sim='lgal', noise='bgs0_legacy', method='ispeculator', model='emulator')
 
     #mock_challenge_photo(noise='none', dust=False, method='ifsps')
     #mock_challenge_photo(noise='none', dust=True, method='ifsps')

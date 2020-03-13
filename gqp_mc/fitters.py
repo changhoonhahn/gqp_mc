@@ -90,7 +90,7 @@ class iFSPS(Fitter):
 
     '''
     def __init__(self, model_name='vanilla', cosmo=cosmo): 
-        self.model_name = model_name # store model name 
+        self._init_model(model_name)
         self.cosmo      = cosmo # cosmology  
         self.ssp        = self._ssp_initiate() # initial ssp
         
@@ -193,6 +193,7 @@ class iFSPS(Fitter):
     
         output = {} 
         output['redshift'] = zred
+        output['theta_names'] = self.theta_names
         output['theta_med'] = med 
         output['theta_1sig_plus'] = high
         output['theta_2sig_plus'] = highhigh
@@ -200,8 +201,8 @@ class iFSPS(Fitter):
         output['theta_2sig_minus'] = lowlow
     
         w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs)
-        output['wavelength_model'] = w_model[0]
-        output['flux_spec_model'] = med[-1] * flux_model[0]
+        output['wavelength_model'] = w_model
+        output['flux_spec_model'] = med[-1] * flux_model
         flux_model = self.model_photo(med, zred=zred, filters=filters)
         output['flux_photo_model'] = flux_model 
        
@@ -305,6 +306,7 @@ class iFSPS(Fitter):
     
         output = {} 
         output['redshift'] = zred
+        output['theta_names'] = self.theta_names
         output['theta_med'] = med 
         output['theta_1sig_plus'] = high
         output['theta_2sig_plus'] = highhigh
@@ -312,8 +314,8 @@ class iFSPS(Fitter):
         output['theta_2sig_minus'] = lowlow
     
         w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs)
-        output['wavelength_model'] = w_model[0]
-        output['flux_spec_model'] = flux_model[0]
+        output['wavelength_model'] = w_model
+        output['flux_spec_model'] = flux_model
        
         output['wavelength_data'] = wave_obs
         output['flux_spec_data'] = flux_obs
@@ -415,6 +417,7 @@ class iFSPS(Fitter):
     
         output = {} 
         output['redshift'] = zred
+        output['theta_names'] = self.theta_names
         output['theta_med'] = med 
         output['theta_1sig_plus'] = high
         output['theta_2sig_plus'] = highhigh
@@ -888,6 +891,17 @@ class iFSPS(Fitter):
             raise NotImplementedError("specified bands not implemented") 
         return bands_list 
 
+    def _init_model(self, model_name): 
+        ''' initialize theta values 
+        '''
+        self.model_name = model_name # store model name 
+        if self.model_name in ['vanilla', 'vanilla_kroupa']: 
+            names = ['logmstar', 'z_metal', 'dust2', 'tau']
+        elif self.model_name == 'vanilla_complexdust': 
+            names = ['logmstar', 'z_metal', 'dust1', 'dust2', 'dust_index', 'tau']
+        self.theta_names = names 
+        return None 
+
     def _default_prior(self, f_fiber_prior=None): 
         ''' return default prior object 
         '''
@@ -897,6 +911,7 @@ class iFSPS(Fitter):
             prior_max = [13., 1., 10., 10.]
         elif self.model_name == 'vanilla_complexdust': 
             # thetas: mass, Z, dust1, dust2, dust_index, tau
+            names = ['logmstar', 'z_metal', 'dust1', 'dust2', 'dust_index', 'tau']
             prior_min = [8., -3., 0., 0., -2.2, 0.1]
             prior_max = [13., 1., 4., 4., 0.4, 10.]
 
@@ -918,7 +933,7 @@ class iSpeculator(iFSPS):
     SFH coefficients.**
     '''
     def __init__(self, model_name='emulator', cosmo=cosmo): 
-        self.model_name = model_name 
+        self._init_model(model_name)
         self.cosmo = cosmo # cosmology  
         self._load_model_params() # load emulator parameters
         self._load_NMF_bases() # read SFH and ZH basis 
@@ -1045,6 +1060,7 @@ class iSpeculator(iFSPS):
     
         output = {} 
         output['redshift'] = zred
+        output['theta_names'] = self.theta_names
         output['theta_med'] = med 
         output['theta_1sig_plus'] = high
         output['theta_2sig_plus'] = highhigh
@@ -1162,6 +1178,7 @@ class iSpeculator(iFSPS):
     
         output = {} 
         output['redshift'] = zred
+        output['theta_names'] = self.theta_names
         output['theta_med'] = med 
         output['theta_1sig_plus'] = high
         output['theta_2sig_plus'] = highhigh
@@ -1615,7 +1632,23 @@ class iSpeculator(iFSPS):
         else: 
             raise NotImplementedError("specified bands not implemented") 
         return bands_list 
-    
+   
+    def _init_model(self, model_name): 
+        ''' initialize theta values 
+        '''
+        self.model_name = model_name # store model name 
+        if self.model_name in ['emulator', 'ifsps']: 
+            names = ['logmstar', 'beta1_sfh', 'beta2_sfh', 'beta3_sfh',
+                    'beta4_sfh', 'gamma1_zh', 'gamma2_zh', 'tau']
+        elif self.model_name == 'ifsps_complexdust': 
+            names = ['logmstar', 'beta1_sfh', 'beta2_sfh', 'beta3_sfh',
+                    'beta4_sfh', 'gamma1_zh', 'gamma2_zh', 'dust1', 'dust2',
+                    'dust_index']
+        else: 
+            raise NotImplementedError 
+        self.theta_names = names 
+        return None 
+
     def _default_prior(self, f_fiber_prior=None): 
         ''' return default prior object. this prior spans the *transformed* SFH basis coefficients. 
         Because of this transformation, we use uniform priors. 

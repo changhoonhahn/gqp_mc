@@ -36,7 +36,7 @@ mpl.rcParams['legend.frameon'] = False
 
 theta_dict = {
         'ifsps_vanilla': ['$\log M_*$', '$\log Z$', 'dust2', r'$\tau$'], 
-        'ifsps_complexduxt': ['$\log M_*$', '$\log Z$', 'dust1', 'dust2', 'dust index', r'$\tau$'], 
+        'ifsps_vanilla_complexdust': ['$\log M_*$', '$\log Z$', 'dust1', 'dust2', 'dust index', r'$\tau$'], 
         'ispeculator_emulator': [r'$\log M_*^{\rm fib}$', r'$\beta_1^{\rm SFH}$', r'$\beta_2^{\rm SFH}$', r'$\beta_3^{\rm SFH}$', r'$\beta_4^{\rm SFH}$', r'$\gamma_1^{\rm ZH}$', r'$\gamma_2^{\rm ZH}$', r'$\tau$']
         } 
 

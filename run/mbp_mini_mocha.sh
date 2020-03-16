@@ -11,10 +11,10 @@ echo 'fitting galaxies # '$i0' to '$i1
 # --- iFSPS fitting --- 
 #python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
 #    spec $sim $i0 $i1 bgs0 ifsps vanilla 1 10 100 1000 True 
-python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
-    photo $sim $i0 $i1 legacy ifsps vanilla 1 10 100 1000 False 
-python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
-    specphoto $sim $i0 $i1 bgs0_legacy ifsps vanilla 1 20 100 1000 False
+#python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
+#    photo $sim $i0 $i1 legacy ifsps vanilla 1 10 100 1000 False 
+#python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
+#    specphoto $sim $i0 $i1 bgs0_legacy ifsps vanilla 1 20 100 1000 False
 
 # --- iSpeculator fitting w/ emulator --- 
 #python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
@@ -45,5 +45,5 @@ python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
 #    spec $sim $i0 $i1 bgs0 ifsps vanilla_complexdust 1 20 100 1000 True
 #python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
 #    photo $sim $i0 $i1 legacy ifsps vanilla_complexdust 1 20 100 1000 True
-#python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
-#    specphoto $sim $i0 $i1 bgs0_legacy ifsps vanilla_complexdust 1 20 100 1000 True
+python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
+    specphoto $sim $i0 $i1 bgs0_legacy ifsps vanilla_complexdust 1 20 100 1000 True

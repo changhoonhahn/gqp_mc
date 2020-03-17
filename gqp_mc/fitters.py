@@ -95,8 +95,7 @@ class iFSPS(Fitter):
         self.ssp        = self._ssp_initiate() # initial ssp
         
     def MCMC_spectrophoto(self, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, prior=None, 
-            mask=None, bands='desi',
-            nwalkers=100, burnin=100, niter=1000, writeout=None, silent=True): 
+            mask=None, bands='desi', nwalkers=100, burnin=100, niter=1000, opt_maxiter=100, writeout=None, silent=True): 
         ''' infer the posterior distribution of the free parameters given spectroscopy and photometry:
         observed wavelength, spectra flux, inverse variance flux, photometry, inv. variance photometry
         using MCMC. The function outputs a dictionary with the median theta of the posterior as well as 
@@ -187,13 +186,14 @@ class iFSPS(Fitter):
                 nwalkers=nwalkers, 
                 burnin=burnin, 
                 niter=niter, 
+                maxiter=opt_maxiter,
                 silent=silent)
         # get quanitles of the posterior
         lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
     
         output = {} 
         output['redshift'] = zred
-        output['theta_names'] = self.theta_names
+        output['theta_names'] = np.array(self.theta_names, dtype='S') 
         output['theta_med'] = med 
         output['theta_1sig_plus'] = high
         output['theta_2sig_plus'] = highhigh
@@ -224,7 +224,7 @@ class iFSPS(Fitter):
         return output  
 
     def MCMC_spec(self, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, prior=None,
-            nwalkers=100, burnin=100, niter=1000, writeout=None, silent=True): 
+            nwalkers=100, burnin=100, niter=1000, opt_maxiter=100, writeout=None, silent=True): 
         ''' infer the posterior distribution of the free parameters given observed
         wavelength, spectra flux, and inverse variance using MCMC. The function 
         outputs a dictionary with the median theta of the posterior as well as the 
@@ -300,13 +300,14 @@ class iFSPS(Fitter):
                 nwalkers=nwalkers,
                 burnin=burnin, 
                 niter=niter, 
+                maxiter=opt_maxiter,
                 silent=silent)
         # get quanitles of the posterior
         lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
     
         output = {} 
         output['redshift'] = zred
-        output['theta_names'] = self.theta_names
+        output['theta_names'] = np.array(self.theta_names, dtype='S') 
         output['theta_med'] = med 
         output['theta_1sig_plus'] = high
         output['theta_2sig_plus'] = highhigh
@@ -333,7 +334,7 @@ class iFSPS(Fitter):
         return output  
     
     def MCMC_photo(self, photo_obs, photo_ivar_obs, zred, bands='desi', prior=None,
-            nwalkers=100, burnin=100, niter=1000, writeout=None, silent=True): 
+            nwalkers=100, burnin=100, niter=1000, opt_maxiter=100, writeout=None, silent=True): 
         ''' infer the posterior distribution of the free parameters given observed
         photometric flux, and inverse variance using MCMC. The function 
         outputs a dictionary with the median theta of the posterior as well as the 
@@ -411,13 +412,14 @@ class iFSPS(Fitter):
                 nwalkers=nwalkers, 
                 burnin=burnin, 
                 niter=niter, 
+                maxiter=opt_maxiter,
                 silent=silent)
         # get quanitles of the posterior
         lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
     
         output = {} 
         output['redshift'] = zred
-        output['theta_names'] = self.theta_names
+        output['theta_names'] = np.array(self.theta_names, dtype='S') 
         output['theta_med'] = med 
         output['theta_1sig_plus'] = high
         output['theta_2sig_plus'] = highhigh
@@ -650,7 +652,8 @@ class iFSPS(Fitter):
         avsfr *= theta['mass']
         return np.clip(avsfr, 0, np.inf)
 
-    def _emcee(self, lnpost_fn, lnpost_args, lnpost_kwargs, nwalkers=100, burnin=100, niter=1000, silent=True): 
+    def _emcee(self, lnpost_fn, lnpost_args, lnpost_kwargs, nwalkers=100,
+            burnin=100, niter=1000, maxiter=1000, silent=True): 
         ''' Runs MCMC (using emcee) for a given log posterior function.
         '''
         import scipy.optimize as op
@@ -670,8 +673,16 @@ class iFSPS(Fitter):
                 _lnpost, 
                 0.5*(lnpost_kwargs['prior'].max + lnpost_kwargs['prior'].min), # guess the middle of the prior 
                 args=lnpost_args, 
-                method='BFGS', 
-                options={'eps': 0.01 * dprior, 'maxiter': 100})
+                method='Nelder-Mead', 
+                options={'maxiter': maxiter}
+                ) 
+        #min_result = op.minimize(
+        #        _lnpost, 
+        #        0.5*(lnpost_kwargs['prior'].max + lnpost_kwargs['prior'].min), # guess the middle of the prior 
+        #        args=lnpost_args, 
+        #        method='L-BFGS-B', 
+        #        bounds=[(_min, _max) for _min, _max in zip(lnpost_kwargs['prior'].min, lnpost_kwargs['prior'].max)]
+        #        ) 
         tt0 = min_result['x'] 
         if not silent: print('initial theta = [%s]' % ', '.join([str(_t) for _t in tt0])) 
     
@@ -950,8 +961,7 @@ class iSpeculator(iFSPS):
                 Interp.InterpolatedUnivariateSpline(_z, _d_lum_cm, k=3)
 
     def MCMC_spectrophoto(self, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, prior=None, 
-            mask=None, bands='desi',
-            nwalkers=100, burnin=100, niter=1000, writeout=None, silent=True): 
+            mask=None, bands='desi', nwalkers=100, burnin=100, niter=1000, opt_maxiter=100, writeout=None, silent=True): 
         ''' infer the posterior distribution of the free parameters given spectroscopy and photometry:
         observed wavelength, spectra flux, inverse variance flux, photometry, inv. variance photometry
         using MCMC. The function outputs a dictionary with the median theta of the posterior as well as 
@@ -1050,6 +1060,7 @@ class iSpeculator(iFSPS):
                 nwalkers=nwalkers,
                 burnin=burnin, 
                 niter=niter, 
+                maxiter=opt_maxiter, 
                 silent=silent)
         # transform chain back to original SFH basis 
         chain = _chain.copy() 
@@ -1060,7 +1071,7 @@ class iSpeculator(iFSPS):
     
         output = {} 
         output['redshift'] = zred
-        output['theta_names'] = self.theta_names
+        output['theta_names'] = np.array(self.theta_names, dtype='S') 
         output['theta_med'] = med 
         output['theta_1sig_plus'] = high
         output['theta_2sig_plus'] = highhigh
@@ -1093,7 +1104,7 @@ class iSpeculator(iFSPS):
         return output  
 
     def MCMC_spec(self, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, prior=None,
-            nwalkers=100, burnin=100, niter=1000, writeout=None, silent=True): 
+            nwalkers=100, burnin=100, niter=1000, opt_maxiter=100, writeout=None, silent=True): 
         ''' infer the posterior distribution of the free parameters given observed
         wavelength, spectra flux, and inverse variance using MCMC. The function 
         outputs a dictionary with the median theta of the posterior as well as the 
@@ -1169,6 +1180,7 @@ class iSpeculator(iFSPS):
                 nwalkers=nwalkers, 
                 burnin=burnin, 
                 niter=niter, 
+                maxiter=opt_maxiter,
                 silent=silent)
         # transform chain back to original SFH basis 
         chain = _chain.copy() 
@@ -1178,7 +1190,7 @@ class iSpeculator(iFSPS):
     
         output = {} 
         output['redshift'] = zred
-        output['theta_names'] = self.theta_names
+        output['theta_names'] = np.array(self.theta_names, dtype='S') 
         output['theta_med'] = med 
         output['theta_1sig_plus'] = high
         output['theta_2sig_plus'] = highhigh
@@ -1205,7 +1217,7 @@ class iSpeculator(iFSPS):
         return output  
     
     def MCMC_photo(self, photo_obs, photo_ivar_obs, zred, bands='desi', prior=None,
-            nwalkers=100, burnin=100, niter=1000, writeout=None, silent=True): 
+            nwalkers=100, burnin=100, niter=1000, opt_maxiter=100, writeout=None, silent=True): 
         ''' infer the posterior distribution of the free parameters given observed
         photometric flux, and inverse variance using MCMC. The function 
         outputs a dictionary with the median theta of the posterior as well as the 
@@ -1281,6 +1293,7 @@ class iSpeculator(iFSPS):
                 nwalkers=nwalkers, 
                 burnin=burnin, 
                 niter=niter, 
+                maxiter=opt_maxiter, 
                 silent=silent)
         # transform chain back to original SFH basis 
         chain = _chain.copy() 
@@ -1290,6 +1303,7 @@ class iSpeculator(iFSPS):
     
         output = {} 
         output['redshift'] = zred
+        output['theta_names'] = np.array(self.theta_names, dtype='S') 
         output['theta_med'] = med 
         output['theta_1sig_plus'] = high
         output['theta_2sig_plus'] = highhigh

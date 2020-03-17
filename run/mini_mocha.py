@@ -150,7 +150,7 @@ def validate_sample(sim):
 
 def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps', 
         model='emulator', nwalkers=100, burnin=100, niter=1000,
-        overwrite=False, justplot=False): 
+        opt_maxiter=100, overwrite=False, justplot=False): 
     ''' Fit simulated photometry. `noise` specifies whether to fit spectra without noise or 
     with legacy-like noise. `dust` specifies whether to if spectra w/ dust or not. 
     Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
@@ -226,6 +226,7 @@ def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps',
                 nwalkers=nwalkers, 
                 burnin=burnin, 
                 niter=niter, 
+                opt_maxiter=opt_maxiter, 
                 writeout=f_bf,
                 silent=False)
 
@@ -276,7 +277,7 @@ def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps',
 
 def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
         method='ifsps', model='emulator', nwalkers=100, burnin=100, niter=1000,
-        overwrite=False, justplot=False):  
+        opt_maxiter=100, overwrite=False, justplot=False):  
     ''' Fit Lgal spectra. `noise` specifies whether to fit spectra without noise or 
     with BGS-like noise. Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
 
@@ -314,9 +315,10 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
         photo_ivar_obs  = photo['ivar'][igal,:5]
 
     # get fiber flux factor prior range based on measured fiber flux 
-    f_fiber_true = (photo['fiberflux_r_meas'][igal]/photo['flux_r_true'][igal]) 
-    f_fiber_min = (photo['fiberflux_r_meas'][igal] - 3.*photo['fiberflux_r_ivar'][igal]**-0.5)/photo['flux'][igal,1]
-    f_fiber_max = (photo['fiberflux_r_meas'][igal] + 3.*photo['fiberflux_r_ivar'][igal]**-0.5)/photo['flux'][igal,1]
+    f_fiber_true = (photo['fiberflux_r_true'][igal]/photo['flux_r_true'][igal]) 
+    prior_width = np.max([0.05, 5.*photo['fiberflux_r_ivar'][igal]**-0.5/photo['flux'][igal,1]])
+    f_fiber_min = (photo['fiberflux_r_meas'][igal])/photo['flux'][igal,1] - prior_width
+    f_fiber_max = (photo['fiberflux_r_meas'][igal])/photo['flux'][igal,1] + prior_width
     f_fiber_prior = [f_fiber_min, f_fiber_max]
 
     labels      = theta_dict['%s_%s' % (method, model)].copy() 
@@ -324,12 +326,12 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
     truths      = [None for _ in labels] 
     truths[0]   = meta['logM_total'][igal] 
     truths[-1]  = f_fiber_true
-    print(truths)
 
     print('--- input ---') 
     print('z = %f' % meta['redshift'][igal])
     print('log M* total = %f' % meta['logM_total'][igal])
     print('log M* fiber = %f' % meta['logM_fiber'][igal])
+    print('f_fiber = %f' % f_fiber_true) 
     print('log SFR = %f' % np.log10(meta['sfr_100myr'][igal])) 
 
     f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', method, 
@@ -368,6 +370,7 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
                 nwalkers=nwalkers, 
                 burnin=burnin, 
                 niter=niter, 
+                opt_maxiter=opt_maxiter, 
                 writeout=f_bf,
                 silent=False)
     print('log M* total = %f' % bestfit['theta_med'][0])
@@ -462,6 +465,7 @@ def MP_sed_fit(spec_or_photo, igals, sim='lgal', noise='none', method='ifsps',
             'nwalkers': nwalkers,
             'burnin': burnin,
             'niter': niter, 
+            'opt_maxiter': 1000, 
             'overwrite': overwrite, 
             'justplot': justplot
             }

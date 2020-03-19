@@ -3,22 +3,22 @@
 
 sim='lgal'
 i0=0
-i1=1
+i1=0
 
 echo 'fitting galaxies # '$i0' to '$i1
 #python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py construct $sim
 
 # --- iFSPS fitting --- 
 #python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
-#    photo $sim $i0 $i1 legacy ifsps vanilla 1 10 100 1000 False 
+#    photo $sim $i0 $i1 legacy ifsps vanilla 1 10 10 20 True #1000 True 
 #python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
-#    specphoto $sim $i0 $i1 bgs0_legacy ifsps vanilla 1 20 100 1000 False
+#    specphoto $sim $i0 $i1 bgs0_legacy ifsps vanilla 1 20 10 20 True #1000 True
 
 # --- iSpeculator fitting w/ emulator --- 
 python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
-    photo $sim $i0 $i1 legacy ispeculator emulator 1 20 200 4000 True 
-#python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
-#    specphoto $sim $i0 $i1 bgs0_legacy ispeculator emulator 1 40 200 4000 True 
+    photo $sim $i0 $i1 legacy ispeculator emulator 1 20 20 40 True #200 4000 True 
+python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
+    specphoto $sim $i0 $i1 bgs0_legacy ispeculator emulator 1 40 20 40 True #200 4000 True 
 
 # --- iSpeculator fitting w/ fsps --- 
 #python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \

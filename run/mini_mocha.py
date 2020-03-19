@@ -34,11 +34,23 @@ mpl.rcParams['ytick.major.width'] = 1.5
 mpl.rcParams['legend.frameon'] = False
 
 
-theta_dict = {
-        'ifsps_vanilla': ['$\log M_*$', '$\log Z$', 'dust2', r'$\tau$'], 
-        'ifsps_vanilla_complexdust': ['$\log M_*$', '$\log Z$', 'dust1', 'dust2', 'dust index', r'$\tau$'], 
-        'ispeculator_emulator': [r'$\log M_*^{\rm fib}$', r'$\beta_1^{\rm SFH}$', r'$\beta_2^{\rm SFH}$', r'$\beta_3^{\rm SFH}$', r'$\beta_4^{\rm SFH}$', r'$\gamma_1^{\rm ZH}$', r'$\gamma_2^{\rm ZH}$', r'$\tau$']
-        } 
+lbl_dict = {
+        'logmstar': r'$\log M_*$', 
+        'z_metal': r'$\log Z$',
+        'dust1': 'dust1', 
+        'dust2': 'dust2', 
+        'dust_index': 'dust_index', 
+        'tau': r'$\tau$', 
+        'f_fiber': r'$f_{\rm fiber}$',
+        'beta1_sfh': r'$\beta_1^{\rm SFH}$', 
+        'beta2_sfh': r'$\beta_2^{\rm SFH}$', 
+        'beta3_sfh': r'$\beta_3^{\rm SFH}$', 
+        'beta4_sfh': r'$\beta_4^{\rm SFH}$', 
+        'gamma1_zh': r'$\gamma_1^{\rm ZH}$', 
+        'gamma2_zh': r'$\gamma_2^{\rm ZH}$',
+        'logsfr.100myr': r'$\log {\rm SFR}_{\rm 100 Myr}$',
+        'logsfr.1gyr': r'$\log {\rm SFR}_{\rm 1 Gyr}$',
+        }
 
 
 def construct_sample(sim): 
@@ -177,6 +189,10 @@ def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps',
         # current Speculator wavelength doesn't extend far enough
         return None 
 
+    print('--- input ---') 
+    print('z = %f' % meta['redshift'][igal])
+    print('log M* total = %f' % meta['logM_total'][igal])
+
     if method == 'ispeculator':  
         photo_obs   = photo['flux'][igal,:3]
         ivar_obs    = photo['ivar'][igal,:3]
@@ -184,14 +200,6 @@ def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps',
         photo_obs   = photo['flux'][igal,:5]
         ivar_obs    = photo['ivar'][igal,:5]
 
-    labels      = theta_dict['%s_%s' % (method, model)].copy() 
-    truths      = [None for _ in labels] 
-    truths[0]   = meta['logM_total'][igal] 
-
-    print('--- input ---') 
-    print('z = %f' % meta['redshift'][igal])
-    print('log M* total = %f' % meta['logM_total'][igal])
-    
     f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', method,  
             '%s.photo.noise_%s.%s.%i.hdf5' % (sim, noise, model, igal))
     
@@ -229,26 +237,13 @@ def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps',
                 opt_maxiter=opt_maxiter, 
                 writeout=f_bf,
                 silent=False)
+    
+    labels      = [lbl_dict[_t] for _t in bestfit['theta_names'].astype(str)]
+    truths      = [None for _ in labels] 
+    truths[0]   = meta['logM_total'][igal] 
 
     print('log M* total = %f' % bestfit['theta_med'][0])
     print('---------------') 
-    if 'logsfr.100' not in bestfit['theta_names'].astype(str): 
-        print('    appending logsfr.100 to markov chain') 
-        # calculate sfr_100myr for MC chain add it in 
-        bestfit['mcmc_chain'] = ifitter.add_logSFR_to_chain(bestfit['mcmc_chain'],
-                meta['redshift'][igal], dt=0.1) 
-        bestfit['prior_range'] = np.concatenate([bestfit['prior_range'],
-            np.array([[-4., 4]])], axis=0) 
-        bestfit['theta_names'] = np.array(list(bestfit['theta_names'].astype(str)) + ['logsfr.100'],
-                dtype='S') 
-        
-        fbestfit = h5py.File(f_bf, 'w')  
-        for k in bestfit.keys(): 
-            fbestfit[k] = bestfit[k] 
-        fbestfit.close() 
-
-    truths += [np.log10(meta['sfr_100myr'][igal])]
-    labels += [r'$\log {\rm SFR}_{\rm 100 Myr}$'] 
         
     try: 
         # plotting on nersc never works.
@@ -321,12 +316,6 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
     f_fiber_max = (photo['fiberflux_r_meas'][igal])/photo['flux'][igal,1] + prior_width
     f_fiber_prior = [f_fiber_min, f_fiber_max]
 
-    labels      = theta_dict['%s_%s' % (method, model)].copy() 
-    labels      += [r'$f_{\rm fiber}$']
-    truths      = [None for _ in labels] 
-    truths[0]   = meta['logM_total'][igal] 
-    truths[-1]  = f_fiber_true
-
     print('--- input ---') 
     print('z = %f' % meta['redshift'][igal])
     print('log M* total = %f' % meta['logM_total'][igal])
@@ -373,27 +362,19 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
                 opt_maxiter=opt_maxiter, 
                 writeout=f_bf,
                 silent=False)
-    print('log M* total = %f' % bestfit['theta_med'][0])
-    print('log M* fiber = %f' % (bestfit['theta_med'][0] + np.log10(bestfit['theta_med'][-1])))
-    
-    if 'logsfr.100' not in bestfit['theta_names'].astype(str): 
-        print('    appending logsfr.100 to markov chain') 
-        # calculate sfr_100myr for MC chain add it in 
-        bestfit['mcmc_chain'] = ifitter.add_logSFR_to_chain(bestfit['mcmc_chain'],
-                meta['redshift'][igal], dt=0.1) 
-        bestfit['prior_range'] = np.concatenate([bestfit['prior_range'],
-            np.array([[-4., 4]])], axis=0) 
-        bestfit['theta_names'] = np.array(list(bestfit['theta_names'].astype(str)) + ['logsfr.100'],
-                dtype='S') 
-        
-        fbestfit = h5py.File(f_bf, 'w')  
-        for k in bestfit.keys(): 
-            fbestfit[k] = bestfit[k] 
-        fbestfit.close() 
 
-    truths += [np.log10(meta['sfr_100myr'][igal])]
-    labels += [r'$\log {\rm SFR}_{\rm 100 Myr}$'] 
-    print('log SFR = %f' % (np.median(bestfit['mcmc_chain'][:,-1])))
+    i_fib = list(bestfit['theta_names'].astype(str)).index('f_fiber')  
+    i_sfr = list(bestfit['theta_names'].astype(str)).index('logsfr.100myr')  
+
+    labels      = [lbl_dict[_t] for _t in bestfit['theta_names'].astype(str)]
+    truths          = [None for _ in labels] 
+    truths[0]       = meta['logM_total'][igal] 
+    truths[i_fib]   = f_fiber_true
+    truths[i_sfr]   = np.log10(meta['sfr_100myr'][igal])
+
+    print('log M* total = %f' % bestfit['theta_med'][0])
+    print('log M* fiber = %f' % (bestfit['theta_med'][0] + np.log10(bestfit['theta_med'][i_fib])))
+    print('log SFR = %f' % (bestfit['theta_med'][i_sfr]))
     print('---------------') 
     try: 
         # plotting on nersc never works.

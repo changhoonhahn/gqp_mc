@@ -179,7 +179,7 @@ class iFSPS(Fitter):
                 }
         
         # run emcee and get MCMC chains 
-        chain = self._emcee(
+        _chain = self._emcee(
                 self._lnPost_spectrophoto, 
                 lnpost_args, 
                 lnpost_kwargs, 
@@ -188,6 +188,29 @@ class iFSPS(Fitter):
                 niter=niter, 
                 maxiter=opt_maxiter,
                 silent=silent)
+
+        prior_ranges = np.vstack([prior.min, prior.max]).T
+    
+        self.theta_names += ['f_fiber']
+
+        # calculate 100 Myr and 1Gyr logSFRs from the posteriors 
+        self.theta_names += ['logsfr.100myr']
+        logsfr100myr = np.log10(
+                np.array([self.get_SFR(tt, zred, dt=0.1) for tt in _chain])
+                ).flatten() 
+
+        self.theta_names += ['logsfr.1gyr']
+        logsfr1gyr = np.log10(
+                np.array([self.get_SFR(tt, zred, dt=1.) for tt in _chain])
+                ).flatten() 
+        # concatenate SFRs to the markov chain  
+        chain = np.concatenate([
+            _chain, 
+            np.atleast_2d(logsfr100myr).T,
+            np.atleast_2d(logsfr1gyr).T],
+            axis=1) 
+        prior_ranges = np.concatenate([prior_ranges, np.array([[-4., 4]]), np.array([[-4., 4]])], axis=0) 
+
         # get quanitles of the posterior
         lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
     
@@ -200,9 +223,9 @@ class iFSPS(Fitter):
         output['theta_1sig_minus'] = low
         output['theta_2sig_minus'] = lowlow
     
-        w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs)
+        w_model, flux_model = self.model(med[:-3], zred=zred, wavelength=wave_obs)
         output['wavelength_model'] = w_model
-        output['flux_spec_model'] = med[-1] * flux_model
+        output['flux_spec_model'] = med[-3] * flux_model
         flux_model = self.model_photo(med, zred=zred, filters=filters)
         output['flux_photo_model'] = flux_model 
        
@@ -213,7 +236,7 @@ class iFSPS(Fitter):
         output['flux_photo_ivar_data'] = photo_ivar_obs
         
         # save MCMC chain 
-        output['prior_range'] = np.vstack([prior.min, prior.max]).T
+        output['prior_range'] = prior_ranges 
         output['mcmc_chain'] = chain 
 
         if writeout is not None: 
@@ -293,7 +316,7 @@ class iFSPS(Fitter):
                 }
 
         # run emcee and get MCMC chains 
-        chain = self._emcee(
+        _chain = self._emcee(
                 self._lnPost, 
                 lnpost_args, 
                 lnpost_kwargs, 
@@ -302,6 +325,27 @@ class iFSPS(Fitter):
                 niter=niter, 
                 maxiter=opt_maxiter,
                 silent=silent)
+
+        prior_ranges = np.vstack([prior.min, prior.max]).T
+    
+        # calculate 100 Myr and 1Gyr logSFRs from the posteriors 
+        self.theta_names += ['logsfr.100myr']
+        logsfr100myr = np.log10(
+                np.array([self.get_SFR(tt, zred, dt=0.1) for tt in _chain])
+                ).flatten() 
+
+        self.theta_names += ['logsfr.1gyr']
+        logsfr1gyr = np.log10(
+                np.array([self.get_SFR(tt, zred, dt=1.) for tt in _chain])
+                ).flatten() 
+        # concatenate SFRs to the markov chain  
+        chain = np.concatenate([
+            _chain, 
+            np.atleast_2d(logsfr100myr).T,
+            np.atleast_2d(logsfr1gyr).T], 
+            axis=1) 
+        prior_ranges = np.concatenate([prior_ranges, np.array([[-4., 4]]), np.array([[-4., 4]])], axis=0) 
+
         # get quanitles of the posterior
         lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
     
@@ -314,7 +358,7 @@ class iFSPS(Fitter):
         output['theta_1sig_minus'] = low
         output['theta_2sig_minus'] = lowlow
     
-        w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs)
+        w_model, flux_model = self.model(med[:-2], zred=zred, wavelength=wave_obs)
         output['wavelength_model'] = w_model
         output['flux_spec_model'] = flux_model
        
@@ -323,7 +367,7 @@ class iFSPS(Fitter):
         output['flux_spec_ivar_data'] = flux_ivar_obs
         
         # save prior and MCMC chain 
-        output['prior_range'] = np.vstack([prior.min, prior.max]).T
+        output['prior_range'] = prior_ranges 
         output['mcmc_chain'] = chain 
 
         if writeout is not None: 
@@ -405,7 +449,7 @@ class iFSPS(Fitter):
                 }
     
         # run emcee and get MCMC chains 
-        chain = self._emcee(
+        _chain = self._emcee(
                 self._lnPost_photo, 
                 lnpost_args,
                 lnpost_kwargs, 
@@ -414,6 +458,27 @@ class iFSPS(Fitter):
                 niter=niter, 
                 maxiter=opt_maxiter,
                 silent=silent)
+
+        prior_ranges = np.vstack([prior.min, prior.max]).T
+    
+        # calculate 100 Myr and 1Gyr logSFRs from the posteriors 
+        self.theta_names += ['logsfr.100myr']
+        logsfr100myr = np.log10(
+                np.array([self.get_SFR(tt, zred, dt=0.1) for tt in _chain])
+                ).flatten() 
+
+        self.theta_names += ['logsfr.1gyr']
+        logsfr1gyr = np.log10(
+                np.array([self.get_SFR(tt, zred, dt=1.) for tt in _chain])
+                ).flatten() 
+        # concatenate SFRs to the markov chain  
+        chain = np.concatenate([
+            _chain, 
+            np.atleast_2d(logsfr100myr).T,
+            np.atleast_2d(logsfr1gyr).T], 
+            axis=1) 
+        prior_ranges = np.concatenate([prior_ranges, np.array([[-4., 4]]), np.array([[-4., 4]])], axis=0) 
+
         # get quanitles of the posterior
         lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
     
@@ -426,13 +491,13 @@ class iFSPS(Fitter):
         output['theta_1sig_minus'] = low
         output['theta_2sig_minus'] = lowlow
     
-        flux_model = self.model_photo(med, zred=zred, filters=filters)
+        flux_model = self.model_photo(med[:-2], zred=zred, filters=filters)
         output['flux_photo_model'] = flux_model
         output['flux_photo_data'] = photo_obs
         output['flux_photo_ivar_data'] = photo_ivar_obs
     
         # save prior and MCMC chain 
-        output['prior_range'] = np.vstack([prior.min, prior.max]).T
+        output['prior_range'] = prior_ranges
         output['mcmc_chain'] = chain 
 
         if writeout is not None: 
@@ -581,22 +646,6 @@ class iFSPS(Fitter):
         avg_sfr, notoldenough  = self.get_SFR(mcmc_chain, zred, dt=dt)
         return np.percentile(avg_sfr, [2.5, 16, 50, 84, 97.5])
 
-    def add_logSFR_to_chain(self, mcmc_chain, zred, dt=0.1): 
-        ''' calculate the logSFR for the parameters in the MC chain and add it
-        to the chain. 
-        '''
-        logsfr_chain = np.log10(
-                np.array([self.get_SFR(tt, zred, dt=0.1) 
-                    for tt in mcmc_chain]))
-        
-        nchain = mcmc_chain.shape[0] 
-        if (np.atleast_2d(logsfr_chain)).shape[0] == nchain: 
-            mcmc_chain = np.concatenate([mcmc_chain, np.atleast_2d(logsfr_chain)], axis=1) 
-        else: 
-            mcmc_chain = np.concatenate([mcmc_chain,
-                np.atleast_2d(logsfr_chain).T], axis=1) 
-        return mcmc_chain 
-    
     def get_SFR(self, tt, zred, dt=1.):
         ''' given theta calculate SFR averaged over dt Gyr
 
@@ -1062,9 +1111,33 @@ class iSpeculator(iFSPS):
                 niter=niter, 
                 maxiter=opt_maxiter, 
                 silent=silent)
+
         # transform chain back to original SFH basis 
         chain = _chain.copy() 
         chain[:,1:5] = self._transform_to_SFH_basis(_chain[:,1:5]) 
+
+        self.theta_names += ['f_fiber']
+
+        prior_ranges = np.vstack([prior.min, prior.max]).T
+    
+        # calculate 100 Myr and 1Gyr logSFRs from the posteriors 
+        self.theta_names += ['logsfr.100myr']
+        logsfr100myr = np.log10(
+                np.array([self.get_SFR(tt, zred, dt=0.1) for tt in chain])
+                ).flatten() 
+
+        self.theta_names += ['logsfr.1gyr']
+        logsfr1gyr = np.log10(
+                np.array([self.get_SFR(tt, zred, dt=1.) for tt in chain])
+                ).flatten() 
+
+        # concatenate SFRs to the markov chain  
+        chain = np.concatenate([
+            chain, 
+            np.atleast_2d(logsfr100myr).T,
+            np.atleast_2d(logsfr1gyr).T], 
+            axis=1) 
+        prior_ranges = np.concatenate([prior_ranges, np.array([[-4., 4]]), np.array([[-4., 4]])], axis=0) 
 
         # get quanitles of the posterior
         lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
@@ -1078,12 +1151,12 @@ class iSpeculator(iFSPS):
         output['theta_1sig_minus'] = low
         output['theta_2sig_minus'] = lowlow
     
-        w_model, flux_model = self.model(med[:-1], zred=zred,
+        w_model, flux_model = self.model(med[:-3], zred=zred,
                 wavelength=wave_obs, dont_transform=True) 
-        photo_model = self.model_photo(med[:-1], zred=zred, filters=filters,
+        photo_model = self.model_photo(med[:-3], zred=zred, filters=filters,
                 dont_transform=True) 
         output['wavelength_model'] = w_model
-        output['flux_spec_model'] = med[-1] * flux_model
+        output['flux_spec_model'] = med[-3] * flux_model
         output['flux_photo_model'] = photo_model
        
         output['wavelength_data'] = wave_obs
@@ -1093,7 +1166,7 @@ class iSpeculator(iFSPS):
         output['flux_photo_ivar_data'] = photo_ivar_obs
         
         # save MCMC chain 
-        output['prior_range'] = np.vstack([prior.min, prior.max]).T
+        output['prior_range'] = prior_ranges 
         output['mcmc_chain'] = chain 
 
         if writeout is not None: 
@@ -1185,6 +1258,28 @@ class iSpeculator(iFSPS):
         # transform chain back to original SFH basis 
         chain = _chain.copy() 
         chain[:,1:5] = self._transform_to_SFH_basis(_chain[:,1:5]) 
+
+        prior_ranges = np.vstack([prior.min, prior.max]).T
+    
+        # calculate 100 Myr and 1Gyr logSFRs from the posteriors 
+        self.theta_names = self.theta_names + ['logsfr.100myr']
+        logsfr100myr = np.log10(
+                np.array([self.get_SFR(tt, zred, dt=0.1) for tt in chain])
+                ).flatten() 
+
+        self.theta_names = self.theta_names + ['logsfr.1gyr']
+        logsfr1gyr = np.log10(
+                np.array([self.get_SFR(tt, zred, dt=1.) for tt in chain])
+                ).flatten() 
+
+        # concatenate SFRs to the markov chain  
+        chain = np.concatenate([
+            chain, 
+            np.atleast_2d(logsfr100myr).T,
+            np.atleast_2d(logsfr1gyr).T], 
+            axis=1) 
+        prior_ranges = np.concatenate([prior_ranges, np.array([[-4., 4]]), np.array([[-4., 4]])], axis=0) 
+
         # get quanitles of the posterior
         lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
     
@@ -1197,7 +1292,7 @@ class iSpeculator(iFSPS):
         output['theta_1sig_minus'] = low
         output['theta_2sig_minus'] = lowlow
     
-        w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs, dont_transform=True)
+        w_model, flux_model = self.model(med[:-2], zred=zred, wavelength=wave_obs, dont_transform=True)
         output['wavelength_model'] = w_model
         output['flux_spec_model'] = flux_model
        
@@ -1206,7 +1301,7 @@ class iSpeculator(iFSPS):
         output['flux_spec_ivar_data'] = flux_ivar_obs
         
         # save prior and MCMC chain 
-        output['prior_range'] = np.vstack([prior.min, prior.max]).T
+        output['prior_range'] = prior_ranges 
         output['mcmc_chain'] = chain 
 
         if writeout is not None: 
@@ -1298,6 +1393,28 @@ class iSpeculator(iFSPS):
         # transform chain back to original SFH basis 
         chain = _chain.copy() 
         chain[:,1:5] = self._transform_to_SFH_basis(_chain[:,1:5]) 
+
+        prior_ranges = np.vstack([prior.min, prior.max]).T
+    
+        # calculate 100 Myr and 1Gyr logSFRs from the posteriors 
+        self.theta_names = self.theta_names + ['logsfr.100myr']
+        logsfr100myr = np.log10(
+                np.array([self.get_SFR(tt, zred, dt=0.1) for tt in chain])
+                ).flatten() 
+
+        self.theta_names = self.theta_names + ['logsfr.1gyr']
+        logsfr1gyr = np.log10(
+                np.array([self.get_SFR(tt, zred, dt=1.) for tt in chain])
+                ).flatten() 
+
+        # concatenate SFRs to the markov chain  
+        chain = np.concatenate([
+            chain, 
+            np.atleast_2d(logsfr100myr).T,
+            np.atleast_2d(logsfr1gyr).T], 
+            axis=1) 
+        prior_ranges = np.concatenate([prior_ranges, np.array([[-4., 4]]), np.array([[-4., 4]])], axis=0) 
+
         # get quanitles of the posterior
         lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
     
@@ -1310,13 +1427,13 @@ class iSpeculator(iFSPS):
         output['theta_1sig_minus'] = low
         output['theta_2sig_minus'] = lowlow
     
-        flux_model = self.model_photo(med, zred=zred, filters=filters, dont_transform=True)
+        flux_model = self.model_photo(med[:-2], zred=zred, filters=filters, dont_transform=True)
         output['flux_photo_model'] = flux_model 
         output['flux_photo_data'] = photo_obs
         output['flux_photo_ivar_data'] = photo_ivar_obs
     
         # save prior and MCMC chain 
-        output['prior_range'] = np.vstack([prior.min, prior.max]).T
+        output['prior_range'] = prior_ranges 
         output['mcmc_chain'] = chain 
 
         if writeout is not None: 

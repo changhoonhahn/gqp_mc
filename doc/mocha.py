@@ -708,171 +708,61 @@ def mini_mocha_specphoto(noise='bgs0_legacy', method='ifsps', sfr='1gyr'):
 
 
 def photo_vs_specphoto(sim='lgal', noise_photo='legacy', noise_specphoto='bgs0_legacy',
-        method='ifsps', model='vanilla'):  
+        method='ifsps', model='vanilla', sample='mini_mocha'):  
     ''' Compare properties inferred from photometry versus spectrophotometry to see how much
     information is gained from adding spectra
     '''
-    assert noise_specphoto.split('_')[1] == noise_photo
     # read noiseless Lgal spectra of the spectral_challenge mocks
-    specs, meta = Data.Spectra(sim=sim, noise=noise_specphoto.split('_')[0], lib='bc03', sample='mini_mocha') 
-    # read Lgal photometry of the mini_mocha mocks
-    photo, _ = Data.Photometry(sim=sim, noise=noise_specphoto.split('_')[1], lib='bc03', sample='mini_mocha')
-
+    _, meta = Data.Spectra(sim=sim, noise=noise_photo, lib='bc03', sample='mini_mocha') 
     logMstar_sim  = np.array(meta['logM_total']) # total mass 
     logSFR_sim    = np.log10(np.array(meta['sfr_100myr'])) 
     # --------------------------------------------------------------------------------
-    # assemble all markov chains 
-    igals = [] 
-    dlogMs_photo, dlogMs_specphoto = [], []
-    dlogSFR_photo, dlogSFR_specphoto = [], []
-    for igal in range(97): 
-        # read best-fit file and get inferred parameters from photometry
-        _fbf0 = Fbestfit_photo(igal, sim=sim, noise=noise_photo, method=method,
-                model=model) 
-        _fbf1 = Fbestfit_specphoto(igal, sim=sim, noise=noise_specphoto,
-                method=method, model=model) 
-        
-        if os.path.isfile(_fbf0) and os.path.isfile(_fbf1):
-            pass 
-        else: 
-            print('     %s does not exist' % _fbf0)
-            continue 
-
-        fbf = h5py.File(_fbf0, 'r')  
-        # d log M* chain
-        chain = fbf['mcmc_chain'][...][::10]
-        dlogMs_chain = chain[:,0] - logMstar_sim[igal] 
-        # d log SFR        
-        dlogSFR_chain = chain[:,-1] - logSFR_sim[igal]
-        
-        if np.any(np.isnan(dlogSFR_chain)) or np.any(np.isnan(dlogMs_chain)):
-            print('%i has NaNs' % igal)
-            continue 
-
-        dlogMs_photo.append(dlogMs_chain)
-        dlogSFR_photo.append(dlogSFR_chain)
-
-        # read best-fit file and get inferred parameters from spectrophoto
-        fbf = h5py.File(_fbf1, 'r')  
-        # d log M* chain
-        chain = fbf['mcmc_chain'][...][::10]
-        dlogMs_chain = chain[:,0] - logMstar_sim[igal] 
-        dlogSFR_chain = chain[:,-1] - logSFR_sim[igal]
-
-        dlogMs_specphoto.append(dlogMs_chain)
-        dlogSFR_specphoto.append(dlogSFR_chain)
-            
-        igals.append(igal) 
+    # compile MC chains 
+    _igal0, _dlogMs_photo = _read_dprop_mcmc('logmstar', obs='photo', sim=sim, 
+            noise=noise_photo, method=method, model=model, sample=sample)
+    _igal1, _dlogMs_specphoto = _read_dprop_mcmc('logmstar', obs='specphoto', sim=sim, 
+            noise=noise_specphoto, method=method, model=model, sample=sample)
+    igal_m, m0, m1 = np.intersect1d(_igal0, _igal1, return_indices=True) 
+    logm_input      = logMstar_sim[igal_m]
+    dlogm_photo     = _dlogMs_photo[m0]
+    dlogm_specphoto = _dlogMs_specphoto[m1]
     
-    dlogMs_photo = np.array(dlogMs_photo)  
-    dlogSFR_photo = np.array(dlogSFR_photo) 
-    dlogMs_specphoto = np.array(dlogMs_specphoto) 
-    dlogSFR_specphoto = np.array(dlogSFR_specphoto) 
-
-    # --------------------------------------------------------------------------------
-    # true paramater values
-    igals = np.asarray(igals).astype(int)
-    logMstar_input  = np.asarray(meta['logM_total'])[igals] # total mass 
-    logSFR_input    = np.log10(np.asarray(meta['sfr_100myr'])[igals]) 
-
+    _igal0, _dlogSFRs_photo = _read_dprop_mcmc('logsfr.100myr', sim=sim,
+            obs='photo', noise=noise_photo, method=method, model=model,
+            sample=sample) 
+    _igal1, _dlogSFRs_specphoto = _read_dprop_mcmc('logsfr.100myr', sim=sim, 
+            obs='specphoto', noise=noise_specphoto, method=method, model=model,
+            sample=sample) 
+    igal_s, m0, m1 = np.intersect1d(_igal0, _igal1, return_indices=True) 
+    logsfr_input        = logSFR_sim[igal_s]
+    dlogsfr_photo       = _dlogSFRs_photo[m0]
+    dlogsfr_specphoto   = _dlogSFRs_specphoto[m1]
     # --------------------------------------------------------------------------------
     # maximum likelihood for the population hyperparameters
-    Mbins = np.linspace(9., 12., 16) 
-    Mbin_mid = [] 
-    mu_dMstar_photo, sig_dMstar_photo = [], []
-    mu_dMstar_specphoto, sig_dMstar_specphoto = [], [] 
-    for i_m in range(len(Mbins)-1): 
-        inmbin = ((logMstar_input > Mbins[i_m]) & (logMstar_input <= Mbins[i_m+1])) 
-        if np.sum(inmbin) == 0: continue 
-        Mbin_mid.append(0.5 * (Mbins[i_m] + Mbins[i_m+1])) 
-        print('%.f < log M* < %.f' % (Mbins[i_m], Mbins[i_m+1]))  
-        print('%i galaxies' % np.sum(inmbin))
-
-        L_pop_photo = lambda _theta: -1.*logL_pop(_theta[0], _theta[1], delta_chains=dlogMs_photo[inmbin])  
-        L_pop_specphoto = lambda _theta: -1.*logL_pop(_theta[0], _theta[1], delta_chains=dlogMs_specphoto[inmbin])  
-
-        min_photo = op.minimize(
-                L_pop_photo, 
-                np.array([0., 0.1]), # guess the middle of the prior 
-                method='L-BFGS-B', 
-                bounds=((None, None), (1e-4, None)),
-                options={'eps': np.array([0.01, 0.005]), 'maxiter': 100})
-        print(min_photo['x'])
-
-        min_specphoto = op.minimize(
-                L_pop_specphoto, 
-                np.array([0., 0.1]), # guess the middle of the prior 
-                method='L-BFGS-B', 
-                bounds=((None, None), (1e-4, None)),
-                options={'eps': np.array([0.01, 0.005]), 'maxiter': 100})
-        print(min_specphoto['x'])
-
-        mu_dMstar_photo.append(min_photo['x'][0]) 
-        sig_dMstar_photo.append(min_photo['x'][1]) 
-
-        mu_dMstar_specphoto.append(min_specphoto['x'][0]) 
-        sig_dMstar_specphoto.append(min_specphoto['x'][1]) 
-
-    mu_dMstar_photo = np.array(mu_dMstar_photo) 
-    sig_dMstar_photo = np.array(sig_dMstar_photo) 
-    mu_dMstar_specphoto = np.array(mu_dMstar_specphoto) 
-    sig_dMstar_specphoto = np.array(sig_dMstar_specphoto) 
+    bins_logm = np.linspace(9., 12., 7) 
+    logm_mid, eta_logm_photo   = _get_etaMAP(logm_input, dlogm_photo, bins_logm)
+    logm_mid, eta_logm_specphoto  = _get_etaMAP(logm_input, dlogm_specphoto, bins_logm)
     
-    # calculate delta log SFR 
-    logSFRbins = np.linspace(-3., 3., 25) 
-    logSFRbin_mid = [] 
-    mu_dlogSFR_photo, sig_dlogSFR_photo = [], []
-    mu_dlogSFR_specphoto, sig_dlogSFR_specphoto = [], [] 
-    for i_m in range(len(Mbins)-1): 
-        inbin = ((logSFR_input > logSFRbins[i_m]) & (logSFR_input <= logSFRbins[i_m+1])) 
-        if np.sum(inbin) == 0: continue 
-        print('%i galaxies' % np.sum(inbin))
-        logSFRbin_mid.append(0.5 * (logSFRbins[i_m] + logSFRbins[i_m+1])) 
-
-        L_pop_photo = lambda _theta: -1.*logL_pop(_theta[0], _theta[1], delta_chains=dlogSFR_photo[inbin])  
-        L_pop_specphoto = lambda _theta: -1.*logL_pop(_theta[0], _theta[1], delta_chains=dlogSFR_specphoto[inbin])  
-
-        min_photo = op.minimize(
-                L_pop_photo, 
-                np.array([0., 0.1]), # guess the middle of the prior 
-                method='L-BFGS-B', 
-                bounds=((None, None), (1e-4, None)),
-                options={'eps': np.array([0.01, 0.005]), 'maxiter': 100})
-        print(min_photo['x'])
-
-        min_specphoto = op.minimize(
-                L_pop_specphoto, 
-                np.array([0., 0.1]), # guess the middle of the prior 
-                method='L-BFGS-B', 
-                bounds=((None, None), (1e-4, None)),
-                options={'eps': np.array([0.01, 0.005]), 'maxiter': 100})
-        print(min_specphoto['x'])
-
-        mu_dlogSFR_photo.append(min_photo['x'][0]) 
-        sig_dlogSFR_photo.append(min_photo['x'][1]) 
-
-        mu_dlogSFR_specphoto.append(min_specphoto['x'][0]) 
-        sig_dlogSFR_specphoto.append(min_specphoto['x'][1]) 
-
-    mu_dlogSFR_photo = np.array(mu_dlogSFR_photo) 
-    sig_dlogSFR_photo = np.array(sig_dlogSFR_photo) 
-    mu_dlogSFR_specphoto = np.array(mu_dlogSFR_specphoto) 
-    sig_dlogSFR_specphoto = np.array(sig_dlogSFR_specphoto) 
-
+    bins_logsfr = np.linspace(-3., 3., 7) 
+    logsfr_mid, eta_logsfr_photo   = _get_etaMAP(logsfr_input, dlogsfr_photo, bins_logsfr)
+    logsfr_mid, eta_logsfr_specphoto  = _get_etaMAP(logsfr_input, dlogsfr_specphoto, bins_logsfr)
+    # --------------------------------------------------------------------------------
     fig = plt.figure(figsize=(12,5))
     # compare total stellar mass 
     sub = fig.add_subplot(121) 
     sub.plot([9., 12.], [0., 0.], c='k', ls='--')
-    sub.fill_between(Mbin_mid, mu_dMstar_photo - sig_dMstar_photo, mu_dMstar_photo + sig_dMstar_photo, 
+    sub.fill_between(logm_mid, 
+            eta_logm_photo[:,0] - eta_logm_photo[:,1],
+            eta_logm_photo[:,0] + eta_logm_photo[:,1], 
             fc='C0', ec='none', alpha=0.5, label='Photometry only') 
-    sub.scatter(Mbin_mid, mu_dMstar_photo, c='C0', s=2) 
-    sub.plot(Mbin_mid, mu_dMstar_photo, c='C0') 
-    sub.fill_between(Mbin_mid, mu_dMstar_specphoto - sig_dMstar_specphoto, mu_dMstar_specphoto + sig_dMstar_specphoto, 
+    sub.scatter(logm_mid, eta_logm_photo[:,0], c='C0', s=2) 
+    sub.plot(logm_mid, eta_logm_photo[:,0], c='C0')
+    sub.fill_between(logm_mid, 
+            eta_logm_specphoto[:,0] - eta_logm_specphoto[:,1],
+            eta_logm_specphoto[:,0] + eta_logm_specphoto[:,1], 
             fc='C1', ec='none', alpha=0.5, label='Photometry+Spectroscopy') 
-    sub.scatter(Mbin_mid, mu_dMstar_specphoto, c='C1', s=1) 
-    sub.plot(Mbin_mid, mu_dMstar_specphoto, c='C1') 
-    #sub.scatter(Mstar_input, (Mstar_inf_photo[:,2]-Mstar_input), c='C0')
-    #sub.scatter(Mstar_input, (Mstar_inf_specphoto[:,2]-Mstar_input), c='C1')
+    sub.scatter(logm_mid, eta_logm_specphoto[:,0], c='C1', s=1) 
+    sub.plot(logm_mid, eta_logm_specphoto[:,0], c='C1') 
     sub.set_xlabel(r'$\log(~M_*~[M_\odot]~)$', fontsize=25)
     sub.set_xlim(9., 12.) 
     sub.set_ylabel(r'$\Delta_{\log M_*}$', fontsize=25)
@@ -882,20 +772,23 @@ def photo_vs_specphoto(sim='lgal', noise_photo='legacy', noise_specphoto='bgs0_l
     # compare SFR 
     sub = fig.add_subplot(122) 
     sub.plot([-3., 3.], [0., 0.], c='k', ls='--')
-    sub.fill_between(logSFRbin_mid, mu_dlogSFR_photo - sig_dlogSFR_photo, mu_dlogSFR_photo + sig_dlogSFR_photo, 
-            fc='C0', ec='none', alpha=0.5, label='Photometry only') 
-    sub.scatter(logSFRbin_mid, mu_dlogSFR_photo, c='C0', s=2) 
-    sub.plot(logSFRbin_mid, mu_dlogSFR_photo, c='C0') 
-    sub.fill_between(logSFRbin_mid, mu_dlogSFR_specphoto - sig_dlogSFR_specphoto, mu_dlogSFR_specphoto + sig_dlogSFR_specphoto, 
-            fc='C1', ec='none', alpha=0.5, label='Photometry+Spectroscopy') 
-    sub.scatter(logSFRbin_mid, mu_dlogSFR_specphoto, c='C1', s=1) 
-    sub.plot(logSFRbin_mid, mu_dlogSFR_specphoto, c='C1') 
+    sub.fill_between(logsfr_mid,  
+            eta_logsfr_photo[:,0] - eta_logsfr_photo[:,1],
+            eta_logsfr_photo[:,0] + eta_logsfr_photo[:,1], 
+            fc='C0', ec='none', alpha=0.5) 
+    sub.scatter(logsfr_mid, eta_logsfr_photo[:,0], c='C0', s=2) 
+    sub.plot(logsfr_mid, eta_logsfr_photo[:,0], c='C0') 
+    sub.fill_between(logsfr_mid,
+            eta_logsfr_specphoto[:,0] - eta_logsfr_specphoto[:,1],
+            eta_logsfr_specphoto[:,0] + eta_logsfr_specphoto[:,1], 
+            fc='C1', ec='none', alpha=0.5) 
+    sub.scatter(logsfr_mid, eta_logsfr_specphoto[:,0], c='C1', s=1) 
+    sub.plot(logsfr_mid, eta_logsfr_specphoto[:,0], c='C1') 
     
     sub.set_xlabel(r'$\log(~{\rm SFR}_{100Myr}~[M_\odot/yr]~)$', fontsize=25)
     sub.set_xlim(-3., 1.) 
     sub.set_ylabel(r'$\Delta_{\log{\rm SFR}_{100Myr}}$', fontsize=25)
     sub.set_ylim(-3., 3.) 
-    #sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
     
     fig.subplots_adjust(wspace=0.3)
     _ffig = os.path.join(dir_doc,
@@ -906,7 +799,95 @@ def photo_vs_specphoto(sim='lgal', noise_photo='legacy', noise_specphoto='bgs0_l
     return None 
 
 
-def eta_Delta(sim='lgal', noise='bgs0_legacy', method='ifsps', model='vanilla'):  
+def dust_comparison(sim='lgal', noise='bgs0_legacy', method='ifsps'): 
+    ''' Compare properties inferred from photometry versus spectrophotometry to see how much
+    information is gained from adding spectra
+    '''
+    # read noiseless Lgal spectra of the spectral_challenge mocks
+    _, meta = Data.Spectra(sim=sim, noise=noise.split('_')[0], lib='bc03', sample='mini_mocha') 
+    logMstar_sim  = np.array(meta['logM_total']) # total mass 
+    logSFR_sim    = np.log10(np.array(meta['sfr_100myr'])) 
+    # --------------------------------------------------------------------------------
+    # compile MC chains 
+    _igal0, _dlogMs_simple = _read_dprop_mcmc('logmstar', obs='specphoto', noise=noise,
+            method='ifsps', model='vanilla', sample='mini_mocha')
+    _igal1, _dlogMs_complex = _read_dprop_mcmc('logmstar', obs='specphoto', noise=noise,
+            method='ifsps', model='vanilla_complexdust', sample='mini_mocha')
+    igal_m, m0, m1 = np.intersect1d(_igal0, _igal1, return_indices=True) 
+    logm_input      = logMstar_sim[igal_m]
+    dlogm_simple    = _dlogMs_simple[m0]
+    dlogm_complex   = _dlogMs_complex[m1]
+    
+    _igal0, _dlogSFRs_simple = _read_dprop_mcmc('logsfr.100myr', sim=sim,
+            obs='specphoto', noise=noise, method=method, model='vanilla',
+            sample='mini_mocha') 
+    _igal1, _dlogSFRs_complex = _read_dprop_mcmc('logsfr.100myr', sim=sim, 
+            obs='specphoto', noise=noise, method=method,
+            model='vanilla_complexdust', sample='mini_mocha')
+    igal_s, m0, m1 = np.intersect1d(_igal0, _igal1, return_indices=True) 
+    logsfr_input    = logSFR_sim[igal_s]
+    dlogsfr_simple  = _dlogSFRs_simple[m0]
+    dlogsfr_complex = _dlogSFRs_complex[m1]
+    # --------------------------------------------------------------------------------
+    # maximum likelihood for the population hyperparameters
+    bins_logm = np.linspace(9., 12., 7) 
+    logm_mid, eta_logm_simple   = _get_etaMAP(logm_input, dlogm_simple, bins_logm)
+    logm_mid, eta_logm_complex  = _get_etaMAP(logm_input, dlogm_complex, bins_logm)
+    
+    bins_logsfr = np.linspace(-3., 3., 7) 
+    logsfr_mid, eta_logsfr_simple   = _get_etaMAP(logsfr_input, dlogsfr_simple, bins_logsfr)
+    logsfr_mid, eta_logsfr_complex  = _get_etaMAP(logsfr_input, dlogsfr_complex, bins_logsfr)
+
+    # --------------------------------------------------------------------------------
+    fig = plt.figure(figsize=(12,5))
+    # compare log M*
+    sub = fig.add_subplot(121) 
+    sub.plot([9., 12.], [0., 0.], c='k', ls='--')
+    sub.fill_between(logm_mid, eta_logm_simple[:,0] - eta_logm_simple[:,1], eta_logm_simple[:,0] + eta_logm_simple[:,1],
+            fc='C0', ec='none', alpha=0.5, label='Simple Dust') 
+    sub.scatter(logm_mid, eta_logm_simple[:,0], c='C0', s=2) 
+    sub.plot(logm_mid, eta_logm_simple[:,0], c='C0')
+    sub.fill_between(logm_mid, eta_logm_complex[:,0] - eta_logm_complex[:,1], eta_logm_complex[:,0] + eta_logm_complex[:,1], 
+            fc='C1', ec='none', alpha=0.5, label='Complex Dust') 
+    sub.scatter(logm_mid, eta_logm_complex[:,0], c='C1', s=1) 
+    sub.plot(logm_mid, eta_logm_complex[:,0], c='C1') 
+    sub.set_xlabel(r'$\log(~M_*~[M_\odot]~)$', fontsize=25)
+    sub.set_xlim(9., 12.) 
+    sub.set_ylabel(r'$\Delta_{\log M_*}$', fontsize=25)
+    sub.set_ylim(-1., 1.) 
+    sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
+    
+    # compare log SFR 
+    sub = fig.add_subplot(122) 
+    sub.plot([-3., 3.], [0., 0.], c='k', ls='--')
+    sub.fill_between(logsfr_mid, 
+            eta_logsfr_simple[:,0] - eta_logsfr_simple[:,1], 
+            eta_logsfr_simple[:,0] + eta_logsfr_simple[:,1],
+            fc='C0', ec='none', alpha=0.5) 
+    sub.scatter(logsfr_mid, eta_logsfr_simple[:,0], c='C0', s=2) 
+    sub.plot(logsfr_mid, eta_logsfr_simple[:,0], c='C0') 
+    sub.fill_between(logsfr_mid, 
+            eta_logsfr_complex[:,0] - eta_logsfr_complex[:,1], 
+            eta_logsfr_complex[:,0] + eta_logsfr_complex[:,1],
+            fc='C1', ec='none', alpha=0.5) 
+    sub.scatter(logsfr_mid, eta_logsfr_complex[:,0], c='C1', s=2) 
+    sub.plot(logsfr_mid, eta_logsfr_complex[:,0], c='C1') 
+
+    sub.set_xlabel(r'$\log(~{\rm SFR}_{100Myr}~[M_\odot/yr]~)$', fontsize=25)
+    sub.set_xlim(-3., 2.) 
+    sub.set_ylabel(r'$\Delta_{\log{\rm SFR}_{100Myr}}$', fontsize=25)
+    sub.set_ylim(-3., 3.) 
+    
+    fig.subplots_adjust(wspace=0.3)
+    _ffig = os.path.join(dir_doc,
+            'dust_comparison.%s.%s.noise_%s.png' % (sim, method, noise)) 
+    fig.savefig(_ffig, bbox_inches='tight') 
+    fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
+    return None 
+
+
+def eta_Delta(sim='lgal', noise='bgs0_legacy', method='ifsps', model='vanilla',
+        sample='mini_mocha'):  
     ''' population hyperparameters eta_Delta as a function of different
     galaxy properties (r mag, color, etc) 
     '''
@@ -921,102 +902,51 @@ def eta_Delta(sim='lgal', noise='bgs0_legacy', method='ifsps', model='vanilla'):
     logMstar_all    = np.array(meta['logM_total']) # total mass 
     logSFR_all      = np.log10(np.array(meta['sfr_100myr'])) 
 
-    r_mag = 22.5 - 2.5 * np.log10(photo['flux_r_true']) # true r-band magnitude
-    g_r = (22.5 - 2.5 * np.log10(photo['flux_g_true'])) - r_mag 
-    r_z = r_mag - (22.5 - 2.5 * np.log10(photo['flux_z_true']))
+    r_mag   = 22.5 - 2.5 * np.log10(photo['flux_r_true']) # true r-band magnitude
+    g_r     = (22.5 - 2.5 * np.log10(photo['flux_g_true'])) - r_mag 
+    r_z     = r_mag - (22.5 - 2.5 * np.log10(photo['flux_z_true']))
     # --------------------------------------------------------------------------------
     # assemble all markov chains 
     # --------------------------------------------------------------------------------
-    igals, dlogMs, dlogSFR = [], [], []
-    for igal in range(97): 
-        # read best-fit file and get inferred parameters from spectrophoto
-        _fbf = Fbestfit_specphoto(igal, sim=sim, noise=noise, 
-                method=method, model=model) 
-        if not os.path.isfile(_fbf):
-            print('     %s does not exist' % _fbf)
-            continue 
-        fbf = h5py.File(_fbf, 'r')  
-
-        # d log M* and d log SFR of chain
-        chain = fbf['mcmc_chain'][...][::10]
-        dlogMs_chain = chain[:,0] - logMstar_all[igal] 
-        dlogSFR_chain = chain[:,-1] - logSFR_all[igal]
-
-        if np.any(np.isnan(dlogSFR_chain)) or np.any(np.isnan(dlogMs_chain)):
-            print('%i has NaNs' % igal)
-            continue 
-
-        dlogMs.append(dlogMs_chain)
-        dlogSFR.append(dlogSFR_chain)
-
-        igals.append(igal) 
-
-    igals = np.asarray(igals).astype(int)
-    dlogMs = np.array(dlogMs) 
-    dlogSFR = np.array(dlogSFR) 
-
+    igal_m, dlogm_chain = _read_dprop_mcmc('logmstar', sim=sim,
+            obs='specphoto', noise=noise, method=method, model=model,
+            sample=sample)
+    igal_s, dlogsfr_chain = _read_dprop_mcmc('logsfr.100myr', sim=sim, 
+            obs='specphoto', noise=noise, method=method, model=model,
+            sample=sample)
     # --------------------------------------------------------------------------------
     # get MAP for the population hyperparameters
     # --------------------------------------------------------------------------------
-    props       = [r_mag[igals], g_r[igals], r_z[igals]]
+    props       = [r_mag, g_r, r_z]
     prop_lbl    = ['$r$ magnitude', '$g - r$ color', '$r - z$ color']
     prop_lim    = [(19, 20), (0., 2.), (0., 1.)]
+    
+    hyper_logm, hyper_logsfr = [], [] 
+    for i, prop in enumerate(props) : 
+        bins_prop = np.linspace(prop_lim[i][0], prop_lim[i][1], 11) 
 
-    hyper = [] 
-    for i, prop in enumerate(props): 
-        prop_bin = np.linspace(prop_lim[i][0], prop_lim[i][1], 11) 
+        mid_prop_m, eta_logm    = _get_etaMAP(prop[igal_m], dlogm_chain, bins_prop)
+        mid_prop_s, eta_logsfr  = _get_etaMAP(prop[igal_s], dlogsfr_chain, bins_prop)
 
-        prop_bin_mid = [] 
-        mu_dMstar, sig_dMstar = [], [] 
-        mu_dSFR, sig_dSFR = [], [] 
-        for i_m in range(len(prop_bin)-1): 
-            inbin = ((prop > prop_bin[i_m]) & (prop <= prop_bin[i_m+1])) 
-            if np.sum(inbin) == 0: continue 
-
-            prop_bin_mid.append(0.5 * (prop_bin[i_m] + prop_bin[i_m+1])) 
-
-            L_pop_mstar = lambda _theta: -1.*logL_pop(_theta[0], _theta[1], delta_chains=dlogMs[inbin])  
-
-            min_hyper = op.minimize(
-                    L_pop_mstar, 
-                    np.array([0., 0.1]), # guess the middle of the prior 
-                    method='L-BFGS-B', 
-                    bounds=((None, None), (1e-4, None)),
-                    options={'eps': np.array([0.01, 0.005]), 'maxiter': 100})
-
-            mu_dMstar.append(min_hyper['x'][0]) 
-            sig_dMstar.append(min_hyper['x'][1]) 
-            
-            L_pop_sfr = lambda _theta: -1.*logL_pop(_theta[0], _theta[1], delta_chains=dlogSFR[inbin])  
-
-            min_hyper = op.minimize(
-                    L_pop_sfr, 
-                    np.array([0., 0.1]), # guess the middle of the prior 
-                    method='L-BFGS-B', 
-                    bounds=((None, None), (1e-4, None)),
-                    options={'eps': np.array([0.01, 0.005]), 'maxiter': 100})
-
-            mu_dSFR.append(min_hyper['x'][0]) 
-            sig_dSFR.append(min_hyper['x'][1]) 
-
-        hyper.append([np.array(prop_bin_mid), np.array(mu_dMstar),
-            np.array(sig_dMstar), np.array(mu_dSFR), np.array(sig_dSFR)]) 
+        hyper_logm.append([mid_prop_m, eta_logm[:,0], eta_logm[:,1]]) 
+        hyper_logsfr.append([mid_prop_s, eta_logsfr[:,0], eta_logsfr[:,1]]) 
     # --------------------------------------------------------------------------------
     # plot the MAP hyperparameters
     # --------------------------------------------------------------------------------
     fig = plt.figure(figsize=(4*len(props),8))
     for i in range(len(props)): 
 
-        prop_mid, mu_dmstar, sig_dmstar, mu_dsfr, sig_dsfr = hyper[i]
+        prop_mid_m, mu_dmstar, sig_dmstar = hyper_logm[i]
+        prop_mid_s, mu_dsfr, sig_dsfr = hyper_logsfr[i]
 
         # M* hyperparametrs
         sub = fig.add_subplot(2,len(props),i+1) 
 
         sub.plot([prop_lim[i][0], prop_lim[i][1]], [0., 0.], c='k', ls='--')
-        sub.fill_between(prop_mid, mu_dmstar - sig_dmstar, mu_dmstar + sig_dmstar, 
+        sub.fill_between(prop_mid_m, mu_dmstar - sig_dmstar, mu_dmstar + sig_dmstar, 
                 fc='C0', ec='none', alpha=0.5) 
-        sub.scatter(prop_mid, mu_dmstar, c='C0', s=2) 
-        sub.plot(prop_mid, mu_dmstar, c='C0') 
+        sub.scatter(prop_mid_m, mu_dmstar, c='C0', s=2) 
+        sub.plot(prop_mid_m, mu_dmstar, c='C0') 
 
         sub.set_xlim(prop_lim[i][0], prop_lim[i][1]) 
         if i == 0: sub.set_ylabel(r'$\Delta_{\log M_*}$', fontsize=25)
@@ -1026,10 +956,10 @@ def eta_Delta(sim='lgal', noise='bgs0_legacy', method='ifsps', model='vanilla'):
         # SFR hyperparametrs
         sub = fig.add_subplot(2,len(props),len(props)+i+1) 
         sub.plot([prop_lim[i][0], prop_lim[i][1]], [0., 0.], c='k', ls='--')
-        sub.fill_between(prop_mid, mu_dsfr - sig_dsfr, mu_dsfr + sig_dsfr, 
+        sub.fill_between(prop_mid_s, mu_dsfr - sig_dsfr, mu_dsfr + sig_dsfr, 
                 fc='C0', ec='none', alpha=0.5) 
-        sub.scatter(prop_mid, mu_dsfr, c='C0', s=2) 
-        sub.plot(prop_mid, mu_dsfr, c='C0') 
+        sub.scatter(prop_mid_s, mu_dsfr, c='C0', s=2) 
+        sub.plot(prop_mid_s, mu_dsfr, c='C0') 
         
         sub.set_xlabel(prop_lbl[i], fontsize=25)
         sub.set_xlim(prop_lim[i][0], prop_lim[i][1]) 
@@ -1084,6 +1014,77 @@ def logL_pop(mu_pop, sigma_pop, delta_chains=None, prior=None):
             print(p_Di_pop) 
         raise ValueError
     return logp_D_pop     
+
+
+def _get_etaMAP(prop, chain, bins): 
+    ''' get MAP hyperparameters
+    '''
+    assert len(prop) == chain.shape[0]
+
+    # optimization kwargs
+    opt_kwargs = {'method': 'L-BFGS-B', 'bounds': ((None, None), (1e-4, None))}
+    #, options={'eps': np.array([0.01, 0.005]), 'maxiter': 100})
+
+    bin_mid, eta = [], [] 
+    for i in range(len(bins)-1): 
+        inbin = (prop > bins[i]) & (prop <= bins[i+1]) 
+        if np.sum(inbin) == 0: continue 
+       
+        bin_mid.append(0.5 * (bins[i] + bins[i+1])) 
+
+        L_pop = lambda _theta: -1.*logL_pop(_theta[0], _theta[1],
+                delta_chains=chain[inbin])  
+
+        _min = op.minimize(L_pop, np.array([0., 0.1]), **opt_kwargs) 
+
+        eta.append([_min['x'][0], _min['x'][1]]) 
+
+    return np.array(bin_mid), np.array(eta)
+
+
+def _read_dprop_mcmc(prop, sim='lgal', obs='specphoto', noise='bgs0_legacy',
+        method='ispeculator', model='emulator', sample='mini_mocha'): 
+    ''' read prop_inf - prop_input for MC chains 
+    '''
+    # --------------------------------------------------------------------------------
+    # read noiseless Lgal spectra of the spectral_challenge mocks
+    _, meta = Data.Spectra(sim=sim, noise='bgs0',
+            lib='bc03', sample=sample) 
+    if prop == 'logmstar': 
+        prop_sim = np.array(meta['logM_total']) # total mass 
+    elif prop == 'logsfr.100myr': 
+        prop_sim = np.log10(np.array(meta['sfr_100myr'])) 
+    # --------------------------------------------------------------------------------
+    if obs == 'specphoto': 
+        Fbestfit = Fbestfit_specphoto
+    elif obs == 'photo':
+        Fbestfit = Fbestfit_photo
+    # --------------------------------------------------------------------------------
+    # assemble all markov chains 
+    igals, dprop = [], [] 
+    for igal in range(97): 
+        # read best-fit file and get inferred parameters from photometry
+        _fbf = Fbestfit(igal, sim=sim, noise=noise, method=method,
+                model=model) 
+        
+        if not os.path.isfile(_fbf): continue 
+
+        fbf = h5py.File(_fbf, 'r')  
+        theta_names = list(fbf['theta_names'][...].astype(str)) 
+        try: 
+            i_prop = theta_names.index(prop) 
+        except ValueError: 
+            continue 
+
+        chain       = fbf['mcmc_chain'][...][::10]
+        dprop_chain = chain[:,i_prop] - prop_sim[igal] 
+        
+        if np.any(np.isnan(dprop_chain)): continue 
+
+        dprop.append(dprop_chain)
+        igals.append(igal) 
+    
+    return np.array(igals), np.array(dprop)
 
 
 def Fbestfit_spec(igal, noise='none', method='ifsps'): 
@@ -1164,14 +1165,21 @@ if __name__=="__main__":
     #mini_mocha_comparison(method='ifsps', model='vanilla', sfr='100myr')
     #mini_mocha_comparison(method='ispeculator', model='emulator', sfr='100myr')
 
-    photo_vs_specphoto(sim='lgal', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
-            method='ifsps', model='vanilla')
+    #photo_vs_specphoto(sim='lgal', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
+    #        method='ifsps', model='vanilla')
+    #photo_vs_specphoto(sim='tng', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
+    #        method='ifsps', model='vanilla')
+
     #photo_vs_specphoto(sim='lgal', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
     #        method='ispeculator', model='emulator')
     #photo_vs_specphoto(sim='tng', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
     #        method='ispeculator', model='emulator')
     eta_Delta(sim='lgal', noise='bgs0_legacy', method='ifsps', model='vanilla')
+    eta_Delta(sim='tng', noise='bgs0_legacy', method='ifsps', model='vanilla')
     #eta_Delta(sim='lgal', noise='bgs0_legacy', method='ispeculator', model='emulator')
+
+    #dust_comparison(sim='lgal', noise='bgs0_legacy')
+
 
     #mock_challenge_photo(noise='none', dust=False, method='ifsps')
     #mock_challenge_photo(noise='none', dust=True, method='ifsps')

@@ -16,7 +16,8 @@ photometry fitter and submit a pull request!
 
 ### on NERSC
 
-Below is one way to setup the package on nersc. 
+Below is one way to setup the package on nersc. See also Rita's notebook:
+[start_example.ipynb](https://github.com/ritatojeiro/desi_gqp/blob/master/nb/start_example.ipynb)
 
 First, define `$GQPMC_DIR` environment in your `~/.bashrc.ext`---
 i.e. add 

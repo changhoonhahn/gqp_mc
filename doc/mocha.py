@@ -35,6 +35,7 @@ mpl.rcParams['ytick.major.width'] = 1.5
 mpl.rcParams['legend.frameon'] = False
 
 
+dir_mm = os.path.join(UT.dat_dir(), 'mini_mocha') 
 dir_fig = os.path.join(UT.dat_dir(), 'mini_mocha') 
 dir_doc = '/Users/ChangHoon/projects/gqp_mc/doc/paper/figs/'
 dir_fbgs = '/Users/ChangHoon/data/feasiBGS/'
@@ -255,6 +256,76 @@ def speculator():
     _ffig = os.path.join(dir_doc, 'speculator.png') 
     fig.savefig(_ffig, bbox_inches='tight') 
     fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
+    return None 
+
+
+def mcmc_posterior(): 
+    ''' plot that includes a corner plot and also demonstrates how the best-fit
+    reproduces the data 
+    '''
+    igal = 0 
+    ########################################################################
+    # read meta data 
+    ########################################################################
+    photo, meta = Data.Photometry(sim='lgal', noise='legacy', lib='bc03', sample='mini_mocha') 
+    ########################################################################
+    # read MC chain 
+    ########################################################################
+    f_mcmc = os.path.join(dir_mm, 'ispeculator',
+            'lgal.specphoto.noise_bgs0_legacy.emulator.%i.hdf5' % igal)
+    mcmc = h5py.File(f_mcmc, 'r')
+
+    ########################################################################
+    # compile labels and truths
+    ########################################################################
+    lbls = [r'$\log M_*$', r'$\beta_1^{\rm SFH}$', r'$\beta_2^{\rm SFH}$',
+            r'$\beta_3^{\rm SFH}$', r'$\beta_4^{\rm SFH}$', 
+            r'$\gamma_1^{\rm ZH}$', r'$\gamma_2^{\rm ZH}$', 
+            r'$\tau$', r'$f_{\rm fiber}$']
+    truths = [None for _ in mcmc['theta_names'][...]]
+    truths[0] = meta['logM_total'][igal]
+    truths[8] = (photo['fiberflux_r_true'][igal]/photo['flux_r_true'][igal]) 
+
+    ########################################################################
+    # figure 
+    ########################################################################
+    fig = plt.figure(figsize=(12,17))
+    gs1 = fig.add_gridspec(nrows=9, ncols=9, top=0.95, bottom=0.23) 
+    #left=0.1, right=0.9)
+    for i in range(9): 
+        for j in range(9): 
+            _ = fig.add_subplot(gs1[i,j])
+
+    DFM.corner(mcmc['mcmc_chain'][...][:,:len(lbls)],
+            range=mcmc['prior_range'][...][:len(lbls)],
+            quantiles=[0.16, 0.5, 0.84], levels=[0.68, 0.95], nbin=40, smooth=True, 
+            truths=truths, labels=lbls, label_kwargs={'fontsize': 15},
+            labelpad=10, fig=fig) 
+
+    gs2 = fig.add_gridspec(nrows=1, ncols=2, width_ratios=[1,3], top=0.18, bottom=0.05)
+    ax1 = fig.add_subplot(gs2[0,0]) 
+    n_photo = len(mcmc['flux_photo_data'][...])
+    ax1.errorbar(np.arange(n_photo), mcmc['flux_photo_data'][...], 
+            yerr=mcmc['flux_photo_ivar_data'][...]**-0.5, fmt='.k', label='data')
+    ax1.scatter(np.arange(n_photo), mcmc['flux_photo_model'][...], 
+            c='C1', label=r'model($\theta_{\rm med}$)') 
+    ax1.legend(loc='upper left', markerscale=3, handletextpad=0.2, fontsize=15) 
+    ax1.set_xticks([0, 1, 2, 3, 4]) 
+    ax1.set_xticklabels(['$g$', '$r$', '$z$', 'W1', 'W2']) 
+    ax1.set_xlim(-0.5, n_photo-0.5)
+
+    ax2 = fig.add_subplot(gs2[0,1]) 
+    ax2.plot(mcmc['wavelength_data'][...], mcmc['flux_spec_data'][...], c='k',
+            lw=1) 
+    ax2.plot(mcmc['wavelength_model'][...], mcmc['flux_spec_model'][...], c='C1',
+            ls='--', lw=1) 
+    ax2.set_xlabel('wavelength [$\AA$]', fontsize=20) 
+    ax2.set_xlim(3600., 9800.)
+    
+    _ffig = os.path.join(dir_doc, 'mcmc_posterior.png') 
+    fig.savefig(_ffig, bbox_inches='tight') 
+    fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
+    plt.close()
     return None 
 
 
@@ -716,6 +787,10 @@ def photo_vs_specphoto(sim='lgal', noise_photo='legacy', noise_specphoto='bgs0_l
     _, meta = Data.Spectra(sim=sim, noise=noise_photo, lib='bc03', sample='mini_mocha') 
     logMstar_sim  = np.array(meta['logM_total']) # total mass 
     logSFR_sim    = np.log10(np.array(meta['sfr_100myr'])) 
+    if sim == 'tng': 
+        print('correcting for possible h?') 
+        logMstar_sim += np.log10(1./0.6774**2)
+        logSFR_sim += np.log10(1./0.6774**2)
     # --------------------------------------------------------------------------------
     # compile MC chains 
     _igal0, _dlogMs_photo = _read_dprop_mcmc('logmstar', obs='photo', sim=sim, 
@@ -1054,6 +1129,10 @@ def _read_dprop_mcmc(prop, sim='lgal', obs='specphoto', noise='bgs0_legacy',
         prop_sim = np.array(meta['logM_total']) # total mass 
     elif prop == 'logsfr.100myr': 
         prop_sim = np.log10(np.array(meta['sfr_100myr'])) 
+
+    if sim == 'tng': 
+        print('correcting for possible h?') 
+        prop_sim += np.log10(1./0.6774**2)
     # --------------------------------------------------------------------------------
     if obs == 'specphoto': 
         Fbestfit = Fbestfit_specphoto
@@ -1161,6 +1240,8 @@ if __name__=="__main__":
     #FM_spec()
     
     #speculator()
+    
+    mcmc_posterior()
 
     #mini_mocha_comparison(method='ifsps', model='vanilla', sfr='100myr')
     #mini_mocha_comparison(method='ispeculator', model='emulator', sfr='100myr')
@@ -1174,8 +1255,8 @@ if __name__=="__main__":
     #        method='ispeculator', model='emulator')
     #photo_vs_specphoto(sim='tng', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
     #        method='ispeculator', model='emulator')
-    eta_Delta(sim='lgal', noise='bgs0_legacy', method='ifsps', model='vanilla')
-    eta_Delta(sim='tng', noise='bgs0_legacy', method='ifsps', model='vanilla')
+    #eta_Delta(sim='lgal', noise='bgs0_legacy', method='ifsps', model='vanilla')
+    #eta_Delta(sim='tng', noise='bgs0_legacy', method='ifsps', model='vanilla')
     #eta_Delta(sim='lgal', noise='bgs0_legacy', method='ispeculator', model='emulator')
 
     #dust_comparison(sim='lgal', noise='bgs0_legacy')

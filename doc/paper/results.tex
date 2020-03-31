@@ -27,37 +27,39 @@ $\sigma_{\Delta_{\theta}}$, the mean and standard deviation, which quantify the 
 precision of the inferred physical properties for the population. 
 
 Given the photomety and spectrum of our galaxies, $\{{\bfi D}_i\}$, we can get the posteriors
-for these population parameters $\theta_\Delta = (\mu_{\Delta_{\theta}}, \sigma_{\Delta_{\theta}})$ 
+for these population hyperparameters $\eta_\Delta = \{\mu_{\Delta_{\theta}},
+\sigma_{\Delta_{\theta}}\}$ 
 using a hierarchical Bayesian framework~\citep{hogg2010a}: 
 \begin{align}
-p(\theta_\Delta \given \{{\bfi D_i}\}) 
-    =&~\frac{p(\theta_\Delta)~p( \{{\bfi D_i}\} \given \theta_{\Delta})}{p(\{{\bfi D_i}\})}\\
-    =&~\frac{p(\theta_\Delta)}{p(\{{\bfi D_i}\})}\int p(\{{\bfi D_i}\} \given \{\theta_i\})~p(\{\theta_i\} \given \theta_\Delta)~{\rm d}\{\theta_i\}.
+p(\eta_\Delta \given \{{\bfi D_i}\}) 
+    =&~\frac{p(\eta_\Delta)~p( \{{\bfi D_i}\} \given \theta_{\Delta})}{p(\{{\bfi D_i}\})}\\
+    =&~\frac{p(\eta_\Delta)}{p(\{{\bfi D_i}\})}\int p(\{{\bfi D_i}\} \given \{\theta_i\})~p(\{\theta_i\} \given \eta_\Delta)~{\rm d}\{\theta_i\}.
 \end{align} 
 Naively the posteriors for each of the galaxies are not correlated, so we can factorize the expression above
 \begin{align}
-p(\theta_\Delta \given \{{\bfi D_i}\}) 
-    =&~\frac{p(\theta_\Delta)}{p(\{{\bfi D_i}\})}\prod\limits_{i=1}^N\int p({\bfi D_i} \given \theta_i)~p(\theta_i \given \theta_\Delta)~{\rm d}\theta_i\\
-    =&~\frac{p(\theta_\Delta)}{p(\{{\bfi D_i}\})}\prod\limits_{i=1}^N\int \frac{p(\theta_i \given {\bfi D_i})~p({\bfi D_i})}{p(\theta_i)}~p(\theta_i \given \theta_\Delta)~{\rm d}\theta_i\\
-    =&~p(\theta_\Delta)\prod\limits_{i=1}^N\int \frac{p(\theta_i \given {\bfi D_i})~p(\theta_i \given \theta_\Delta)}{p(\theta_i)}~{\rm d}\theta_i.
+p(\eta_\Delta \given \{{\bfi D_i}\}) 
+    =&~\frac{p(\eta_\Delta)}{p(\{{\bfi D_i}\})}\prod\limits_{i=1}^N\int p({\bfi D_i} \given \theta_i)~p(\theta_i \given \theta_\Delta)~{\rm d}\theta_i\\
+    =&~\frac{p(\eta_\Delta)}{p(\{{\bfi D_i}\})}\prod\limits_{i=1}^N\int
+    \frac{p(\theta_i \given {\bfi D_i})~p({\bfi D_i})}{p(\theta_i)}~p(\theta_i
+    \given \eta_\Delta)~{\rm d}\theta_i\\
+    =&~p(\eta_\Delta)\prod\limits_{i=1}^N\int \frac{p(\theta_i \given {\bfi
+    D_i})~p(\theta_i \given \eta_\Delta)}{p(\theta_i)}~{\rm d}\theta_i.
 \end{align} 
 $p(\theta_i \given {\bfi D_i})$ is the posterior for galaxy $i$. Hence, the
 integral can be which means the integral can be estimated using the MCMC sample
 from the posterior
 \begin{align}
-p(\theta_\Delta \given \{{\bfi D_i}\}) 
-    =&~p(\theta_\Delta)\prod\limits_{i=1}^N\frac{1}{S_i}\sum\limits_{j=1}^{S_i}
-    \frac{p(\theta_{i,j} \given \theta_\Delta)}{p(\theta_{i,j})}.
+p(\eta_\Delta \given \{{\bfi D_i}\}) 
+    =&~p(\eta_\Delta)\prod\limits_{i=1}^N\frac{1}{S_i}\sum\limits_{j=1}^{S_i}
+    \frac{p(\theta_{i,j} \given \eta_\Delta)}{p(\theta_{i,j})}.
 \end{align} 
 $S_i$ is the number of MCMC samples and $\theta_{i,j}$ is the $j^{\rm th}$
 sample of galaxy $i$. We present the maximum a posteriori (MAP) estimates of
-$\theta_\Delta$ for $\log~M_*$ and $\log~{\rm SFR}$ in
+$\eta_\Delta$ for $\log~M_*$ and $\log~{\rm SFR}$ in
 Figure~\ref{fig:specphoto}. 
 
 
-$\theta_\Delta$ as a function of SNR/mag/colour. 
-
-$\theta_\Delta$ as a function of SNR/mag/colour. 
+$\eta_\Delta$ as a function of SNR/mag/colour. 
 
 \begin{figure}
 \begin{center}
@@ -114,4 +116,19 @@ in orange, we infer $M_*$s and SFRs by jointly fitting both photometry and spect
 {\bf figure}: delta(galaxy properties) as a function of r-mag, SNR(?), color for different fitters for spectro-photometric fitting 
 
 {\bf figure}: $\theta_{\rm inf}$ vs $\theta_{\rm true}$ plot for multiple fitting methods 
+
+discussion: 
+\begin{itemize}
+    \item sfh basis improves SFH accuracy? 
+    \item advantage of mcmc over MAP
+    \item non-Gaussian posteriors
+    \item science applicatoins 
+    \item comparison to other methods 
+    \item different observing condition doesn't impact our results? 
+    \item we use super simple dust mmodel. \ch{more sophistiicated dust
+        models doesn't matter?} 
+    \item the simulated spectra and the fitting are generated using the same
+        SED. \ch{We try with different libraries.}
+    \item \ch{we try fitting with a different IMF}
+\end{itemize}
 

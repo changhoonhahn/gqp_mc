@@ -1,40 +1,75 @@
 \section{Inferring Galaxy Properties from Photometry and Spectra} \label{sec:methods}
 \begin{itemize}
     \item overview of SED fitting
-    \item describe our model (including description of speculator
-        \cite{alsing2020}). And what assumptions that go into it: IMF, SFH and
-        ZH bases, dust attenuation curve. 
     \item refer to appendix about different set ups 
-    \item describe our MCMC sampling. James's work in convergence here.
-        Detailed profiling of SED fitting and projections for full BGS. 
     \item be explicit about what physical properties are inferred from our SED
         fitting: stellar masses, ages, metallicities, star-formation histories.
         Expalin how we derive SFRs from the SFHs (i.e. our choice of 100Myr) 
-    \item Figure that shows the posteriors as well as the best-fit  
     \item brief description of other standard SED fitting methods we include for
         comparison: firefly, VESPA, CIGALE
 \end{itemize} 
 
-Analysis of the mocks in section~\ref{sec:sims}, using standard and newly developed codes. 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% forecast table
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{table}
-\caption{Table of the different parameterizations for the spectro-photometric fitting. The changes in each setup with respect to default configuration, CIGALE D, are bolted. } 
-\begin{center} 
-\begin{tabular}{ccccc} \toprule
-name & SFH & dust & IMF \\[3pt]
-\hline 
-iFSPS C & rita's basis & & \\
-Firefly  & rita's basis & & \\
-VESPA    & & & \\
-CIGALE A & \textbf{delayed SFH} & Charlot $\&$ Fall 2000, Draine et al. 2014 & Salpter \\
-CIGALE B & delayed SFH + additional burst & \textbf{Calzetti et al. 2000, Dale et al. 2014} & Salpter \\
-CIGALE C & delayed SFH + additional burst & Charlot $\&$ Fall 2000, Draine et al. 2014 & \textbf{Chabrier} \\
-CIGALE D & delayed SFH + additional burst & Charlot $\&$ Fall 2000, Draine et al. 2014 & Salpeter \\[3pt]
-\hline            
-\end{tabular} \label{tab:setups}
+description of our speculator SED model \citep{alsing2019}, which is based on
+FSPS. We use Chabrier IMF \ch{do we need to justify htis?}. 
+
+We don't use tau model for SFH, which is known to be shit. Instead we use the
+following SFH bases from Rita in prep. 
+\begin{equation}
+    {\rm SFH}(t, t_{\rm age}) = \sum\limits_{i=1}^{4} \beta_i^{\rm SFH}
+    \frac{s_i^{\rm SFH}(t)}{\int\limits_0^{t_{\rm age}} s_i^{\rm SFH}(t) \,
+    {\rm d}t}
+\end{equation} 
+Similarly for ZH, we use the following ZH bases 
+\begin{equation}
+    {\rm ZH}(t) = \sum\limits_{i=1}^2 \gamma_i^{\rm ZH} s_i^{\rm ZH}(t)
+\end{equation} 
+
+\begin{equation}
+    {\rm SFR}_{100{\rm Myr}} = \frac{\int\limits_{t_{\rm age} - 100{\rm
+    Myr}}^{t_{\rm age}}{\rm SFH}(t)\,{\rm d}t}{100\,{\rm Myr}}
+\end{equation} 
+see Figure~\ref{fig:speculator}. 
+
+Calzetti dust attenuation curve
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.8\textwidth]{figs/speculator.pdf} 
+\caption{speculator bases}
+\label{fig:speculator}
 \end{center}
-\end{table}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{figure}
+Rather than evaluating the SPS directly using FSPS we use {\sc Speculator}, an
+emulator for FSPS. Brief explanation of the PCA neural net. motivate why we're
+using speculator by reiterating \cite{alsing2019}s speed profiling. 
+
+describe our MCMC sampling. James's work in convergence here. talk about how in
+principle speculator can easily be used with HMC because you can get
+derivatives with backpropagation. provide detailed profiling of SED fitting and
+projections for full 10million galaxy BGS sample. 
+
+In Figure XXXX we present the posterior as well as the best-fit photometry and
+spectroscopy using speculator + emcee. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% forecast table
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\begin{table}
+%\caption{Table of the different parameterizations for the spectro-photometric fitting. The changes in each setup with respect to default configuration, CIGALE D, are bolted. } 
+%\begin{center} 
+%\begin{tabular}{ccccc} \toprule
+%name & SFH & dust & IMF \\[3pt]
+%\hline 
+%iFSPS C & rita's basis & & \\
+%Firefly  & rita's basis & & \\
+%VESPA    & & & \\
+%CIGALE A & \textbf{delayed SFH} & Charlot $\&$ Fall 2000, Draine et al. 2014 & Salpter \\
+%CIGALE B & delayed SFH + additional burst & \textbf{Calzetti et al. 2000, Dale et al. 2014} & Salpter \\
+%CIGALE C & delayed SFH + additional burst & Charlot $\&$ Fall 2000, Draine et al. 2014 & \textbf{Chabrier} \\
+%CIGALE D & delayed SFH + additional burst & Charlot $\&$ Fall 2000, Draine et al. 2014 & Salpeter \\[3pt]
+%\hline            
+%\end{tabular} \label{tab:setups}
+%\end{center}
+%\end{table}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -17,6 +17,10 @@
   {mn@eprint@\@tempb}{\@tempb:\@tempc}{\expandafter \expandafter \csname
   mn@eprint@\@tempb\endcsname \expandafter{\@tempc}}}
 
+\bibitem[\protect\citeauthoryear{Alsing et~al.,}{Alsing
+  et~al.}{2019}]{alsing2019}
+Alsing J.,  et~al., 2019, arXiv:1911.11778 [astro-ph]
+
 \bibitem[\protect\citeauthoryear{Dey et~al.,}{Dey et~al.}{2019}]{dey2019}
 Dey A.,  et~al., 2019, \mn@doi [AJ] {10.3847/1538-3881/ab089d}, 157, 168
 

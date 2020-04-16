@@ -702,13 +702,30 @@ class iFSPS(Fitter):
         return np.clip(avsfr, 0, np.inf)
 
     def ACM(self, chain, num_chain, length, silent):
+        ''' Adaptive Convergence Monitoring function which monitors the convergence with Gelamn-Rubin diagnostic to return the PSRF and convergence flag
+
+        :param chain
+            mcmc chain data
+
+        :param num_chain:
+            number of chains, equivalent to the number of walkers
+
+        :param length:             
+            the length of each chain
+
+        :param silent:
+            if true, print statement will not be executed  
+
+        :return convergent, PSRF:
+            convergence flag determined by the PSRF value. If the PSRF is greater than 1.1, the convergence flag is set to False
+        '''
         M = num_chain
         N = length
         
         r_sample = []
 
         for idx in range(num_chain):
-            r_sample.append(chain[idx::num_chain])
+            r_sample.append(chain[idx::num_chain]) #Distinguish chain membership
 
         means = []
         sq_means = []

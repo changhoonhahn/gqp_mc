@@ -701,12 +701,63 @@ class iFSPS(Fitter):
         avsfr *= theta['mass']
         return np.clip(avsfr, 0, np.inf)
 
+    def ACM(self, chain, num_chain, length, silent):
+        ''' Adaptive Convergence Monitoring function which monitors the convergence with Gelamn-Rubin diagnostic to return the PSRF and convergence flag
+
+        :param chain
+            mcmc chain data
+
+        :param num_chain:
+            number of chains, equivalent to the number of walkers
+
+        :param length:             
+            the length of each chain
+
+        :param silent:
+            if true, print statement will not be executed  
+
+        :return convergent, PSRF:
+            convergence flag determined by the PSRF value. If the PSRF is greater than 1.1, the convergence flag is set to False
+        '''
+        M = num_chain
+        N = length
+        
+        r_sample = []
+
+        for idx in range(num_chain):
+            r_sample.append(chain[idx::num_chain]) #Distinguish chain membership
+
+        means = []
+        sq_means = []
+
+        for m in r_sample:
+            means.append(np.mean(n))
+            sq_means.append(np.mean(m**2))
+
+        tot_mean = np.mean(means)
+        B = N*np.sum((means - tot_mean)**2) / (M - 1)
+        W = np.sum(sq_means - np.square(means)) / M
+        p_var = W*(N-1)/N+(M+1)*B/(M*N)
+        PSRF = p_var/W
+        if not silent: print(f'PSRF: {PSRF}')
+
+        if PSRF < 1.1:
+            convergent = True
+        else:
+            convergent = False
+
+        return (convergent, PSRF)
+
     def _emcee(self, lnpost_fn, lnpost_args, lnpost_kwargs, nwalkers=100,
             burnin=100, niter=1000, maxiter=1000, silent=True): 
         ''' Runs MCMC (using emcee) for a given log posterior function.
         '''
         import scipy.optimize as op
         import emcee
+
+        #ACM interval
+        STEP = 1000
+        MINIMUM_IT = 50000
 
         # get initial theta by minimization 
         if not silent: print('getting initial theta') 
@@ -748,7 +799,47 @@ class iFSPS(Fitter):
 
         # run mcmc 
         if not silent: print('running main chain') 
-        self.sampler.run_mcmc(pos, niter)
+
+        #convergence  flag
+        convergent = False
+        if niter < MINIMUM_IT: niter = MINIMUM_IT #If niter is less than the minimum iteration number, set it equal to MINIMUM_IT
+
+        #convergence stability flag
+        stable_convergence = 0
+
+        #run mcmc and ACM
+        for idx in range(niter//STEP):
+            if not silent: print(f'chain #{idx + 1}')
+
+            pos1, prob1, state1 = self.sampler.run_mcmc(pos,STEP)
+            result = self.sampler.flatchain
+            if ((nwalkers * STEP * (idx + 1)) > MINIMUM_IT):  #ACM is executed only after the chain has been iterated more than the MINIMUM_IT number
+                convergent, PSRF = self.ACM(result[:,0], nwalkers, STEP * (idx + 1), silent)
+            pos = pos1
+
+            if convergent: stable_convergence += 1 #Stable convergence is a safety lever variable which considers the possilbility of PSRF blowing up after fake convergence.
+            else: stable_convergence = 0           #If the fake convergence was catched, reset it equal to zero
+
+            if stable_convergence == 3:            #Terminate the chain when stable convergence reaches 3. the value could be changed if necessary.
+                if not silent:
+                    print(f'Converged; PSRF: {PSRF}, Iteration: {nwalkers} * {STEP} * {idx + 1}')
+                break
+        if not convergent:
+            if ((STEP * (idx +1)) < niter):
+
+                #If convergence hasn't been achieved and the for loop did not cover the entire niter
+                #(ACM step is 1000 which doesn't cover hundreds, tens, ones.), run the rest of the chain.
+
+                self.sampler.run_mcmc(pos,niter-(STEP) * (idx + 1))
+                result = self.sampler.flatchain
+                convergent, PSRF = self.ACM(result[:,0], nwalkers, niter, silent)
+
+                if not silent:
+                    if convergent: print(f'Converged; PSRF {PSRF}, Iteration: {niter}, Convergent stability \'t be checked')
+                    else: print(f'Did not convergne; PSRF {PSRF}, Iteration: {niter}')
+
+            else:
+                if not silent: print(f'Did not converge; PSRF: {PSRF}, Iteration: {niter}')
         
         return  self.sampler.flatchain
 

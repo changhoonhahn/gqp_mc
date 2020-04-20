@@ -1859,10 +1859,10 @@ class iSpeculator(iFSPS):
         ''' initialize theta values 
         '''
         self.model_name = model_name # store model name 
-        if self.model_name in ['emulator', 'ifsps']: 
+        if self.model_name in ['emulator', 'fsps']: 
             names = ['logmstar', 'beta1_sfh', 'beta2_sfh', 'beta3_sfh',
                     'beta4_sfh', 'gamma1_zh', 'gamma2_zh', 'tau']
-        elif self.model_name == 'ifsps_complexdust': 
+        elif self.model_name == 'fsps_complexdust': 
             names = ['logmstar', 'beta1_sfh', 'beta2_sfh', 'beta3_sfh',
                     'beta4_sfh', 'gamma1_zh', 'gamma2_zh', 'dust1', 'dust2',
                     'dust_index']

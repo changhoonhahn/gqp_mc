@@ -329,6 +329,217 @@ def mcmc_posterior():
     return None 
 
 
+def inferred_props(method='ifsps', model=None, sfr='100myr'):
+    ''' compare inferred physical galaxy properties of each galaxy to its
+    corresponding intrinsic values 
+    '''
+    if sfr == '100myr': dt = 0.1
+    ngal = 97
+    sims = ['lgal', 'tng'] 
+    
+    Mstar_inputs, logSFR_inputs = [], [] 
+    Mstar_infs, logSFR_infs = [], [] 
+    for sim in sims: 
+        if sim != 'lgal': continue 
+        # read noiseless Lgal spectra of the spectral_challenge mocks
+        specs, meta = Data.Spectra(sim=sim, noise='bgs0', lib='bc03', sample='mini_mocha') 
+        # read Lgal photometry of the mini_mocha mocks
+        photo, _ = Data.Photometry(sim=sim, noise='legacy', lib='bc03', sample='mini_mocha')
+        
+        if method == 'ifsps': ifitter = Fitters.iFSPS()
+        elif method == 'ispeculator': ifitter = Fitters.iSpeculator()
+
+        igals, theta_inf = [], [] 
+        for igal in range(ngal):  
+            _fbf = Fbestfit_specphoto(igal, sim=sim, noise='bgs0_legacy',
+                    method=method, model=model)
+            if not os.path.isfile(_fbf): 
+                print('     %s does not exist' % _fbf)
+                continue 
+            fbf = h5py.File(_fbf, 'r')  
+            mcmc_chain = fbf['mcmc_chain'][...].copy() 
+            fbf.close() 
+
+            _theta_inf = np.percentile(mcmc_chain, [2.5, 16, 50, 84, 97.5], axis=0)
+
+            igals.append(igal) 
+            theta_inf.append(_theta_inf) 
+
+        igals = np.array(igals)
+
+        # input properties 
+        Mstar_input = [meta['logM_total'][i] for i in igals] # total mass 
+        logSFR_input= np.log10([meta['sfr_%s' % sfr][i] for i in igals])
+
+        # inferred properties
+        Mstar_inf   = np.array([_tt[:,0] for _tt in theta_inf])
+        logSFR_inf  = np.array([_tt[:,-1] for _tt in theta_inf])
+
+        Mstar_inputs.append(Mstar_input) 
+        logSFR_inputs.append(logSFR_input) 
+        
+        Mstar_infs.append(Mstar_inf) 
+        logSFR_infs.append(logSFR_inf) 
+    
+    fig = plt.figure(figsize=(12,8))
+    for i in range(len(sims)):
+        if sims[i] != 'lgal': continue 
+        Mstar_input = Mstar_inputs[i] 
+        Mstar_inf = Mstar_infs[i]
+        logSFR_input = logSFR_inputs[i]
+        logSFR_inf = logSFR_infs[i]
+
+        # compare total stellar mass 
+        sub = fig.add_subplot(2,3,2*i+1) 
+        sub.errorbar(Mstar_input, Mstar_inf[:,2], 
+                yerr=[Mstar_inf[:,2]-Mstar_inf[:,1], Mstar_inf[:,3]-Mstar_inf[:,2]], fmt='.C0')
+        sub.plot([9., 12.], [9., 12.], c='k', ls='--') 
+        sub.text(0.05, 0.95, sims[i].upper(), ha='left', va='top', transform=sub.transAxes, fontsize=25)
+
+        sub.set_xlim(9., 12.) 
+        if i == 0: sub.set_xticklabels([])
+        sub.set_ylim(9., 12.) 
+        sub.set_yticks([9., 10., 11., 12.]) 
+        if i == 0: sub.set_title(r'$\log M_*$', fontsize=25)
+
+        # compare SFR 
+        sub = fig.add_subplot(2,3,2*i+2) 
+        sub.errorbar(logSFR_input, logSFR_inf[:,2], 
+                yerr=[logSFR_inf[:,2]-logSFR_inf[:,1], logSFR_inf[:,3]-logSFR_inf[:,2]], fmt='.C0')
+        sub.plot([-3., 2.], [-3., 2.], c='k', ls='--') 
+        sub.set_xlim(-3., 2.) 
+        if i == 0: sub.set_xticklabels([])
+        sub.set_ylim(-3., 2.) 
+        sub.set_yticks([-2., 0., 2.]) 
+        if sfr == '1gyr': lbl_sfr = '1Gyr'
+        elif sfr == '100myr': lbl_sfr = r'100{\rm Myr}'
+        if i == 0: sub.set_title(r'$\log{\rm SFR}_{%s}$' % lbl_sfr, fontsize=25)
+        
+        # compare Z 
+        sub = fig.add_subplot(2,3,2*i+3) 
+        if i == 0: sub.set_title(r'mass-weighted $Z$', fontsize=25)
+        if i == 0: sub.set_xticklabels([])
+
+    bkgd = fig.add_subplot(111, frameon=False)
+    bkgd.set_xlabel(r'$\theta_{\rm true}$', fontsize=25) 
+    bkgd.set_ylabel(r'$\widehat{\theta}$', labelpad=10, fontsize=25) 
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+    fig.subplots_adjust(wspace=0.225, hspace=0.1)
+    _ffig = os.path.join(dir_doc, 'inferred_prop.%s.%s.sfr_%s.comparison.png' %
+            (method, model, sfr)) 
+    fig.savefig(_ffig, bbox_inches='tight') 
+    fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
+    return None 
+
+
+def _speculator_fsps(sfr='100myr'):
+    ''' compare inferred physical galaxy properties from speculator versus
+    actually running fsps 
+
+    notes
+    -----
+    * only Lgal implemented
+    '''
+    if sfr == '100myr': dt = 0.1
+    ngal = 97
+    
+    Mstar_emul, logSFR_emul = [], [] 
+    Mstar_fsps, logSFR_fsps = [], [] 
+
+    igals = []
+    for igal in range(ngal):  
+        _femul = Fbestfit_specphoto(igal, sim='lgal', noise='bgs0_legacy',
+                method='ispeculator', model='emulator')
+        _ffsps = Fbestfit_specphoto(igal, sim='lgal', noise='bgs0_legacy',
+                method='ispeculator', model='fsps')
+        if not (os.path.isfile(_femul) and os.path.isfile(_ffsps)):
+            print('     %s or' % _femul)
+            print('     %s does not exist' % _ffsps)
+            continue 
+        igals.append(igal) 
+
+        femul       = h5py.File(_femul, 'r')  
+        mcmc_emul   = femul['mcmc_chain'][...].copy() 
+        _theta_emul = np.percentile(mcmc_emul, [2.5, 16, 50, 84, 97.5], axis=0)
+        femul.close() 
+        
+        ffsps       = h5py.File(_ffsps, 'r')  
+        mcmc_fsps   = ffsps['mcmc_chain'][...].copy() 
+        _theta_fsps = np.percentile(mcmc_fsps, [2.5, 16, 50, 84, 97.5], axis=0)
+        ffsps.close() 
+    
+        Mstar_emul.append(_theta_emul[:,0])
+        logSFR_emul.append(_theta_emul[:,-1])
+        Mstar_fsps.append(_theta_fsps[:,0])
+        logSFR_fsps.append(_theta_fsps[:,-1])
+
+    igals = np.array(igals)
+    Mstar_emul = np.array(Mstar_emul)
+    logSFR_emul = np.array(logSFR_emul)
+    Mstar_fsps = np.array(Mstar_fsps)
+    logSFR_fsps = np.array(logSFR_fsps)
+    
+    fig = plt.figure(figsize=(8,4))
+    # compare total stellar mass 
+    sub = fig.add_subplot(121) 
+    #sub.errorbar(Mstar_input, Mstar_inf[:,2], 
+    #        yerr=[Mstar_inf[:,2]-Mstar_inf[:,1], Mstar_inf[:,3]-Mstar_inf[:,2]], fmt='.C0')
+    sub.scatter(Mstar_fsps[:,2], Mstar_emul[:,2], c='C0') 
+    sub.plot([9., 12.], [9., 12.], c='k', ls='--') 
+    sub.text(0.05, 0.95, 'L-Galaxies', ha='left', va='top', transform=sub.transAxes, fontsize=25)
+
+    sub.set_xlim(9., 12.) 
+    sub.set_ylim(9., 12.) 
+    sub.set_yticks([9., 10., 11., 12.]) 
+    sub.set_title(r'$\log M_*$', fontsize=25)
+
+    # compare SFR 
+    sub = fig.add_subplot(122) 
+    #sub.errorbar(logSFR_input, logSFR_inf[:,2], 
+    #        yerr=[logSFR_inf[:,2]-logSFR_inf[:,1], logSFR_inf[:,3]-logSFR_inf[:,2]], fmt='.C0')
+    sub.scatter(logSFR_fsps[:,2], logSFR_emul[:,2], c='C0')
+    sub.plot([-3., 2.], [-3., 2.], c='k', ls='--') 
+    sub.set_xlim(-3., 2.) 
+    sub.set_ylim(-3., 2.) 
+    sub.set_yticks([-2., 0., 2.]) 
+    if sfr == '1gyr': lbl_sfr = '1Gyr'
+    elif sfr == '100myr': lbl_sfr = r'100{\rm Myr}'
+    sub.set_title(r'$\log{\rm SFR}_{%s}$' % lbl_sfr, fontsize=25)
+    
+    bkgd = fig.add_subplot(111, frameon=False)
+    bkgd.set_xlabel(r'$\theta_{\rm true}$', fontsize=25) 
+    bkgd.set_ylabel(r'$\widehat{\theta}$', labelpad=10, fontsize=25) 
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+    fig.subplots_adjust(wspace=0.225, hspace=0.1)
+    _ffig = os.path.join(dir_doc, '_speculator_fsps.prop_comparison.png') 
+    fig.savefig(_ffig, bbox_inches='tight') 
+
+    
+    igal = np.random.choice(igals) 
+    _femul = Fbestfit_specphoto(igal, sim='lgal', noise='bgs0_legacy',
+            method='ispeculator', model='emulator')
+    _ffsps = Fbestfit_specphoto(igal, sim='lgal', noise='bgs0_legacy',
+            method='ispeculator', model='fsps')
+    
+    femul       = h5py.File(_femul, 'r')  
+    mcmc_emul   = femul['mcmc_chain'][...].copy() 
+    _theta_emul = np.percentile(mcmc_emul, [2.5, 16, 50, 84, 97.5], axis=0)
+    femul.close() 
+    
+    ffsps       = h5py.File(_ffsps, 'r')  
+    mcmc_fsps   = ffsps['mcmc_chain'][...].copy() 
+    _theta_fsps = np.percentile(mcmc_fsps, [2.5, 16, 50, 84, 97.5], axis=0)
+    ffsps.close() 
+    
+    fig = DFM.corner(mcmc_emul, quantiles=[0.16, 0.5, 0.84], levels=[0.68, 0.95], 
+            color='C0', nbin=20, smooth=True) 
+    DFM.corner(mcmc_fsps, quantiles=[0.16, 0.5, 0.84], levels=[0.68, 0.95],
+            color='C1', nbin=20, smooth=True, fig=fig) 
+    _ffig = os.path.join(dir_doc, '_speculator_fsps.prosterior_comparison.png') 
+    fig.savefig(_ffig, bbox_inches='tight') 
+    return None 
+
+
 def mini_mocha_comparison(sim='lgal', method='ifsps', model=None, sfr='100myr'):
     ''' ultimate comparison between the different SED fitting methods 
     '''
@@ -1241,10 +1452,12 @@ if __name__=="__main__":
     
     #speculator()
     
-    mcmc_posterior()
+    #mcmc_posterior()
 
-    #mini_mocha_comparison(method='ifsps', model='vanilla', sfr='100myr')
-    #mini_mocha_comparison(method='ispeculator', model='emulator', sfr='100myr')
+    #inferred_props(method='ifsps', model='vanilla', sfr='100myr')
+    #inferred_props(method='ispeculator', model='emulator', sfr='100myr')
+
+    _speculator_fsps(sfr='100myr')
 
     #photo_vs_specphoto(sim='lgal', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
     #        method='ifsps', model='vanilla')

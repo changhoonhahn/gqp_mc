@@ -1457,7 +1457,7 @@ if __name__=="__main__":
     #inferred_props(method='ifsps', model='vanilla', sfr='100myr')
     #inferred_props(method='ispeculator', model='emulator', sfr='100myr')
 
-    _speculator_fsps(sfr='100myr')
+    #_speculator_fsps(sfr='100myr')
 
     #photo_vs_specphoto(sim='lgal', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
     #        method='ifsps', model='vanilla')
@@ -1468,7 +1468,7 @@ if __name__=="__main__":
     #        method='ispeculator', model='emulator')
     #photo_vs_specphoto(sim='tng', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
     #        method='ispeculator', model='emulator')
-    #eta_Delta(sim='lgal', noise='bgs0_legacy', method='ifsps', model='vanilla')
+    eta_Delta(sim='lgal', noise='bgs0_legacy', method='ifsps', model='vanilla')
     #eta_Delta(sim='tng', noise='bgs0_legacy', method='ifsps', model='vanilla')
     #eta_Delta(sim='lgal', noise='bgs0_legacy', method='ispeculator', model='emulator')
 

@@ -24,7 +24,7 @@ i.e. add
 ```
 export GQPMC_DIR="\SOME_LOCAL_DIRECTORY\" 
 ```
-to your `~/.bashrc.ext` file. 
+to your `~/.bashrc.ext` file. [bashrc_example](https://github.com/kgb0255/GQPMC_v2_JAMES/blob/master/Documentation/NERSC_Installation/basrhc.txt)
 
 Then run 
 ```
@@ -43,8 +43,10 @@ ln -s /global/cfs/cdirs/desi/mocks/TNG_spectra/ tng
 ln -s /global/cfs/cdirs/desi/mocks/gqp_mini_mocha/ mini_mocha 
 ```
 
-You need to install FSPS if you want to use the iFSPS fitter ([https://github.com/cconroy20/fsps](https://github.com/cconroy20/fsps)). See below for some notes on installing FSPS on NERSC
-Yoy need also to install CIGALE if you want to use CIGALE photometry fitter ([https://cigale.lam.fr](https://cigale.lam.fr). See below some notes on installing CIGALE on NERSC
+If you're symlinks are outdated or wrong, [update those](https://github.com/kgb0255/GQPMC_v2_JAMES/blob/master/Documentation/NERSC_Installation/outdated_symlink.md)
+
+You need to install FSPS if you want to use the iFSPS fitter ([https://github.com/cconroy20/fsps](https://github.com/cconroy20/fsps)). See below for some notes on installing FSPS on NERSC.
+You need also to install CIGALE if you want to use CIGALE photometry fitter ([https://cigale.lam.fr](https://cigale.lam.fr). See below some notes on installing CIGALE on NERSC
 
 With the data all set up, we can now install the package: 
 ```bash 
@@ -77,6 +79,7 @@ python setup.py install --user
 # test the package
 pytest 
 ```
+If you're using Python 2.7 or above, you won't need to install multiprocessing.
 
 ## Fitting Spectra or Photometry
 
@@ -113,6 +116,8 @@ Alternatively, use
 and add
 
 > F90FLAGS = -O -cpp -fPIC
+
+[Makefile_example](https://github.com/kgb0255/GQPMC_v2_JAMES/blob/master/Documentation/NERSC_Installation/Makefile)
 
 ## Installing CIGALE
 

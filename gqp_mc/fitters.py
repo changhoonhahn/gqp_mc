@@ -731,7 +731,7 @@ class iFSPS(Fitter):
         sq_means = []
 
         for m in r_sample:
-            means.append(np.mean(n))
+            means.append(np.mean(m))
             sq_means.append(np.mean(m**2))
 
         tot_mean = np.mean(means)

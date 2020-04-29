@@ -161,8 +161,8 @@ def validate_sample(sim):
 
 
 def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps', 
-        model='emulator', nwalkers=100, burnin=100, niter=1000,
-        opt_maxiter=100, overwrite=False, justplot=False): 
+        model='emulator', nwalkers=100, burnin=100, niter='adaptive',
+        opt_maxiter=100, overwrite=False, postprocess=False, justplot=False): 
     ''' Fit simulated photometry. `noise` specifies whether to fit spectra without noise or 
     with legacy-like noise. `dust` specifies whether to if spectra w/ dust or not. 
     Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
@@ -200,8 +200,8 @@ def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps',
         photo_obs   = photo['flux'][igal,:5]
         ivar_obs    = photo['ivar'][igal,:5]
 
-    f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', method,  
-            '%s.photo.noise_%s.%s.%i.hdf5' % (sim, noise, model, igal))
+    f_mcmc = os.path.join(UT.dat_dir(), 'mini_mocha', method,  
+            '%s.photo.noise_%s.%s.%i.mcmc.hdf5' % (sim, noise, model, igal))
     
     # initiating fit
     if method == 'ifsps': 
@@ -210,22 +210,22 @@ def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps',
         ifitter = Fitters.iSpeculator(model_name=model) 
 
     print('--- bestfit ---') 
-    if (justplot or not overwrite) and os.path.isfile(f_bf): 
+    if (justplot or not overwrite) and os.path.isfile(f_mcmc): 
         # read in best-fit file with mcmc chain
-        print('    reading in %s' % f_bf) 
-        fbestfit = h5py.File(f_bf, 'r')  
-        bestfit = {} 
-        for k in fbestfit.keys(): 
-            bestfit[k] = fbestfit[k][...]
-        fbestfit.close() 
+        print('    reading in %s' % f_mcmc) 
+        fmcmc = h5py.File(f_mcmc, 'r')  
+        mcmc = {} 
+        for k in fmcmc.keys(): 
+            mcmc[k] = fmcmc[k][...]
+        fmcmc.close() 
     else: 
-        if os.path.isfile(f_bf) and not overwrite: 
+        if os.path.isfile(f_mcmc) and not overwrite: 
             print("** CAUTION: %s already exists **" % os.path.basename(f_bf)) 
         
-        print('    writing %s' % f_bf) 
+        print('    writing %s' % f_mcmc) 
         prior = ifitter._default_prior(f_fiber_prior=None)
 
-        bestfit = ifitter.MCMC_photo(
+        mcmc = ifitter.MCMC_photo(
                 photo_obs, 
                 ivar_obs,
                 meta['redshift'][igal], 
@@ -235,44 +235,56 @@ def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps',
                 burnin=burnin, 
                 niter=niter, 
                 opt_maxiter=opt_maxiter, 
-                writeout=f_bf,
+                writeout=f_mcmc,
                 silent=False)
     
-    labels      = [lbl_dict[_t] for _t in bestfit['theta_names'].astype(str)]
-    truths      = [None for _ in labels] 
-    truths[0]   = meta['logM_total'][igal] 
+    if postprocess:
+        print('--- postprocessing ---') 
+        f_post = f_mcmc.replace('.mcmc.hdf5', '.postproc.hdf5')
+        mcmc = ifitter.postprocess(mcmc_output=mcmc, writeout=f_post)
 
-    print('log M* total = %f' % bestfit['theta_med'][0])
+    print('log M* total = %f' % mcmc['theta_med'][0])
     print('---------------') 
         
     try: 
         # plotting on nersc never works.
         if os.environ['NERSC_HOST'] == 'cori': return None 
     except KeyError: 
-        fig = DFM.corner(bestfit['mcmc_chain'], range=bestfit['prior_range'], quantiles=[0.16, 0.5, 0.84], 
+        labels      = [lbl_dict[_t] for _t in mcmc['theta_names'].astype(str)]
+        truths      = [None for _ in labels] 
+        truths[0]   = meta['logM_total'][igal] 
+
+        fig = DFM.corner(mcmc['mcmc_chain'], range=mcmc['prior_range'], quantiles=[0.16, 0.5, 0.84], 
                 levels=[0.68, 0.95], nbin=40, smooth=True, 
                 truths=truths, labels=labels, label_kwargs={'fontsize': 20}) 
-        fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
+        if postprocess: 
+            fig.savefig(f_post.replace('.hdf5', '.png'), bbox_inches='tight') 
+        else: 
+            fig.savefig(f_mcmc.replace('.hdf5', '.png'), bbox_inches='tight') 
         plt.close() 
         
         fig = plt.figure(figsize=(5,3))
         sub = fig.add_subplot(111)
         sub.errorbar(np.arange(len(photo_obs)), photo_obs,
                 yerr=ivar_obs**-0.5, fmt='.k', label='data')
-        sub.scatter(np.arange(len(photo_obs)), bestfit['flux_photo_model'], c='C1',
+        sub.scatter(np.arange(len(photo_obs)), mcmc['flux_photo_model'], c='C1',
                 label='model') 
         sub.legend(loc='upper left', markerscale=3, handletextpad=0.2, fontsize=15) 
         sub.set_xticks([0, 1, 2]) 
         sub.set_xticklabels(['$g$', '$r$', '$z$']) 
         sub.set_xlim(-0.5, len(photo_obs)-0.5)
-        fig.savefig(f_bf.replace('.hdf5', '.bestfit.png'), bbox_inches='tight') 
+        if postprocess: 
+            fig.savefig(f_post.replace('.hdf5', '.bestfit.png'), bbox_inches='tight') 
+        else: 
+            fig.savefig(f_mcmc.replace('.hdf5', '.bestfit.png'), bbox_inches='tight') 
         plt.close()
     return None 
 
 
 def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
-        method='ifsps', model='emulator', nwalkers=100, burnin=100, niter=1000,
-        opt_maxiter=100, overwrite=False, justplot=False):  
+        method='ifsps', model='emulator', nwalkers=100, burnin=100,
+        niter='adaptive', opt_maxiter=100, overwrite=False, postprocess=False,
+        justplot=False):    
     ''' Fit Lgal spectra. `noise` specifies whether to fit spectra without noise or 
     with BGS-like noise. Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
 
@@ -321,33 +333,32 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
     print('log M* total = %f' % meta['logM_total'][igal])
     print('log M* fiber = %f' % meta['logM_fiber'][igal])
     print('f_fiber = %f' % f_fiber_true) 
-    print('log SFR = %f' % np.log10(meta['sfr_100myr'][igal])) 
 
-    f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', method, 
-            '%s.specphoto.noise_%s.%s.%i.hdf5' % (sim, noise, model, igal))
+    f_mcmc = os.path.join(UT.dat_dir(), 'mini_mocha', method, 
+            '%s.specphoto.noise_%s.%s.%i.mcmc.hdf5' % (sim, noise, model, igal))
     
     if method == 'ifsps': 
         ifitter = Fitters.iFSPS(model_name=model) 
     elif method == 'ispeculator': 
         ifitter = Fitters.iSpeculator(model_name=model) 
 
-    print('--- bestfit ---') 
-    if (justplot or not overwrite) and os.path.isfile(f_bf): 
-        print('     reading... %s' % os.path.basename(f_bf)) 
-        # read in best-fit file with mcmc chain
-        fbestfit = h5py.File(f_bf, 'r')  
-        bestfit = {} 
-        for k in fbestfit.keys(): 
-            bestfit[k] = fbestfit[k][...]
-        fbestfit.close() 
+    print('--- mcmc ---') 
+    if (justplot or not overwrite) and os.path.isfile(f_mcmc): 
+        print('     reading... %s' % os.path.basename(f_mcmc)) 
+        # read in mcmc chain
+        fmcmc = h5py.File(f_mcmc, 'r')  
+        mcmc = {} 
+        for k in fmcmc.keys(): 
+            mcmc[k] = fmcmc[k][...]
+        fmcmc.close() 
     else: 
-        if os.path.isfile(f_bf) and not overwrite: 
-            print("** CAUTION: %s already exists **" % os.path.basename(f_bf)) 
-        print('     writing... %s' % os.path.basename(f_bf)) 
+        if os.path.isfile(f_mcmc) and not overwrite: 
+            print("** CAUTION: %s already exists **" % os.path.basename(f_mcmc)) 
+        print('     writing... %s' % os.path.basename(f_mcmc)) 
         # initiating fit
         prior = ifitter._default_prior(f_fiber_prior=f_fiber_prior)
 
-        bestfit = ifitter.MCMC_spectrophoto(
+        mcmc = ifitter.MCMC_spectrophoto(
                 w_obs, 
                 flux_obs, 
                 ivar_obs, 
@@ -360,31 +371,40 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
                 burnin=burnin, 
                 niter=niter, 
                 opt_maxiter=opt_maxiter, 
-                writeout=f_bf,
+                writeout=f_mcmc,
                 silent=False)
+    
+    if postprocess:
+        print('--- postprocessing ---') 
+        f_post = f_mcmc.replace('.mcmc.hdf5', '.postproc.hdf5')
+        mcmc = ifitter.postprocess(mcmc_output=mcmc, writeout=f_post)
 
-    i_fib = list(bestfit['theta_names'].astype(str)).index('f_fiber')  
-    i_sfr = list(bestfit['theta_names'].astype(str)).index('logsfr.100myr')  
+    i_fib = list(mcmc['theta_names'].astype(str)).index('f_fiber')  
 
-    labels      = [lbl_dict[_t] for _t in bestfit['theta_names'].astype(str)]
-    truths          = [None for _ in labels] 
-    truths[0]       = meta['logM_total'][igal] 
-    truths[i_fib]   = f_fiber_true
-    truths[i_sfr]   = np.log10(meta['sfr_100myr'][igal])
-
-    print('log M* total = %f' % bestfit['theta_med'][0])
-    print('log M* fiber = %f' % (bestfit['theta_med'][0] + np.log10(bestfit['theta_med'][i_fib])))
-    print('log SFR = %f' % (bestfit['theta_med'][i_sfr]))
+    print('log M* total = %f' % mcmc['theta_med'][0])
+    print('log M* fiber = %f' % (mcmc['theta_med'][0] + np.log10(mcmc['theta_med'][i_fib])))
     print('---------------') 
     try: 
         # plotting on nersc never works.
         if os.environ['NERSC_HOST'] == 'cori': return None 
     except KeyError: 
+
+        labels          = [lbl_dict[_t] for _t in mcmc['theta_names'].astype(str)]
+        truths          = [None for _ in labels] 
+        truths[0]       = meta['logM_total'][igal] 
+        truths[i_fib]   = f_fiber_true
+        if postprocess: 
+            i_sfr = list(mcmc['theta_names'].astype(str)).index('logsfr.100myr')  
+            truths[i_sfr] = np.log10(meta['sfr_100myr'][igal])
+
         # corner plot of the posteriors 
-        fig = DFM.corner(bestfit['mcmc_chain'], range=bestfit['prior_range'], quantiles=[0.16, 0.5, 0.84], 
+        fig = DFM.corner(mcmc['mcmc_chain'], range=mcmc['prior_range'], quantiles=[0.16, 0.5, 0.84], 
                 levels=[0.68, 0.95], nbin=40, smooth=True, 
                 truths=truths, labels=labels, label_kwargs={'fontsize': 20}) 
-        fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
+        if postprocess: 
+            fig.savefig(f_post.replace('.hdf5', '.png'), bbox_inches='tight') 
+        else: 
+            fig.savefig(f_mcmc.replace('.hdf5', '.png'), bbox_inches='tight') 
         plt.close() 
         
         fig = plt.figure(figsize=(18,5))
@@ -392,7 +412,7 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
         sub = plt.subplot(gs[0]) 
         sub.errorbar(np.arange(len(photo_obs)), photo_obs,
                 yerr=photo_ivar_obs**-0.5, fmt='.k', label='data')
-        sub.scatter(np.arange(len(photo_obs)), bestfit['flux_photo_model'], c='C1',
+        sub.scatter(np.arange(len(photo_obs)), mcmc['flux_photo_model'], c='C1',
                 label='model') 
         sub.legend(loc='upper left', markerscale=3, handletextpad=0.2, fontsize=15) 
         sub.set_xticks([0, 1, 2, 3, 4]) 
@@ -401,20 +421,23 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
 
         sub = plt.subplot(gs[1]) 
         sub.plot(w_obs, flux_obs, c='k', lw=1, label='data')
-        sub.plot(bestfit['wavelength_model'], bestfit['flux_spec_model'], c='C1',
+        sub.plot(mcmc['wavelength_model'], mcmc['flux_spec_model'], c='C1',
                 ls='--', lw=1, label=method) 
         sub.legend(loc='upper right', fontsize=15) 
         sub.set_xlabel('wavelength [$A$]', fontsize=20) 
         sub.set_xlim(3600., 9800.)
 
-        fig.savefig(f_bf.replace('.hdf5', '.bestfit.png'), bbox_inches='tight') 
+        if postprocess: 
+            fig.savefig(f_post.replace('.hdf5', '.bestfit.png'), bbox_inches='tight') 
+        else: 
+            fig.savefig(f_mcmc.replace('.hdf5', '.bestfit.png'), bbox_inches='tight') 
         plt.close()
     return None 
 
 
 def MP_sed_fit(spec_or_photo, igals, sim='lgal', noise='none', method='ifsps', 
         model='emulator', nthreads=1, nwalkers=100, burnin=100, niter=1000,
-        overwrite=False, justplot=False): 
+        overwrite=False, postprocess=False, justplot=False): 
     ''' multiprocessing wrapepr for fit_spectra and fit_photometry. This does *not* parallelize 
     the MCMC sampling of individual fits but rather runs multiple fits simultaneously. 
     
@@ -448,6 +471,7 @@ def MP_sed_fit(spec_or_photo, igals, sim='lgal', noise='none', method='ifsps',
             'niter': niter, 
             'opt_maxiter': 1000, 
             'overwrite': overwrite, 
+            'postprocess': postprocess, 
             'justplot': justplot
             }
     if spec_or_photo == 'spec': 
@@ -673,15 +697,21 @@ if __name__=="__main__":
     nthreads        = int(sys.argv[8]) 
     nwalkers        = int(sys.argv[9]) 
     burnin          = int(sys.argv[10]) 
-    niter           = int(sys.argv[11]) 
+    niter           = sys.argv[11] 
     overwrite       = sys.argv[12] == 'True'
+    postprocess     = sys.argv[13] == 'True'
 
     # if specified, it assumes the chains already exist and just makes the 
     # corner plots (implemented because I have difficult making plots on nersc)
     try: 
-        justplot = sys.argv[13] == 'True'
+        justplot = sys.argv[14] == 'True'
     except IndexError: 
         justplot = False
+
+    try: 
+        niter = int(niter)
+    except ValueError: 
+        pass
 
     if method not in ['ifsps', 'ispeculator']: 
         raise NotImplementedError
@@ -690,8 +720,10 @@ if __name__=="__main__":
     print('using %i threads' % nthreads) 
     igals = range(igal0, igal1+1)
 
-    MP_sed_fit(spec_or_photo, igals, sim=sim, noise=noise, method=method, model=model, nthreads=nthreads, 
-                    nwalkers=nwalkers, burnin=burnin, niter=niter, overwrite=overwrite, justplot=justplot)
+    MP_sed_fit(spec_or_photo, igals, sim=sim, noise=noise, method=method,
+            model=model, nthreads=nthreads,  nwalkers=nwalkers, burnin=burnin,
+            niter=niter, overwrite=overwrite, postprocess=postprocess,
+            justplot=justplot)
 
     '''
         elif method == 'pfirefly': 

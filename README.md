@@ -90,13 +90,11 @@ You can neglect this error, as multiprocessing package has been integrated to py
 
 Now you can 
 ```python
-source activate gqp
-```
-to use the gqp environment. As of Feburary 2020, Nersc supports *conda activate ENV_NAME*. To use
-```python
 conda activate gqp
 ```
-refer to this [page](https://docs.nersc.gov/programming/high-level-environments/python/#using-conda-activate) and navigate to *using conda activate* section
+to use the gqp environment. As of Feburary 2020, Nersc supports 
+*conda activate ENV_NAME*. To use refer to this 
+[page](https://docs.nersc.gov/programming/high-level-environments/python/#using-conda-activate) and navigate to *using conda activate* section
 
 
 ## Fitting Spectra or Photometry

@@ -52,11 +52,8 @@ You need also to install CIGALE if you want to use CIGALE photometry fitter. ([h
 
 With the data all set up, we can now install the package: 
 ```bash 
-# load python 
-module load python 
-
 # create conda environment 
-conda create -n gqp python=3.7
+conda create -n gqp python=3.7 jupyter ipython pip
 
 # install dependencies
 pip install h5py 
@@ -68,6 +65,7 @@ pip install fsps
 pip install multiprocessing
 pip install configobj
 pip install sqlalchemy
+pip install corner
 
 # clone the repo 
 git clone https://github.com/changhoonhahn/gqp_mc.git 
@@ -92,9 +90,17 @@ Now you can
 ```python
 conda activate gqp
 ```
-to use the gqp environment. As of Feburary 2020, Nersc supports 
-*conda activate ENV_NAME*. To use refer to this 
-[page](https://docs.nersc.gov/programming/high-level-environments/python/#using-conda-activate) and navigate to *using conda activate* section
+to use the gqp environment; as of Feburary 2020, Nersc supports 
+*conda activate ENV_NAME*. To use *conda activate*, refer to this 
+[page](https://docs.nersc.gov/programming/high-level-environments/python/#using-conda-activate) and navigate to *using conda activate* section. Using *conda activate* is strongly recommended than using *source activate*. 
+
+If you encounter following error while installing the packages:
+```bash
+ERROR: Could not install packages due to an EnvironmentError:
+[Errno 30] Read-only file system: 
+'/global/common/cori_cle7/software/python/3.7-anaconda-2019.10/lib/python3.7/site-packages/...'
+```
+follow this [link](https://github.com/kgb0255/GQPMC_v2_JAMES/blob/f5e9ec3064c91775e09679a92a67a19ffb80d1c3/Documentation/NERSC_Installation/pacakge_error.md).
 
 
 ## Fitting Spectra or Photometry

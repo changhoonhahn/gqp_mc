@@ -19,7 +19,10 @@ import gqp_mc.fm as FM
 import gqp_mc.util as UT 
 
 
-def fm_Lgal_mini_mocha(lib='bc03'): 
+version = '1.0' # 04/30/2020 
+
+
+def fm_Lgal_mini_mocha(lib='bc03', version='1.0'): 
     ''' generate spectroscopy and photometry for the mini Mock Challenge (MoCha)
     
     * input: galaxy properties (SFH, ZH, etc), noiseless spectra 
@@ -107,9 +110,10 @@ def fm_Lgal_mini_mocha(lib='bc03'):
     for iexp in range(nexp): 
 
         # sky brightness of exposure 
-        Isky = [wave_sky, sbright_sky[iexp]]
+        Isky = [wave_sky * u.Angstrom, sbright_sky[iexp]]
 
-        fbgs = os.path.join(UT.dat_dir(), 'mini_mocha', 'lgal.bgs_spec.%s.%iof%i.fits' % (lib, iexp+1, nexp)) 
+        fbgs = os.path.join(UT.dat_dir(), 'mini_mocha',
+                'lgal.bgs_spec.%s.v%s.%iof%i.fits' % (lib, version, iexp+1, nexp)) 
 
         bgs_spec = FM.Spec_BGS(
                 spectra_s['wave'],        # wavelength  
@@ -139,8 +143,10 @@ def fm_Lgal_mini_mocha(lib='bc03'):
         spectra_bgs['ivar_z'][iexp] = bgs_spec.ivar['z']
 
     # write out everything 
-    fmeta = os.path.join(UT.dat_dir(), 'mini_mocha', 'lgal.mini_mocha.%s.meta.p' % lib)
-    fout = h5py.File(os.path.join(UT.dat_dir(), 'mini_mocha', 'lgal.mini_mocha.%s.hdf5' % lib), 'w')
+    fmeta = os.path.join(UT.dat_dir(), 'mini_mocha',
+            'lgal.mini_mocha.%s.v%s.meta.p' % (lib, version))
+    fout = h5py.File(os.path.join(UT.dat_dir(), 'mini_mocha', 
+        'lgal.mini_mocha.%s.v%s.hdf5' % (lib, version)), 'w')
 
     pickle.dump(meta, open(fmeta, 'wb')) # meta-data
 
@@ -287,6 +293,7 @@ def _lgal_metadata(galids):
     meta = {} 
     meta['galid']       = galids
     meta['t_lookback']  = tlookback
+    meta['dt']          = dt 
     meta['sfh_disk']    = sfh_disk
     meta['sfh_bulge']   = sfh_bulge
     meta['Z_disk']      = Z_disk
@@ -300,5 +307,5 @@ def _lgal_metadata(galids):
 
 
 if __name__=="__main__": 
-    fm_Lgal_mini_mocha()
+    fm_Lgal_mini_mocha(version=version)
 

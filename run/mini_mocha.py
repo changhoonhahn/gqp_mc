@@ -192,6 +192,7 @@ def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps',
     print('--- input ---') 
     print('z = %f' % meta['redshift'][igal])
     print('log M* total = %f' % meta['logM_total'][igal])
+    print('log SFR 100myr = %f' % np.log10(meta['sfr_100myr'][igal]))
 
     if method == 'ispeculator':  
         photo_obs   = photo['flux'][igal,:3]
@@ -253,6 +254,10 @@ def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps',
         labels      = [lbl_dict[_t] for _t in mcmc['theta_names'].astype(str)]
         truths      = [None for _ in labels] 
         truths[0]   = meta['logM_total'][igal] 
+        if postprocess: 
+            i_sfr = list(mcmc['theta_names'].astype(str)).index('logsfr.100myr')  
+            truths[i_sfr] = np.log10(meta['sfr_100myr'][igal])
+            print('log SFR 100myr = %f' % np.median(mcmc['mcmc_chain'][:,i_sfr]))
 
         fig = DFM.corner(mcmc['mcmc_chain'], range=mcmc['prior_range'], quantiles=[0.16, 0.5, 0.84], 
                 levels=[0.68, 0.95], nbin=40, smooth=True, 
@@ -333,6 +338,7 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
     print('log M* total = %f' % meta['logM_total'][igal])
     print('log M* fiber = %f' % meta['logM_fiber'][igal])
     print('f_fiber = %f' % f_fiber_true) 
+    print('log SFR 100myr = %f' % np.log10(meta['sfr_100myr'][igal]))
 
     f_mcmc = os.path.join(UT.dat_dir(), 'mini_mocha', method, 
             '%s.specphoto.noise_%s.%s.%i.mcmc.hdf5' % (sim, noise, model, igal))
@@ -396,6 +402,7 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
         if postprocess: 
             i_sfr = list(mcmc['theta_names'].astype(str)).index('logsfr.100myr')  
             truths[i_sfr] = np.log10(meta['sfr_100myr'][igal])
+            print('log SFR 100myr = %f' % np.median(mcmc['mcmc_chain'][:,i_sfr]))
 
         # corner plot of the posteriors 
         fig = DFM.corner(mcmc['mcmc_chain'], range=mcmc['prior_range'], quantiles=[0.16, 0.5, 0.84], 

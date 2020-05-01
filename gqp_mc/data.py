@@ -170,10 +170,13 @@ def _lgal_avg_sfr(meta):
     meta['sfr_100myr'] = [] 
     for i in range(len(meta['sfh_bulge'])): 
         sfh_total =  meta['sfh_bulge'][i] + meta['sfh_disk'][i] # total sfh 
+        dt = meta['dt'][i] 
 
         in1gyr = (meta['t_lookback'][i] <= 1) 
         in100myr = (meta['t_lookback'][i] <= 0.1) 
 
-        meta['sfr_1gyr'].append(np.sum(sfh_total[in1gyr]) / 1.e9) 
-        meta['sfr_100myr'].append(np.sum(sfh_total[in100myr]) / 1.e8) 
+        meta['sfr_1gyr'].append(
+                np.sum(sfh_total[in1gyr]) / (np.sum(dt[in1gyr]) * 1e9))  
+        meta['sfr_100myr'].append(
+                np.sum(sfh_total[in100myr]) / (np.sum(dt[in100myr]) * 1.e9))
     return meta  

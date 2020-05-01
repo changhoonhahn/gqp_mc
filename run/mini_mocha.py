@@ -426,6 +426,7 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
         sub.legend(loc='upper right', fontsize=15) 
         sub.set_xlabel('wavelength [$A$]', fontsize=20) 
         sub.set_xlim(3600., 9800.)
+        sub.set_ylim(-1., 5.) 
 
         if postprocess: 
             fig.savefig(f_post.replace('.hdf5', '.bestfit.png'), bbox_inches='tight') 

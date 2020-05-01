@@ -140,7 +140,7 @@ def read_data(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'):
     dir_sample = os.path.join(UT.dat_dir(), sample) 
     
     # description of data (sample, library used, and version number) 
-    dat_descrip = '%s.%s.v%s' % sample, lib, version 
+    dat_descrip = '%s.%s.v%s' % (sample, lib, version) 
 
     # read in meta data 
     if sim == 'lgal': 

@@ -7,11 +7,14 @@ photometry fitter and submit a pull request!
 
 
 ## Table of Conents 
+[Updates](#Updates)<br> 
 [Installiation](#installation)<br>
 [Fitting Spectra/Photometry](#fitting-spectra-or-photometry)<br> 
 [To do](#to-do)<br>
 [Installing FSPS](#installing-fsps)<br> 
 
+## Updates
+**04/30/2020**: LGal data updated. Now with version flag. We're starting with `v1.0`! As long as you git pull and install updates, there shouldn't be any issues. 
 
 ## Installation
 

@@ -642,13 +642,19 @@ class iFSPS(Fitter):
                 np.array([self.get_SFR(tt, zred, dt=1.) for tt in chain])
                 ).flatten() 
 
+        theta_names += ['logz.mw'] # log10(mass weighted metallicity) 
+        logzmw = np.log10(
+                np.array([self.get_Z_MW(tt, zred) for tt in chain])).flatten() 
+
         # concatenate SFRs to the markov chain  
         chain = np.concatenate([
             chain, 
             np.atleast_2d(logsfr100myr).T,
-            np.atleast_2d(logsfr1gyr).T], 
+            np.atleast_2d(logsfr1gyr).T, 
+            np.atleast_2d(logzmw).T], 
             axis=1) 
-        prior_ranges = np.concatenate([prior_ranges, np.array([[-4., 4]]), np.array([[-4., 4]])], axis=0) 
+        prior_ranges = np.concatenate([prior_ranges, np.array([[-4., 4]]),
+            np.array([[-4., 4]]), np.array([[-3., 1.]])], axis=0)  
     
         # get quanitles of the chain 
         lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
@@ -724,6 +730,14 @@ class iFSPS(Fitter):
         #avsfr[np.isfinite(avsfr)] = 0.0 # does not work for scalars
         avsfr *= theta['mass']
         return np.clip(avsfr, 0, np.inf)
+
+    def get_Z_MW(self, tt, zred):
+        ''' given theta calculate mass weighted metallicity
+
+        for iFSPS this is super simple since we assume single metallicty
+        '''
+        theta = self._theta(tt)
+        return theta['Z'] 
 
     def ACM(self, chain, num_chain, length, silent):
         ''' Adaptive Convergence Monitoring function which monitors the convergence with Gelamn-Rubin diagnostic to return the PSRF and convergence flag
@@ -1637,87 +1651,6 @@ class iSpeculator(iFSPS):
 
         return outspec, np.array(list(maggies[0])) * 1e9
    
-    def postprocess(self, mcmc_output=None, f_mcmc=None, writeout=None): 
-        ''' postprocess MC chain and calculate SFR and Z for the chain using
-        NMF bases 
-
-        :param mcmc_output:
-            output dictionary from MCMC_specphoto, MCMC_spec, or MCMC_photo
-            that contains all the information from the MCMC sampling. 
-            (default: None) 
-        :param f_mcmc: 
-            alternatively you can specify the hdf5 file name where the MCMC
-            dictionary is saved. 
-            (default: None) 
-        :param writeout: 
-            optional file name you can specify to write out the post processed
-            mcmc chain to file. 
-        :return mcmc_output: 
-            postprocessed mcmc chain dictionary 
-        '''
-        if mcmc_output is None and f_mcmc is None: 
-            raise ValueError
-        if mcmc_output is not None and f_mcmc is not None:
-            raise ValueError
-        
-        if f_mcmc is not None: # read chain from file 
-            mcmc_output = {} 
-            fh5 = h5py.File(f_mcmc, 'r') 
-            for k in fh5.keys(): 
-                mcmc_output[k] = fh5[k][...]
-
-        # check the model names agree with one another 
-        assert self.model_name == mcmc_output['model'] 
-
-        theta_names = list(mcmc_output['theta_names'].astype(str))
-
-        for prop in ['logsfr.100myr', 'logsfr.1gyr']: 
-            if prop in theta_names: 
-                raise ValueError
-    
-        chain   = mcmc_output['mcmc_chain'].copy() 
-        zred    = mcmc_output['redshift'].copy() 
-        prior_ranges = mcmc_output['prior_range'].copy() 
-        
-        # calculate 100 Myr and 1Gyr logSFRs from the posteriors 
-        theta_names += ['logsfr.100myr']
-        logsfr100myr = np.log10(
-                np.array([self.get_SFR(tt, zred, dt=0.1) for tt in chain])
-                ).flatten() 
-
-        theta_names += ['logsfr.1gyr']
-        logsfr1gyr = np.log10(
-                np.array([self.get_SFR(tt, zred, dt=1.) for tt in chain])
-                ).flatten() 
-
-        # concatenate SFRs to the markov chain  
-        chain = np.concatenate([
-            chain, 
-            np.atleast_2d(logsfr100myr).T,
-            np.atleast_2d(logsfr1gyr).T], 
-            axis=1) 
-        prior_ranges = np.concatenate([prior_ranges, np.array([[-4., 4]]), np.array([[-4., 4]])], axis=0) 
-    
-        # get quanitles of the chain 
-        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
-
-        # update the mcmc_output 
-        mcmc_output['theta_names']      = np.array(theta_names, dtype='S') 
-        mcmc_output['theta_med']        = med 
-        mcmc_output['theta_1sig_plus']  = high
-        mcmc_output['theta_2sig_plus']  = highhigh
-        mcmc_output['theta_1sig_minus'] = low
-        mcmc_output['theta_2sig_minus'] = lowlow
-        mcmc_output['prior_range']      = prior_ranges 
-        mcmc_output['mcmc_chain']       = chain 
-
-        if writeout is not None: 
-            fh5  = h5py.File(writeout, 'w') 
-            for k in mcmc_output.keys(): 
-                fh5.create_dataset(k, data=mcmc_output[k]) 
-            fh5.close() 
-        return mcmc_output  
-
     def get_SFR(self, tt, zred, dt=1.):
         ''' given theta calculate SFR averaged over dt Gyr. 
 
@@ -1742,7 +1675,30 @@ class iSpeculator(iFSPS):
         avsfr = np.trapz(sfh[i_low:], t[i_low:]) / (tage - t[i_low]) / 1e9
         avsfr *= 10**tt[0]
         return np.clip(np.atleast_1d(avsfr), 0, np.inf)
-   
+    
+    def get_Z_MW(self, tt, zred):
+        ''' given theta calculate mass weighted metallicity using the ZH NMF
+        bases. 
+        '''
+        tage = self.cosmo.age(zred).value # age in Gyr
+        t = np.linspace(0, tage, 50)
+
+        tt_sfh = tt[1:5] # sfh bases 
+        tt_zh = tt[5:7] # zh bases 
+        
+        # caluclate normalized SFH
+        sfh = np.sum(np.array([
+            tt_sfh[i]*self._sfh_basis[i](t)/np.trapz(self._sfh_basis[i](t), t) 
+            for i in range(4)]), axis=0)
+
+        zh = np.sum(np.array([
+            tt_zh[i] * self._zh_basis[i](t) 
+            for i in range(2)]), axis=0)
+        
+        # mass weighted average
+        z_mw = np.trapz(zh * sfh, t) / np.trapz(sfh, t)
+        return np.clip(np.atleast_1d(z_mw), 0, np.inf)
+
     def _emulator(self, tt):
         ''' emulator for FSPS 
 

@@ -78,10 +78,21 @@ cd gqp_mc
 
 # install package
 python setup.py install --user 
-
-# test the package
-pytest 
 ```
+
+You can test the package by either running a simple chain
+```bash
+# run a short chain
+cd run
+sh mbp_mini_mocha.sh
+```
+or, if pytest is up-to-date, (outdated as of May 2, 2020)
+```bash
+# test the package
+pytest
+```
+
+
 
 Multiprocessing installation might raise following error:
 ```python

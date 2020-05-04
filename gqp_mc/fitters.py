@@ -1609,8 +1609,32 @@ class iSpeculator(iFSPS):
                 raise ValueError("specify either filters or bands") 
 
         w, spec = self.model(zz_arr, zred=zred, dont_transform=dont_transform) # get SED  
-    
-        maggies = filters.get_ab_maggies(np.atleast_2d(spec) * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom, wavelength=w*U.Angstrom) # maggies 
+         
+        try: 
+            maggies = filters.get_ab_maggies(np.atleast_2d(spec) * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom, wavelength=w*U.Angstrom) # maggies 
+        except ValueError: 
+            # this is a duct tape fix for the limited wavelength range of
+            # speculator. In the future we need to retrain speculator to have a
+            # wide wavelength range!
+            # we *carelessly* zero pad the wavelengths assuming that the edges
+            # of the transmission curve don't contribute to the photometry
+            w_min, w_max = w.min(), w.max() 
+            n_below = int(w_min - 1e3) + 1 # 1A resolution padding
+            n_above = int(2e4 - w_max) + 1
+            print('************************************************************') 
+            print('WARNING: wavelength range of speculator does not cover the wavelength range of the bandpass filter!!!') 
+            print('WARNING: wavelength range of speculator does not cover the wavelength range of the bandpass filter!!!') 
+            print('WARNING: we currently zero pad it, which may result in incorrect photometry!') 
+
+            w_pad = np.concatenate([
+                np.linspace(1e3, w_min, n_below)[:-1], 
+                w,
+                np.linspace(w_max, 2e4, n_above)[1:]]) 
+            spec_pad = np.concatenate([
+                np.zeros(n_below-1), 
+                spec, 
+                np.zeros(n_above-1)])
+            maggies = filters.get_ab_maggies(np.atleast_2d(spec_pad) * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom, wavelength=w_pad*U.Angstrom) # maggies 
         return np.array(list(maggies[0])) * 1e9
     
     def _model_spectrophoto(self, tt_arr, zred=0.1, wavelength=None,

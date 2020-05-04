@@ -28,7 +28,9 @@ i.e. add
 ```
 export GQPMC_DIR="\SOME_LOCAL_DIRECTORY\" 
 ```
-to your `~/.bashrc.ext` file. 
+to your `~/.bashrc.ext` file. Also add the following 
+`export HDF5_USE_FILE_LOCKING=FALSE`
+to your `~/.bashrc.ext` for  HDF5 I/O on NERSC.
 
 Then run 
 ```

@@ -881,6 +881,7 @@ class iFSPS(Fitter):
                     if not silent: 
                         print(f'Did not converge; PSRF: {PSRF}, Iteration: {niter}')
         else:# run mcmc 
+            assert isinstance(niter, int) 
             self.sampler.run_mcmc(pos, niter)
         
         return  self.sampler.flatchain

@@ -7,10 +7,14 @@ photometry fitter and submit a pull request!
 
 
 ## Table of Conents 
+[Updates](#Updates)<br> 
 [Installiation](#installation)<br>
 [Fitting Spectra/Photometry](#fitting-spectra-or-photometry)<br> 
 [To do](#to-do)<br>
 [Installing FSPS](#installing-fsps)<br> 
+
+## Updates
+**04/30/2020**: LGal data updated. Now with version flag. We're starting with `v1.0`! As long as you git pull and install updates, there shouldn't be any issues. 
 
 ## Installation
 
@@ -24,17 +28,19 @@ i.e. add
 ```
 export GQPMC_DIR="\SOME_LOCAL_DIRECTORY\" 
 ```
-to your `~/.bashrc.ext` file. 
+to your `~/.bashrc.ext` file. Also add the following 
+`export HDF5_USE_FILE_LOCKING=FALSE`
+to your `~/.bashrc.ext` for  HDF5 I/O on NERSC.
 
 Then run 
 ```
 source ~/.bashrc.ext
 ```
-on the command line 
+on the command line .
 
 Now we're going to symlink to the LGal directory and the directory with the 
 mini-Mock Challenge (mini_mocha) in the desi project directory so that we
-have access to the data
+have access to the data.
 ```
 # go to $GQPMC_DIR
 cd $GQPMC_DIR
@@ -43,16 +49,16 @@ ln -s /global/cfs/cdirs/desi/mocks/TNG_spectra/ tng
 ln -s /global/cfs/cdirs/desi/mocks/gqp_mini_mocha/ mini_mocha 
 ```
 
-You need to install FSPS if you want to use the iFSPS fitter ([https://github.com/cconroy20/fsps](https://github.com/cconroy20/fsps)). See below for some notes on installing FSPS on NERSC
-Yoy need also to install CIGALE if you want to use CIGALE photometry fitter ([https://cigale.lam.fr](https://cigale.lam.fr). See below some notes on installing CIGALE on NERSC
+Your symlinks should point to the proper directory. If the symlinks are bad, fix the symlink, referring to this:
+[updating_symlink](https://github.com/kgb0255/GQPMC_v2_JAMES/blob/6da67f918cfadfb17eaa163ddfb25e63dc9b3c53/Documentation/NERSC_Installation/outdated_symlink.md)
+
+You need to install FSPS if you want to use the iFSPS fitter. ([https://github.com/cconroy20/fsps](https://github.com/cconroy20/fsps)). See below for some notes on installing FSPS on NERSC.
+You need also to install CIGALE if you want to use CIGALE photometry fitter. ([https://cigale.lam.fr](https://cigale.lam.fr). See below some notes on installing CIGALE on NERSC.
 
 With the data all set up, we can now install the package: 
 ```bash 
-# load python 
-module load python 
-
 # create conda environment 
-conda create -n gqp python=3.7
+conda create -n gqp python=3.7 jupyter ipython pip
 
 # install dependencies
 pip install h5py 
@@ -64,6 +70,7 @@ pip install fsps
 pip install multiprocessing
 pip install configobj
 pip install sqlalchemy
+pip install corner
 
 # clone the repo 
 git clone https://github.com/changhoonhahn/gqp_mc.git 
@@ -77,6 +84,29 @@ python setup.py install --user
 # test the package
 pytest 
 ```
+
+Multiprocessing installation might raise following error:
+```python
+ERROR: Command errored out with exit status 1: python setup.py egg_info Check the logs for full command output.
+```
+You can neglect this error, as multiprocessing package has been integrated to python default packages for python 3.X.
+
+Now you can 
+```python
+conda activate gqp
+```
+to use the gqp environment; as of Feburary 2020, Nersc supports 
+*conda activate ENV_NAME*. To use *conda activate*, refer to this 
+[page](https://docs.nersc.gov/programming/high-level-environments/python/#using-conda-activate) and navigate to *using conda activate* section. Using *conda activate* is strongly recommended than using *source activate*. 
+
+If you encounter following error while installing the packages:
+```bash
+ERROR: Could not install packages due to an EnvironmentError:
+[Errno 30] Read-only file system: 
+'/global/common/cori_cle7/software/python/3.7-anaconda-2019.10/lib/python3.7/site-packages/...'
+```
+follow this [link](https://github.com/kgb0255/GQPMC_v2_JAMES/blob/f5e9ec3064c91775e09679a92a67a19ffb80d1c3/Documentation/NERSC_Installation/pacakge_error.md).
+
 
 ## Fitting Spectra or Photometry
 
@@ -113,6 +143,9 @@ Alternatively, use
 and add
 
 > F90FLAGS = -O -cpp -fPIC
+
+
+If you modified the `src/Makefile` correctly, it should look like this: [Makefile_example](https://github.com/kgb0255/GQPMC_v2_JAMES/blob/6da67f918cfadfb17eaa163ddfb25e63dc9b3c53/Documentation/NERSC_Installation/Makefile)
 
 ## Installing CIGALE
 

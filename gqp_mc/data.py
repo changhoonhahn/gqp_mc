@@ -20,6 +20,9 @@ from . import fm as FM
 from . import util as UT 
 
 
+version = '1.0' # updated 04/30/2020 
+
+
 def Spectra(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'): 
     ''' read forward modeled spectra generated for simulations
 
@@ -126,25 +129,37 @@ def Photometry(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'):
 
 def read_data(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'): 
     ''' read compiled data 
+
+    notes
+    -----
+    * 4/30/2020: tng not supported to focus on lgal.  
     '''
-    if sim not in ['lgal', 'tng']: raise NotImplementedError 
+    if sim not in ['lgal']: raise NotImplementedError 
     if lib != 'bc03': raise NotImplementedError 
     
     dir_sample = os.path.join(UT.dat_dir(), sample) 
+    
+    # description of data (sample, library used, and version number) 
+    dat_descrip = '%s.%s.v%s' % (sample, lib, version) 
 
     # read in meta data 
     if sim == 'lgal': 
-        meta = pickle.load(open(os.path.join(dir_sample, "lgal.%s.%s.meta.p" % (sample, lib)), 'rb')) 
+        meta = pickle.load(open(os.path.join(dir_sample,
+            "lgal.%s.meta.p" % dat_descrip), 'rb')) 
         meta = _lgal_avg_sfr(meta)
     
         # read in mock data 
-        mock = h5py.File(os.path.join(dir_sample, 'lgal.%s.%s.hdf5' % (sample, lib)), 'r') 
-
+        mock = h5py.File(os.path.join(dir_sample, 
+            'lgal.%s.hdf5' % dat_descrip), 'r') 
+    '''
     elif sim == 'tng': 
-        meta = pickle.load(open(os.path.join(dir_sample, "tng.%s.meta.p" % sample), 'rb')) 
-    
+        meta = pickle.load(open(os.path.join(dir_sample, 
+            "tng.%s.meta.p" % dat_descrip), 'rb')) 
+
         # read in mock data 
-        mock = h5py.File(os.path.join(dir_sample, 'tng.%s.hdf5' % sample), 'r') 
+        mock = h5py.File(os.path.join(dir_sample, 
+            'tng.%s.hdf5' % dat_descrip), 'r') 
+    '''
     return meta, mock  
 
 
@@ -155,10 +170,13 @@ def _lgal_avg_sfr(meta):
     meta['sfr_100myr'] = [] 
     for i in range(len(meta['sfh_bulge'])): 
         sfh_total =  meta['sfh_bulge'][i] + meta['sfh_disk'][i] # total sfh 
+        dt = meta['dt'][i] 
 
         in1gyr = (meta['t_lookback'][i] <= 1) 
         in100myr = (meta['t_lookback'][i] <= 0.1) 
 
-        meta['sfr_1gyr'].append(np.sum(sfh_total[in1gyr]) / 1.e9) 
-        meta['sfr_100myr'].append(np.sum(sfh_total[in100myr]) / 1.e8) 
+        meta['sfr_1gyr'].append(
+                np.sum(sfh_total[in1gyr]) / (np.sum(dt[in1gyr]) * 1e9))  
+        meta['sfr_100myr'].append(
+                np.sum(sfh_total[in100myr]) / (np.sum(dt[in100myr]) * 1.e9))
     return meta  

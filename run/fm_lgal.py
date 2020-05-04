@@ -19,6 +19,9 @@ import gqp_mc.fm as FM
 import gqp_mc.util as UT 
 
 
+version = '1.0' # 04/30/2020 
+
+
 def fm_Lgal_mini_mocha(lib='bc03'): 
     ''' generate spectroscopy and photometry for the mini Mock Challenge (MoCha)
     
@@ -107,9 +110,10 @@ def fm_Lgal_mini_mocha(lib='bc03'):
     for iexp in range(nexp): 
 
         # sky brightness of exposure 
-        Isky = [wave_sky, sbright_sky[iexp]]
+        Isky = [wave_sky * u.Angstrom, sbright_sky[iexp]]
 
-        fbgs = os.path.join(UT.dat_dir(), 'mini_mocha', 'lgal.bgs_spec.%s.%iof%i.fits' % (lib, iexp+1, nexp)) 
+        fbgs = os.path.join(UT.dat_dir(), 'mini_mocha',
+                'lgal.bgs_spec.%s.v%s.%iof%i.fits' % (lib, version, iexp+1, nexp)) 
 
         bgs_spec = FM.Spec_BGS(
                 spectra_s['wave'],        # wavelength  
@@ -139,8 +143,10 @@ def fm_Lgal_mini_mocha(lib='bc03'):
         spectra_bgs['ivar_z'][iexp] = bgs_spec.ivar['z']
 
     # write out everything 
-    fmeta = os.path.join(UT.dat_dir(), 'mini_mocha', 'lgal.mini_mocha.%s.meta.p' % lib)
-    fout = h5py.File(os.path.join(UT.dat_dir(), 'mini_mocha', 'lgal.mini_mocha.%s.hdf5' % lib), 'w')
+    fmeta = os.path.join(UT.dat_dir(), 'mini_mocha',
+            'lgal.mini_mocha.%s.v%s.meta.p' % (lib, version))
+    fout = h5py.File(os.path.join(UT.dat_dir(), 'mini_mocha', 
+        'lgal.mini_mocha.%s.v%s.hdf5' % (lib, version)), 'w')
 
     pickle.dump(meta, open(fmeta, 'wb')) # meta-data
 
@@ -287,6 +293,7 @@ def _lgal_metadata(galids):
     meta = {} 
     meta['galid']       = galids
     meta['t_lookback']  = tlookback
+    meta['dt']          = dt 
     meta['sfh_disk']    = sfh_disk
     meta['sfh_bulge']   = sfh_bulge
     meta['Z_disk']      = Z_disk
@@ -299,6 +306,46 @@ def _lgal_metadata(galids):
     return meta
 
 
-if __name__=="__main__": 
-    fm_Lgal_mini_mocha()
+def QA_fm_Lgal_mini_mocha(lib='bc03'): 
+    ''' quality assurance/sanity plots 
+    '''
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+    mpl.rcParams['text.usetex'] = True
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['axes.linewidth'] = 1.5
+    mpl.rcParams['axes.xmargin'] = 1
+    mpl.rcParams['xtick.labelsize'] = 'x-large'
+    mpl.rcParams['xtick.major.size'] = 5
+    mpl.rcParams['xtick.major.width'] = 1.5
+    mpl.rcParams['ytick.labelsize'] = 'x-large'
+    mpl.rcParams['ytick.major.size'] = 5
+    mpl.rcParams['ytick.major.width'] = 1.5
+    mpl.rcParams['legend.frameon'] = False
 
+    # read mini mocha data 
+    fmm = h5py.File(os.path.join(UT.dat_dir(), 'mini_mocha', 
+        'lgal.mini_mocha.%s.v%s.hdf5' % (lib, version)), 'r')
+
+    ngal = fmm['spec_flux_source'][...].shape[0]
+    
+    # plot BGS spectra and source spectra for sanity checks  
+    fig = plt.figure(figsize=(15,15))
+    for ii, i in enumerate(np.random.choice(np.arange(ngal), size=3, replace=False)): 
+        sub = fig.add_subplot(3,1,ii+1)
+        for band in ['b', 'r', 'z']: 
+            sub.plot(fmm['spec_wave_%s_bgs' % band][...], fmm['spec_flux_%s_bgs' % band][...][0,i,:], c='C0') 
+        sub.plot(fmm['spec_wave_source'][...],
+                fmm['spec_fiber_flux_source'][...][i,:],
+                c='k', ls='--') 
+        sub.set_xlim(3.6e3, 9.8e3)
+        sub.set_ylim(-2, 10)
+    sub.set_xlabel('wavelength', fontsize=25) 
+    fig.savefig(os.path.join(UT.dat_dir(), 'mini_mocha', 
+        'lgal.mini_mocha.%s.v%s.png' % (lib, version)), bbox_inches='tight') 
+    return None 
+
+
+if __name__=="__main__": 
+    #fm_Lgal_mini_mocha()
+    QA_fm_Lgal_mini_mocha()

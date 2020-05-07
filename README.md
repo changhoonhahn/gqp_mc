@@ -113,32 +113,22 @@ If you want to use the CIGALE photometry fitter, you need also to install CIGALE
 One of the main goals of the mock challenge is to simultaneously fit DESI-like spectra and photometry of the mock challenge galaxies. For examples on reading in the mock challenge data and fitting them see `run/spectral_challenge.py`. 
 
 ## Installing FSPS 
-To compile FSPS using ifor modify the `src/Makefile` and comment out 
-> F90 = gfortran
+Follow instructions in https://github.com/cconroy20/fsps/ and https://github.com/cconroy20/fsps/blob/master/doc/INSTALL except when compiling the code: 
 
-and uncomment
-
-> F90 = ifort 
-
-Also, under "Compiler Optimizations" comment out 
-
-> F90FLAGS = -O -cpp 
-
-and add  
-
-> F90FLAGS = -O3 -cpp -fPIC
-
-Alternatively, use
-
-> module swap PrgEnv-intel PrgEnv-gnu
-
-and add
-
-> F90FLAGS = -O -cpp -fPIC
-
-
-If you modified the `src/Makefile` correctly, it should look like this: [Makefile_example](https://github.com/kgb0255/GQPMC_v2_JAMES/blob/6da67f918cfadfb17eaa163ddfb25e63dc9b3c53/Documentation/NERSC_Installation/Makefile)
-
+- modify the `src/Makefile` and comment out line 10
+  ```bash
+  F90=gfortran
+  ```
+  and uncomment line 13
+  ```bash
+  F90=ifort
+  ```
+  
+- If you get the following error message:
+	> autosps.f90(21): error #6353: A RETURN statement is invalid in the main program.
+	>    RETURN
+	
+	modify `RETURN` in [line 21](https://github.com/cconroy20/fsps/blob/master/src/autosps.f90#L21) of `autosps.f90`  to `STOP` and rerun `make`
 ## Installing CIGALE
 
 Before compiling add DECam* filters to the CIGALE filter directory 

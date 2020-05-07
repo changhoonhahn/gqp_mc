@@ -163,7 +163,8 @@ def validate_sample(sim):
 
 def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps', 
         model='emulator', nwalkers=100, burnin=100, niter='adaptive',
-        opt_maxiter=100, overwrite=False, postprocess=False, justplot=False): 
+        maxiter=200000, opt_maxiter=100, overwrite=False, postprocess=False,
+        justplot=False):   
     ''' Fit simulated photometry. `noise` specifies whether to fit spectra without noise or 
     with legacy-like noise. `dust` specifies whether to if spectra w/ dust or not. 
     Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
@@ -237,6 +238,7 @@ def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps',
                 nwalkers=nwalkers, 
                 burnin=burnin, 
                 niter=niter, 
+                maxiter=maxiter, 
                 opt_maxiter=opt_maxiter, 
                 writeout=f_mcmc,
                 silent=False)
@@ -293,8 +295,8 @@ def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps',
 
 def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
         method='ifsps', model='emulator', nwalkers=100, burnin=100,
-        niter='adaptive', opt_maxiter=100, overwrite=False, postprocess=False,
-        justplot=False):    
+        niter='adaptive', maxiter=200000, opt_maxiter=100, overwrite=False,
+        postprocess=False, justplot=False):    
     ''' Fit Lgal spectra. `noise` specifies whether to fit spectra without noise or 
     with BGS-like noise. Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
 
@@ -382,6 +384,7 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
                 nwalkers=nwalkers, 
                 burnin=burnin, 
                 niter=niter, 
+                maxiter=maxiter, 
                 opt_maxiter=opt_maxiter, 
                 writeout=f_mcmc,
                 silent=False)
@@ -454,7 +457,7 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
 
 def MP_sed_fit(spec_or_photo, igals, sim='lgal', noise='none', method='ifsps', 
         model='emulator', nthreads=1, nwalkers=100, burnin=100, niter=1000,
-        overwrite=False, postprocess=False, justplot=False): 
+        maxiter=200000, overwrite=False, postprocess=False, justplot=False): 
     ''' multiprocessing wrapepr for fit_spectra and fit_photometry. This does *not* parallelize 
     the MCMC sampling of individual fits but rather runs multiple fits simultaneously. 
     
@@ -486,6 +489,7 @@ def MP_sed_fit(spec_or_photo, igals, sim='lgal', noise='none', method='ifsps',
             'nwalkers': nwalkers,
             'burnin': burnin,
             'niter': niter, 
+            'maxiter': maxiter, 
             'opt_maxiter': 1000, 
             'overwrite': overwrite, 
             'postprocess': postprocess, 
@@ -715,13 +719,14 @@ if __name__=="__main__":
     nwalkers        = int(sys.argv[9]) 
     burnin          = int(sys.argv[10]) 
     niter           = sys.argv[11] 
-    overwrite       = sys.argv[12] == 'True'
-    postprocess     = sys.argv[13] == 'True'
+    maxiter         = int(sys.argv[12]) 
+    overwrite       = sys.argv[13] == 'True'
+    postprocess     = sys.argv[14] == 'True'
 
     # if specified, it assumes the chains already exist and just makes the 
     # corner plots (implemented because I have difficult making plots on nersc)
     try: 
-        justplot = sys.argv[14] == 'True'
+        justplot = sys.argv[15] == 'True'
     except IndexError: 
         justplot = False
 
@@ -739,12 +744,5 @@ if __name__=="__main__":
 
     MP_sed_fit(spec_or_photo, igals, sim=sim, noise=noise, method=method,
             model=model, nthreads=nthreads,  nwalkers=nwalkers, burnin=burnin,
-            niter=niter, overwrite=overwrite, postprocess=postprocess,
+            niter=niter, maxiter=maxiter, overwrite=overwrite, postprocess=postprocess,
             justplot=justplot)
-
-    '''
-        elif method == 'pfirefly': 
-            raise NotImplementedError('need to update prior set up') 
-            for igal in range(igal0, igal1+1):
-                fit_pFF_spectra(igal, noise=noise, iter_max=10, overwrite=overwrite)
-    '''

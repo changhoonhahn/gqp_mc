@@ -95,7 +95,8 @@ class iFSPS(Fitter):
         self.ssp        = self._ssp_initiate() # initial ssp
         
     def MCMC_spectrophoto(self, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, prior=None, 
-            mask=None, bands='desi', nwalkers=100, burnin=100, niter=1000, opt_maxiter=100, writeout=None, silent=True): 
+            mask=None, bands='desi', nwalkers=100, burnin=100, niter=1000,
+            maxiter=200000, opt_maxiter=100, writeout=None, silent=True): 
         ''' infer the posterior distribution of the free parameters given spectroscopy and photometry:
         observed wavelength, spectra flux, inverse variance flux, photometry, inv. variance photometry
         using MCMC. The function outputs a dictionary with the median theta of the posterior as well as 
@@ -134,6 +135,13 @@ class iFSPS(Fitter):
         
         :param nwalkers: (optional) 
             int specifying the number of iterations. (default: 1000) 
+
+        :param maxiter: (default: 200000) 
+            maximum number of iterations if `niter=adaptive`. 
+
+        :param opt_maxiter: (default: 100)
+            maximum number of iterations for initial optimizer before MCMC is
+            run. 
         
         :param writeout: (optional) 
             string specifying the output file. If specified, everything in the output dictionary 
@@ -186,7 +194,8 @@ class iFSPS(Fitter):
                 nwalkers=nwalkers, 
                 burnin=burnin, 
                 niter=niter, 
-                maxiter=opt_maxiter,
+                maxiter=maxiter,
+                opt_maxiter=opt_maxiter,
                 silent=silent)
 
         prior_ranges = np.vstack([prior.min, prior.max]).T
@@ -230,7 +239,8 @@ class iFSPS(Fitter):
         return output  
 
     def MCMC_spec(self, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, prior=None,
-            nwalkers=100, burnin=100, niter=1000, opt_maxiter=100, writeout=None, silent=True): 
+            nwalkers=100, burnin=100, niter=1000, maxiter=200000,
+            opt_maxiter=100, writeout=None, silent=True): 
         ''' infer the posterior distribution of the free parameters given observed
         wavelength, spectra flux, and inverse variance using MCMC. The function 
         outputs a dictionary with the median theta of the posterior as well as the 
@@ -263,6 +273,13 @@ class iFSPS(Fitter):
         
         :param nwalkers: (optional) 
             int specifying the number of iterations. (default: 1000) 
+
+        :param maxiter: (default: 200000) 
+            maximum number of iterations if `niter=adaptive`. 
+
+        :param opt_maxiter: (default: 100)
+            maximum number of iterations for initial optimizer before MCMC is
+            run. 
         
         :param writeout: (optional) 
             string specifying the output file. If specified, everything in the output dictionary 
@@ -306,7 +323,8 @@ class iFSPS(Fitter):
                 nwalkers=nwalkers,
                 burnin=burnin, 
                 niter=niter, 
-                maxiter=opt_maxiter,
+                maxiter=maxiter,
+                opt_maxiter=opt_maxiter,
                 silent=silent)
 
         prior_ranges = np.vstack([prior.min, prior.max]).T
@@ -344,7 +362,8 @@ class iFSPS(Fitter):
         return output  
     
     def MCMC_photo(self, photo_obs, photo_ivar_obs, zred, bands='desi', prior=None,
-            nwalkers=100, burnin=100, niter=1000, opt_maxiter=100, writeout=None, silent=True): 
+            nwalkers=100, burnin=100, niter=1000, maxiter=200000,
+            opt_maxiter=100, writeout=None, silent=True): 
         ''' infer the posterior distribution of the free parameters given observed
         photometric flux, and inverse variance using MCMC. The function 
         outputs a dictionary with the median theta of the posterior as well as the 
@@ -373,6 +392,13 @@ class iFSPS(Fitter):
         
         :param nwalkers: (optional) 
             int specifying the number of iterations. (default: 1000) 
+        
+        :param maxiter: (default: 200000) 
+            maximum number of iterations if `niter=adaptive`. 
+
+        :param opt_maxiter: (default: 100)
+            maximum number of iterations for initial optimizer before MCMC is
+            run. 
         
         :param writeout: (optional) 
             string specifying the output file. If specified, everything in the output dictionary 
@@ -422,7 +448,8 @@ class iFSPS(Fitter):
                 nwalkers=nwalkers, 
                 burnin=burnin, 
                 niter=niter, 
-                maxiter=opt_maxiter,
+                maxiter=maxiter,
+                opt_maxiter=opt_maxiter,
                 silent=silent)
 
         prior_ranges = np.vstack([prior.min, prior.max]).T
@@ -787,8 +814,39 @@ class iFSPS(Fitter):
         return (convergent, PSRF)
 
     def _emcee(self, lnpost_fn, lnpost_args, lnpost_kwargs, nwalkers=100,
-            burnin=100, niter='adaptive', maxiter=1000, silent=True): 
+            burnin=100, niter='adaptive', maxiter=200000, opt_maxiter=1000, silent=True): 
         ''' Runs MCMC (using emcee) for a given log posterior function.
+
+        :param lnpost_fn: 
+            log(posterior) function 
+
+        :param lnpost_args: 
+            arguments for the lnpost_fn function
+
+        :param lnpost_kwargs: 
+            keyward arguments for lnpost_fn function
+
+        :param nwalkers: (default: 100) 
+            number of mcmc walkers
+
+        :param burnin: (default: 100) 
+            number of iterations for burnin. If using ACM, this is not terribly
+            important. 
+
+        :param niter: (default: 'adaptive') 
+            number of MCMC iterations. If `niter=adaptive`, MCMC will use an
+            adpative method based on periodic evaluations of the Gelman-Rubin
+            diagnostic to assess convergences (recommended). 
+
+        :param maxiter: (default: 100000) 
+            maximum number of MCMC iterations for adaptive method. MCMC can
+            always be restarted so, keep this at some sensible number.  
+
+        :param opt_maxiter: (default: 1000) 
+            maximum number of iterations for initial optimizer. 
+
+        :param silent: (default: True) 
+            If `False`, there will be periodic print statements with run details
         '''
         import scipy.optimize as op
         import emcee
@@ -807,7 +865,7 @@ class iFSPS(Fitter):
                 0.5*(lnpost_kwargs['prior'].max + lnpost_kwargs['prior'].min), # guess the middle of the prior 
                 args=lnpost_args, 
                 method='Nelder-Mead', 
-                options={'maxiter': maxiter}
+                options={'maxiter': opt_maxiter}
                 ) 
         tt0 = min_result['x'] 
         if not silent: print('initial theta = [%s]' % ', '.join([str(_t) for _t in tt0])) 
@@ -816,7 +874,7 @@ class iFSPS(Fitter):
         self.sampler = emcee.EnsembleSampler(nwalkers, ndim, lnpost_fn, 
                 args=lnpost_args, kwargs=lnpost_kwargs)
         # initial walker positions 
-        p0 = [tt0 + 1.e-2 * dprior * np.random.randn(ndim) for i in range(nwalkers)]
+        p0 = [tt0 + 1.e-4 * dprior * np.random.randn(ndim) for i in range(nwalkers)]
 
         # burn in 
         if not silent: print('running burn-in') 
@@ -825,27 +883,32 @@ class iFSPS(Fitter):
         
         if not silent: print('running main chain') 
         if niter == 'adaptive': # adaptve MCMC 
-            #ACM interval
+            # ACM interval
             STEP = 1000
-            MINIMUM_IT = 50000
 
-            #convergence flag
+            # convergence flag
             convergent = False
-            niter = MINIMUM_IT 
 
-            #convergence stability flag
+            # convergence stability flag
             stable_convergence = 0
 
-            #run mcmc and ACM
-            for idx in range(niter//STEP):
+            idx = 0 # chain index
+            n_iters = 0 
+
+            # run mcmc and ACM
+            while not convergent: 
                 if not silent: print(f'chain #{idx + 1}')
 
-                pos1, prob1, state1 = self.sampler.run_mcmc(pos,STEP)
-                result = self.sampler.flatchain
-                if ((nwalkers * STEP * (idx + 1)) > MINIMUM_IT): 
-                    #ACM is executed only after the chain has been iterated more than the MINIMUM_IT number
+                pos1, prob1, state1 = self.sampler.run_mcmc(pos, STEP)
+
+                if idx > 2: 
+                    # ACM is executed only after the first iteration 
+                    result = self.sampler.flatchain
                     convergent, PSRF = self.ACM(result[:,0], nwalkers, STEP * (idx + 1), silent)
+
                 pos = pos1
+                idx += 1 
+                n_iters += STEP 
 
                 if convergent:
                     # Stable convergence is a safety lever variable which
@@ -853,34 +916,22 @@ class iFSPS(Fitter):
                     # convergence. 
                     stable_convergence += 1 
                 else: 
-                    # if the fake convergence was catched, reset it equal to zero
+                    # if the fake convergence was caught, reset it equal to zero
                     stable_convergence = 0 
+
                 if stable_convergence == 3:            
                     # terminate the chain when stable convergence reaches 3.
                     # the value could be changed if necessary.
                     if not silent:
-                        print(f'Converged; PSRF: {PSRF}, Iteration: {nwalkers} * {STEP} * {idx + 1}')
-                    break
+                        print(f'Converged; PSRF: {PSRF}, Iteration: {n_iters}')
+                    convergent = True 
 
-            if not convergent:
-                if ((STEP * (idx +1)) < niter):
-                    # if convergence hasn't been achieved and the for loop did
-                    # not cover the entire niter  
-                    # (ACM step is 1000 which doesn't cover hundreds, tens, ones.), run the rest of the chain.
+                if n_iters >= maxiter: 
+                    print(f'Did not converge; Max iteration reached; PSRF {PSRF}, Iteration: {n_iters}')
+                    convergent = True
 
-                    self.sampler.run_mcmc(pos,niter-(STEP) * (idx + 1))
-                    result = self.sampler.flatchain
-                    convergent, PSRF = self.ACM(result[:,0], nwalkers, niter, silent)
-
-                    if not silent:
-                        if convergent: 
-                            print(f'Converged; PSRF {PSRF}, Iteration: {niter}, Convergent stability \'t be checked')
-                        else: 
-                            print(f'Did not convergne; PSRF {PSRF}, Iteration: {niter}')
-                else:
-                    if not silent: 
-                        print(f'Did not converge; PSRF: {PSRF}, Iteration: {niter}')
-        else:# run mcmc 
+        else:
+            # run standard mcmc with niter iterations 
             assert isinstance(niter, int) 
             self.sampler.run_mcmc(pos, niter)
         
@@ -1144,7 +1195,8 @@ class iSpeculator(iFSPS):
                 Interp.InterpolatedUnivariateSpline(_z, _d_lum_cm, k=3)
 
     def MCMC_spectrophoto(self, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, prior=None, 
-            mask=None, bands='desi', nwalkers=100, burnin=100, niter=1000, opt_maxiter=100, writeout=None, silent=True): 
+            mask=None, bands='desi', nwalkers=100, burnin=100, niter=1000,
+            maxiter=200000, opt_maxiter=100, writeout=None, silent=True): 
         ''' infer the posterior distribution of the free parameters given spectroscopy and photometry:
         observed wavelength, spectra flux, inverse variance flux, photometry, inv. variance photometry
         using MCMC. The function outputs a dictionary with the median theta of the posterior as well as 
@@ -1183,6 +1235,13 @@ class iSpeculator(iFSPS):
         
         :param nwalkers: (optional) 
             int specifying the number of iterations. (default: 1000) 
+        
+        :param maxiter: (default: 100000) 
+            maximum number of MCMC iterations for adaptive method. MCMC can
+            always be restarted so, keep this at some sensible number.  
+
+        :param opt_maxiter: (default: 1000) 
+            maximum number of iterations for initial optimizer. 
         
         :param writeout: (optional) 
             string specifying the output file. If specified, everything in the output dictionary 
@@ -1243,7 +1302,8 @@ class iSpeculator(iFSPS):
                 nwalkers=nwalkers,
                 burnin=burnin, 
                 niter=niter, 
-                maxiter=opt_maxiter, 
+                maxiter=maxiter,
+                opt_maxiter=opt_maxiter, 
                 silent=silent)
 
         # transform chain back to original SFH basis 
@@ -1293,7 +1353,7 @@ class iSpeculator(iFSPS):
         return output  
 
     def MCMC_spec(self, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, prior=None,
-            nwalkers=100, burnin=100, niter=1000, opt_maxiter=100, writeout=None, silent=True): 
+            nwalkers=100, burnin=100, niter=1000, maxiter=200000, opt_maxiter=100, writeout=None, silent=True): 
         ''' infer the posterior distribution of the free parameters given observed
         wavelength, spectra flux, and inverse variance using MCMC. The function 
         outputs a dictionary with the median theta of the posterior as well as the 
@@ -1326,6 +1386,14 @@ class iSpeculator(iFSPS):
         
         :param nwalkers: (optional) 
             int specifying the number of iterations. (default: 1000) 
+        
+        :param maxiter: (default: 100000) 
+            maximum number of MCMC iterations for adaptive method. MCMC can
+            always be restarted so, keep this at some sensible number.  
+
+        :param opt_maxiter: (default: 1000) 
+            maximum number of iterations for initial optimizer. 
+        
         
         :param writeout: (optional) 
             string specifying the output file. If specified, everything in the output dictionary 
@@ -1369,7 +1437,8 @@ class iSpeculator(iFSPS):
                 nwalkers=nwalkers, 
                 burnin=burnin, 
                 niter=niter, 
-                maxiter=opt_maxiter,
+                maxiter=maxiter,
+                opt_maxiter=opt_maxiter,
                 silent=silent)
         # transform chain back to original SFH basis 
         chain = _chain.copy() 
@@ -1410,7 +1479,8 @@ class iSpeculator(iFSPS):
         return output  
     
     def MCMC_photo(self, photo_obs, photo_ivar_obs, zred, bands='desi', prior=None,
-            nwalkers=100, burnin=100, niter=1000, opt_maxiter=100, writeout=None, silent=True): 
+            nwalkers=100, burnin=100, niter=1000, maxiter=200000,
+            opt_maxiter=100, writeout=None, silent=True): 
         ''' infer the posterior distribution of the free parameters given observed
         photometric flux, and inverse variance using MCMC. The function 
         outputs a dictionary with the median theta of the posterior as well as the 
@@ -1439,6 +1509,13 @@ class iSpeculator(iFSPS):
         
         :param nwalkers: (optional) 
             int specifying the number of iterations. (default: 1000) 
+        
+        :param maxiter: (default: 100000) 
+            maximum number of MCMC iterations for adaptive method. MCMC can
+            always be restarted so, keep this at some sensible number.  
+
+        :param opt_maxiter: (default: 1000) 
+            maximum number of iterations for initial optimizer. 
         
         :param writeout: (optional) 
             string specifying the output file. If specified, everything in the output dictionary 
@@ -1486,7 +1563,8 @@ class iSpeculator(iFSPS):
                 nwalkers=nwalkers, 
                 burnin=burnin, 
                 niter=niter, 
-                maxiter=opt_maxiter, 
+                maxiter=maxiter, 
+                opt_maxiter=opt_maxiter, 
                 silent=silent)
         # transform chain back to original SFH basis 
         chain = _chain.copy() 

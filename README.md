@@ -83,6 +83,10 @@ python setup.py install --user
 
 # test the package
 pytest 
+
+# create ofiles directory
+cd run/cori
+mkdir ofiles
 ```
 
 Multiprocessing installation might raise following error:

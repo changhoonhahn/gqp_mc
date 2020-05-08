@@ -901,7 +901,7 @@ class iFSPS(Fitter):
 
                 pos1, prob1, state1 = self.sampler.run_mcmc(pos, STEP)
 
-                if idx > 2: 
+                if idx > 1: 
                     # ACM is executed only after the first iteration 
                     result = self.sampler.flatchain
                     convergent, PSRF = self.ACM(result[:,0], nwalkers, STEP * (idx + 1), silent)

@@ -6,6 +6,12 @@ Python package for the GQP mock challenge. The package makes it easy to read in 
 ## Updates
 **04/30/2020**: LGal data updated. Now with version flag. We're starting with `v1.0`! As long as you git pull and install updates, there shouldn't be any issues. 
 
+## Fitting Spectra or Photometry
+
+The main goals of the mock challenge is to simultaneously fit DESI-like spectra and photometry of the mock challenge galaxies. For examples running SED fits for photometry or spectra + photometry, check out `run/eg.sh`. 
+
+For examples of submitting SED fit jobs to `NERSC` see slurm scripts in `run/cori/`. We are coordinating job submissions using this [spreadsheet](https://docs.google.com/spreadsheets/d/1pwfZjUi8eREd6YxM0rLaK8LVsVTUdrJ1ctBUfOlZN_8/edit?usp=sharing). 
+
 ## Installation
 
 ### on `NERSC`
@@ -104,13 +110,6 @@ If you want to use the CIGALE photometry fitter, you need also to install CIGALE
   ```
 
   follow this [link](https://github.com/kgb0255/GQPMC_v2_JAMES/blob/f5e9ec3064c91775e09679a92a67a19ffb80d1c3/Documentation/NERSC_Installation/pacakge_error.md).
-
-
-## Fitting Spectra or Photometry
-
-*this section needs more detail*
-
-One of the main goals of the mock challenge is to simultaneously fit DESI-like spectra and photometry of the mock challenge galaxies. For examples on reading in the mock challenge data and fitting them see `run/spectral_challenge.py`. 
 
 ## Installing FSPS 
 Follow instructions in https://github.com/cconroy20/fsps/ and https://github.com/cconroy20/fsps/blob/master/doc/INSTALL except when compiling the code: 

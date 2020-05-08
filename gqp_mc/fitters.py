@@ -901,7 +901,7 @@ class iFSPS(Fitter):
 
                 pos1, prob1, state1 = self.sampler.run_mcmc(pos, STEP)
 
-                if idx > 2: 
+                if idx > 1: 
                     # ACM is executed only after the first iteration 
                     result = self.sampler.flatchain
                     convergent, PSRF = self.ACM(result[:,0], nwalkers, STEP * (idx + 1), silent)
@@ -1749,8 +1749,32 @@ class iSpeculator(iFSPS):
             outspec = np.zeros(wavelength.shape)
             outspec = np.interp(wavelength, w, spec, left=0, right=0)
     
-        maggies = filters.get_ab_maggies(np.atleast_2d(spec) * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom,
-            wavelength=w.flatten()*U.Angstrom) # maggies 
+        try: 
+            maggies = filters.get_ab_maggies(np.atleast_2d(spec) * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom,
+                wavelength=w.flatten()*U.Angstrom) # maggies 
+        except ValueError: 
+            # this is a duct tape fix for the limited wavelength range of
+            # speculator. In the future we need to retrain speculator to have a
+            # wide wavelength range!
+            # we *carelessly* zero pad the wavelengths assuming that the edges
+            # of the transmission curve don't contribute to the photometry
+            w_min, w_max = w.min(), w.max() 
+            n_below = int(w_min - 1e3) + 1 # 1A resolution padding
+            n_above = int(2e4 - w_max) + 1
+            print('************************************************************') 
+            print('WARNING: wavelength range of speculator does not cover the wavelength range of the bandpass filter!!!') 
+            print('WARNING: wavelength range of speculator does not cover the wavelength range of the bandpass filter!!!') 
+            print('WARNING: we currently zero pad it, which may result in incorrect photometry!') 
+
+            w_pad = np.concatenate([
+                np.linspace(1e3, w_min, n_below)[:-1], 
+                w,
+                np.linspace(w_max, 2e4, n_above)[1:]]) 
+            spec_pad = np.concatenate([
+                np.zeros(n_below-1), 
+                spec, 
+                np.zeros(n_above-1)])
+            maggies = filters.get_ab_maggies(np.atleast_2d(spec_pad) * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom, wavelength=w_pad*U.Angstrom) # maggies 
 
         return outspec, np.array(list(maggies[0])) * 1e9
    

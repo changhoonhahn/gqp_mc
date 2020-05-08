@@ -19,11 +19,18 @@ n_cpu=64
 
 export OMP_NUM_THREADS=1
 
-######################################################
-# ifsps  
-######################################################
+# run MCMC with adaptive convergence and maxiter=50000 
 python -W ignore /global/homes/c/chahah/projects/gqp_mc/run/mini_mocha.py \
-    specphoto $sim $i0 $i1 bgs0_legacy ispeculator fsps $n_cpu 40 200 4000 True
+    specphoto $sim $i0 $i1 bgs0_legacy ispeculator fsps $n_cpu 40 200 \
+    adaptive 50000 True False 
+
+# postprocess the MC chains 
+#python -W ignore /global/homes/c/chahah/projects/gqp_mc/run/mini_mocha.py \
+#    specphoto $sim $i0 $i1 bgs0_legacy ispeculator fsps $n_cpu 40 200 \
+#    adaptive 100000 False True 
+
+
+
 
 now=$(date +"%T")
 echo "end time ... $now"

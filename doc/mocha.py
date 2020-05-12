@@ -22,7 +22,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import matplotlib.patches as patches
-mpl.rcParams['text.usetex'] = True
+if os.environ.get('NERSC_HOST') is None: 
+    mpl.rcParams['text.usetex'] = True
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['axes.linewidth'] = 1.5
 mpl.rcParams['axes.xmargin'] = 1
@@ -37,8 +38,9 @@ mpl.rcParams['legend.frameon'] = False
 
 dir_mm = os.path.join(UT.dat_dir(), 'mini_mocha') 
 dir_fig = os.path.join(UT.dat_dir(), 'mini_mocha') 
-dir_doc = '/Users/ChangHoon/projects/gqp_mc/doc/paper/figs/'
-dir_fbgs = '/Users/ChangHoon/data/feasiBGS/'
+
+dir_doc = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'paper', 'figs') 
+dir_fbgs = os.path.join(os.path.dirname(os.path.dirname(UT.dat_dir())), 'feasiBGS') 
 
 
 def BGS(): 
@@ -1464,11 +1466,11 @@ if __name__=="__main__":
     #photo_vs_specphoto(sim='tng', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
     #        method='ifsps', model='vanilla')
 
-    #photo_vs_specphoto(sim='lgal', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
-    #        method='ispeculator', model='emulator')
+    photo_vs_specphoto(sim='lgal', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
+            method='ispeculator', model='emulator')
     #photo_vs_specphoto(sim='tng', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
     #        method='ispeculator', model='emulator')
-    eta_Delta(sim='lgal', noise='bgs0_legacy', method='ifsps', model='vanilla')
+    #eta_Delta(sim='lgal', noise='bgs0_legacy', method='ifsps', model='vanilla')
     #eta_Delta(sim='tng', noise='bgs0_legacy', method='ifsps', model='vanilla')
     #eta_Delta(sim='lgal', noise='bgs0_legacy', method='ispeculator', model='emulator')
 

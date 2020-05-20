@@ -882,53 +882,73 @@ class iFSPS(Fitter):
         self.sampler.reset()
         
         if not silent: print('running main chain') 
-        if niter == 'adaptive': # adaptve MCMC 
+        if niter == 'adaptive': # adaptive MCMC 
             # ACM interval
             STEP = 1000
+            index = 0
+            autocorr = np.empty(maxiter)
+            
+            old_tau = np.inf
+            for sample in self.sampler.sample(p0,iterations=maxiter, progress = False):
+                if self.sampler.iteration % STEP:
+                    continue
+                print(f'chain #{index+1}')
+                tau = self.sampler.get_autocorr_time(tol=0)
+                autocorr[index] = np.mean(tau)
+                index += 1
 
-            # convergence flag
-            convergent = False
+                convergent = np.all(tau * 11 < self.sampler.iteration)
+                convergent &= np.all(np.abs(old_tau - tau) / tau < 0.05)
 
-            # convergence stability flag
-            stable_convergence = 0
+                print(tau * 11, self.sampler.iteration, np.abs(old_tau-tau)/tau)
 
-            idx = 0 # chain index
-            n_iters = 0 
-
-            # run mcmc and ACM
-            while not convergent: 
-                if not silent: print(f'chain #{idx + 1}')
-
-                pos1, prob1, state1 = self.sampler.run_mcmc(pos, STEP)
-
-                if idx > 1: 
-                    # ACM is executed only after the first iteration 
-                    result = self.sampler.flatchain
-                    convergent, PSRF = self.ACM(result[:,0], nwalkers, STEP * (idx + 1), silent)
-
-                pos = pos1
-                idx += 1 
-                n_iters += STEP 
-
+                print(convergent)
                 if convergent:
-                    # Stable convergence is a safety lever variable which
-                    # considers the possilbility of PSRF blowing up after fake
-                    # convergence. 
-                    stable_convergence += 1 
-                else: 
-                    # if the fake convergence was caught, reset it equal to zero
-                    stable_convergence = 0 
+                	break
+                old_tau = tau
+            # # convergence flag
+            # convergent = False
 
-                if stable_convergence == 3:            
-                    # terminate the chain when stable convergence reaches 3.
-                    # the value could be changed if necessary.
-                    if not silent:
-                        print(f'Converged; PSRF: {PSRF}, Iteration: {n_iters}')
-                    convergent = True 
+            # # convergence stability flag
+            # stable_convergence = 0
 
-                if n_iters >= maxiter: 
-                    print(f'Did not converge; Max iteration reached; PSRF {PSRF}, Iteration: {n_iters}')
-                    convergent = True
+            # idx = 0 # chain index
+            # n_iters = 0 
+
+            # # run mcmc and ACM
+            # while not convergent: 
+            #     if not silent: print(f'chain #{idx + 1}')
+
+            #     pos1, prob1, state1 = self.sampler.run_mcmc(pos, STEP)
+
+            #     if idx > 1: 
+            #         # ACM is executed only after the first iteration 
+            #         result = self.sampler.flatchain
+            #         convergent, PSRF = self.ACM(result[:,0], nwalkers, STEP * (idx + 1), silent)
+
+            #     pos = pos1
+            #     idx += 1 
+            #     n_iters += STEP 
+
+            #     if convergent:
+            #         # Stable convergence is a safety lever variable which
+            #         # considers the possilbility of PSRF blowing up after fake
+            #         # convergence. 
+            #         stable_convergence += 1 
+            #     else: 
+            #         # if the fake convergence was caught, reset it equal to zero
+            #         stable_convergence = 0 
+
+            #     if stable_convergence == 3:            
+            #         # terminate the chain when stable convergence reaches 3.
+            #         # the value could be changed if necessary.
+            #         if not silent:
+            #             print(f'Converged; PSRF: {PSRF}, Iteration: {n_iters}')
+            #         convergent = True 
+
+            #     if n_iters >= maxiter: 
+            #         print(f'Did not converge; Max iteration reached; PSRF {PSRF}, Iteration: {n_iters}')
+            #         convergent = True
 
         else:
             # run standard mcmc with niter iterations 
@@ -2546,7 +2566,7 @@ class pseudoFirefly(Fitter):
         final_fit_list = self._iterate(fit_list, bic_n, 0, clipped_arr, chi_models, fit_cap=fit_cap)
 
         chis = np.array([fdict['chi_squared'] for fdict in final_fit_list])
-        best_fits = np.argsort(chis)	
+        best_fits = np.argsort(chis)    
 
         bf = len(best_fits)
         if bf > 10: bf = 10

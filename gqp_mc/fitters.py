@@ -196,7 +196,10 @@ class iFSPS(Fitter):
                 niter=niter, 
                 maxiter=maxiter,
                 opt_maxiter=opt_maxiter,
-                silent=silent)
+                silent=silent,
+                save_func=self._save_temp_spectrophoto,
+                writeout=writeout,
+                method='iFsps')
 
         prior_ranges = np.vstack([prior.min, prior.max]).T
     
@@ -325,7 +328,10 @@ class iFSPS(Fitter):
                 niter=niter, 
                 maxiter=maxiter,
                 opt_maxiter=opt_maxiter,
-                silent=silent)
+                silent=silent,
+                save_func=self._save_temp_spec,
+                writeout=writeout,
+                method='iFsps')
 
         prior_ranges = np.vstack([prior.min, prior.max]).T
     
@@ -450,7 +456,10 @@ class iFSPS(Fitter):
                 niter=niter, 
                 maxiter=maxiter,
                 opt_maxiter=opt_maxiter,
-                silent=silent)
+                silent=silent,
+                save_func=self._save_temp_photo,
+                writeout=writeout,
+                method='iFsps')
 
         prior_ranges = np.vstack([prior.min, prior.max]).T
     
@@ -766,55 +775,56 @@ class iFSPS(Fitter):
         theta = self._theta(tt)
         return theta['Z'] 
 
-    def ACM(self, chain, num_chain, length, silent):
-        ''' Adaptive Convergence Monitoring function which monitors the convergence with Gelamn-Rubin diagnostic to return the PSRF and convergence flag
+    # def ACM(self, chain, num_chain, length, silent):
+    #     ''' Adaptive Convergence Monitoring function which monitors the convergence with Gelamn-Rubin diagnostic to return the PSRF and convergence flag
 
-        :param chain
-            mcmc chain data
+    #     :param chain
+    #         mcmc chain data
 
-        :param num_chain:
-            number of chains, equivalent to the number of walkers
+    #     :param num_chain:
+    #         number of chains, equivalent to the number of walkers
 
-        :param length:             
-            the length of each chain
+    #     :param length:             
+    #         the length of each chain
 
-        :param silent:
-            if true, print statement will not be executed  
+    #     :param silent:
+    #         if true, print statement will not be executed  
 
-        :return convergent, PSRF:
-            convergence flag determined by the PSRF value. If the PSRF is greater than 1.1, the convergence flag is set to False
-        '''
-        M = num_chain
-        N = length
+    #     :return convergent, PSRF:
+    #         convergence flag determined by the PSRF value. If the PSRF is greater than 1.1, the convergence flag is set to False
+    #     '''
+    #     M = num_chain
+    #     N = length
         
-        r_sample = []
+    #     r_sample = []
 
-        for idx in range(num_chain):
-            r_sample.append(chain[idx::num_chain]) #Distinguish chain membership
+    #     for idx in range(num_chain):
+    #         r_sample.append(chain[idx::num_chain]) #Distinguish chain membership
 
-        means = []
-        sq_means = []
+    #     means = []
+    #     sq_means = []
 
-        for m in r_sample:
-            means.append(np.mean(m))
-            sq_means.append(np.mean(m**2))
+    #     for m in r_sample:
+    #         means.append(np.mean(m))
+    #         sq_means.append(np.mean(m**2))
 
-        tot_mean = np.mean(means)
-        B = N*np.sum((means - tot_mean)**2) / (M - 1)
-        W = np.sum(sq_means - np.square(means)) / M
-        p_var = W*(N-1)/N+(M+1)*B/(M*N)
-        PSRF = p_var/W
-        if not silent: print(f'PSRF: {PSRF}')
+    #     tot_mean = np.mean(means)
+    #     B = N*np.sum((means - tot_mean)**2) / (M - 1)
+    #     W = np.sum(sq_means - np.square(means)) / M
+    #     p_var = W*(N-1)/N+(M+1)*B/(M*N)
+    #     PSRF = p_var/W
+    #     if not silent: print(f'PSRF: {PSRF}')
 
-        if PSRF < 1.1:
-            convergent = True
-        else:
-            convergent = False
+    #     if PSRF < 1.1:
+    #         convergent = True
+    #     else:
+    #         convergent = False
 
-        return (convergent, PSRF)
+    #     return (convergent, PSRF)
 
     def _emcee(self, lnpost_fn, lnpost_args, lnpost_kwargs, nwalkers=100,
-            burnin=100, niter='adaptive', maxiter=200000, opt_maxiter=1000, silent=True): 
+            burnin=100, niter='adaptive', maxiter=200000, opt_maxiter=1000, silent=True,
+            save_func=None, writeout=None,method=None): 
         ''' Runs MCMC (using emcee) for a given log posterior function.
 
         :param lnpost_fn: 
@@ -847,6 +857,12 @@ class iFSPS(Fitter):
 
         :param silent: (default: True) 
             If `False`, there will be periodic print statements with run details
+
+        :param writeout (default: None)
+            name of the writeout files that will be passed into temporary saving function
+
+        :method: ('iFsps' or 'iSpeculator')
+            name of the methods which will be passed into the temporary saving function
         '''
         import scipy.optimize as op
         import emcee
@@ -882,53 +898,35 @@ class iFSPS(Fitter):
         self.sampler.reset()
         
         if not silent: print('running main chain') 
-        if niter == 'adaptive': # adaptve MCMC 
+        if niter == 'adaptive': # adaptive MCMC 
             # ACM interval
             STEP = 1000
+            index = 0
+            autocorr = np.empty(maxiter)
+            
+            old_tau = np.inf
 
-            # convergence flag
-            convergent = False
+            for sample in self.sampler.sample(p0,iterations=maxiter, progress = False):
+                if self.sampler.iteration % STEP:
+                    continue
+                if not silent: print(f'chain #{index+1}')
+                tau = self.sampler.get_autocorr_time(tol=0)
+                autocorr[index] = np.mean(tau)
+                index += 1
 
-            # convergence stability flag
-            stable_convergence = 0
-
-            idx = 0 # chain index
-            n_iters = 0 
-
-            # run mcmc and ACM
-            while not convergent: 
-                if not silent: print(f'chain #{idx + 1}')
-
-                pos1, prob1, state1 = self.sampler.run_mcmc(pos, STEP)
-
-                if idx > 1: 
-                    # ACM is executed only after the first iteration 
-                    result = self.sampler.flatchain
-                    convergent, PSRF = self.ACM(result[:,0], nwalkers, STEP * (idx + 1), silent)
-
-                pos = pos1
-                idx += 1 
-                n_iters += STEP 
+                convergent = np.all(tau * 11 < self.sampler.iteration)
+                convergent &= np.all(np.abs(old_tau - tau) / tau < 0.05)
 
                 if convergent:
-                    # Stable convergence is a safety lever variable which
-                    # considers the possilbility of PSRF blowing up after fake
-                    # convergence. 
-                    stable_convergence += 1 
-                else: 
-                    # if the fake convergence was caught, reset it equal to zero
-                    stable_convergence = 0 
-
-                if stable_convergence == 3:            
-                    # terminate the chain when stable convergence reaches 3.
-                    # the value could be changed if necessary.
-                    if not silent:
-                        print(f'Converged; PSRF: {PSRF}, Iteration: {n_iters}')
-                    convergent = True 
-
-                if n_iters >= maxiter: 
-                    print(f'Did not converge; Max iteration reached; PSRF {PSRF}, Iteration: {n_iters}')
-                    convergent = True
+                	break
+                old_tau = tau
+                if save_func is not None:
+                    save_func(self.sampler.flatchain,lnpost_args,lnpost_kwargs,writeout,method)
+                    print('Temporary chain saved')
+            
+            import os
+            temp_filename = writeout.replace('.mcmc.hdf5', '.mcmc.TEMP.hdf5')
+            os.remove(temp_filename)
 
         else:
             # run standard mcmc with niter iterations 
@@ -936,6 +934,195 @@ class iFSPS(Fitter):
             self.sampler.run_mcmc(pos, niter)
         
         return  self.sampler.flatchain
+
+    def _save_temp_spec(self,_temp_chain,lnpost_args,lnpost_kwargs,writeout,method):
+        ''' saves the chain real time
+
+        :param _temp_chain: 
+            temporary chain to be saved
+        :param lnpost_args:
+            refer to MCMC spec
+        :param lnpost_kwargs: 
+            refer to MCMC spec
+        :param writeout:
+            name of the temporary writeout file.
+        :param method: 
+            name of the method. Must be either 'iFsps' or 'iSpeculator'. The save function calls the different keyword argument according to the passed argument.
+        '''
+
+        wave_obs, flux_obs, flux_ivar_obs, zred = lnpost_args
+        _mask, prior = lnpost_kwargs['mask'], lnpost_kwargs['prior']
+
+        chain = _temp_chain.copy()
+        if method == 'iSpeculator':
+            chain[:,1:5] = self._transform_to_SFH_basis(_temp_chain[:,1:5]) 
+
+        prior_ranges = np.vstack([prior.min, prior.max]).T
+    
+        # get quanitles of the posterior
+        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
+    
+        output = {} 
+        output['redshift']          = zred
+        output['model']             = self.model_name
+        output['theta_names']       = np.array(self.theta_names, dtype='S') 
+        output['theta_med']         = med 
+        output['theta_1sig_plus']   = high
+        output['theta_2sig_plus']   = highhigh
+        output['theta_1sig_minus']  = low
+        output['theta_2sig_minus']  = lowlow
+    
+        if method == 'iSpeculator':
+            w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs, dont_transform=True)
+        else:
+            w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs)
+
+        output['wavelength_model'] = w_model
+        output['flux_spec_model'] = flux_model
+       
+        output['wavelength_data'] = wave_obs
+        output['flux_spec_data'] = flux_obs
+        output['flux_spec_ivar_data'] = flux_ivar_obs
+        
+        # save prior and MCMC chain 
+        output['prior_range'] = prior_ranges 
+        output['mcmc_chain'] = chain 
+
+        if writeout is not None: 
+            fh5  = h5py.File(writeout.replace('.mcmc.hdf5','.mcmc.TEMP.hdf5'), 'w') 
+            for k in output.keys(): 
+                fh5.create_dataset(k, data=output[k]) 
+            fh5.close()
+        return None
+
+    def _save_temp_photo(self,_temp_chain,lnpost_args,lnpost_kwargs,writeout,method):
+        ''' saves the chain real time
+
+        :param _temp_chain: 
+            temporary chain to be saved
+        :param lnpost_args:
+            refer to MCMC photo
+        :param lnpost_kwargs: 
+            refer to MCMC photo
+        :param writeout:
+            name of the temporary writeout file.
+        :param method: 
+            name of the method. Must be either 'iFsps' or 'iSpeculator'. The save function calls the different keyword argument according to the passed argument.
+        '''
+
+        photo_obs, photo_ivar_obs,zred = lnpost_args
+        filters, prior = lnpost_kwargs['filters'], lnpost_kwargs['prior']
+
+        chain = _temp_chain.copy()
+        if method == 'iSpeculator':
+            chain[:,1:5] = self._transform_to_SFH_basis(_temp_chain[:,1:5]) 
+
+        prior_ranges = np.vstack([prior.min, prior.max]).T
+    
+        # get quanitles of the posterior
+        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
+    
+        output = {} 
+        output['redshift']          = zred
+        output['model']             = self.model_name
+        output['theta_names']       = np.array(self.theta_names, dtype='S') 
+        output['theta_med']         = med 
+        output['theta_1sig_plus']   = high
+        output['theta_2sig_plus']   = highhigh
+        output['theta_1sig_minus']  = low
+        output['theta_2sig_minus']  = lowlow
+    
+        if method == 'iSpeculator':
+            flux_model = self.model_photo(med, zred=zred, filters=filters, dont_transform=True)
+        else:
+            flux_model = self.model_photo(med, zred=zred, filters=filters)
+
+        output['flux_photo_model'] = flux_model 
+        output['flux_photo_data'] = photo_obs
+        output['flux_photo_ivar_data'] = photo_ivar_obs
+    
+        # save prior and MCMC chain 
+        output['prior_range'] = prior_ranges 
+        output['mcmc_chain'] = chain 
+
+        if writeout is not None: 
+            fh5  = h5py.File(writeout.replace('.mcmc.hdf5','.mcmc.TEMP.hdf5'), 'w') 
+            for k in output.keys(): 
+                fh5.create_dataset(k, data=output[k]) 
+            fh5.close() 
+        return None
+
+    def _save_temp_spectrophoto(self,_temp_chain,lnpost_args,lnpost_kwargs,writeout,method):
+        ''' saves the chain real time
+
+        :param _temp_chain: 
+            temporary chain to be saved
+        :param lnpost_args:
+            refer to MCMC spectrophoto
+        :param lnpost_kwargs: 
+            refer to MCMC spectrophoto
+        :param writeout:
+            name of the temporary writeout file.
+        :param method: 
+            name of the method. Must be either 'iFsps' or 'iSpeculator'. The save function calls the different keyword argument according to the passed argument.
+        '''
+
+        wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred = lnpost_args
+        _mask, filters,prior = lnpost_kwargs['mask'], lnpost_kwargs['filters'], lnpost_kwargs['prior']
+        chain = _temp_chain.copy() 
+
+        if method == 'iSpeculator':
+            chain[:,1:5] = self._transform_to_SFH_basis(_temp_chain[:,1:5]) 
+
+        theta_names = self.theta_names + ['f_fiber']
+
+        prior_ranges = np.vstack([prior.min, prior.max]).T
+        
+        # get quanitles of the posterior
+        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
+    
+        output = {} 
+        output['redshift'] = zred
+        output['model'] = self.model_name
+        output['theta_names'] = np.array(theta_names, dtype='S') 
+        output['theta_med'] = med 
+        output['theta_1sig_plus'] = high
+        output['theta_2sig_plus'] = highhigh
+        output['theta_1sig_minus'] = low
+        output['theta_2sig_minus'] = lowlow
+    
+        if method == 'iSpeculator':
+            w_model, flux_model = self.model(med[:-1], zred=zred,
+                wavelength=wave_obs, dont_transform=True) 
+            photo_model = self.model_photo(med[:-1], zred=zred, filters=filters,
+                dont_transform=True) 
+        else:
+            w_model, flux_model = self.model(med[:-1], zred=zred, wavelength=wave_obs)
+            photo_model = self.model_photo(med, zred=zred, filters=filters)
+
+        output['wavelength_model'] = w_model
+        output['flux_spec_model'] = med[-1] * flux_model
+        output['flux_photo_model'] = photo_model
+       
+        output['wavelength_data'] = wave_obs
+        output['flux_spec_data'] = flux_obs
+        output['flux_spec_ivar_data'] = flux_ivar_obs
+        output['flux_photo_data'] = photo_obs
+        output['flux_photo_ivar_data'] = photo_ivar_obs
+        
+        # save MCMC chain 
+        output['prior_range'] = prior_ranges 
+        output['mcmc_chain'] = chain 
+
+        if writeout is not None: 
+            fh5  = h5py.File(writeout.replace('.mcmc.hdf5','.mcmc.TEMP.hdf5'), 'w') 
+            for k in output.keys(): 
+                fh5.create_dataset(k, data=output[k]) 
+            fh5.close() 
+    
+        return None
+
+
 
     def _lnPost_spectrophoto(self, tt_arr, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, 
             mask=None, filters=None, bands=None, prior=None): 
@@ -1304,7 +1491,10 @@ class iSpeculator(iFSPS):
                 niter=niter, 
                 maxiter=maxiter,
                 opt_maxiter=opt_maxiter, 
-                silent=silent)
+                silent=silent,
+                save_func=self._save_temp_spectrophoto,
+                writeout=writeout,
+                method='iSpeculator')
 
         # transform chain back to original SFH basis 
         chain = _chain.copy() 
@@ -1439,7 +1629,10 @@ class iSpeculator(iFSPS):
                 niter=niter, 
                 maxiter=maxiter,
                 opt_maxiter=opt_maxiter,
-                silent=silent)
+                silent=silent,
+                save_func=self._save_temp_spec,
+                writeout=writeout,
+                method='iSpeculator')
         # transform chain back to original SFH basis 
         chain = _chain.copy() 
         chain[:,1:5] = self._transform_to_SFH_basis(_chain[:,1:5]) 
@@ -1565,7 +1758,10 @@ class iSpeculator(iFSPS):
                 niter=niter, 
                 maxiter=maxiter, 
                 opt_maxiter=opt_maxiter, 
-                silent=silent)
+                silent=silent,
+                save_func=self._save_temp_photo,
+                writeout = writeout,
+                method='iSpeculator')
         # transform chain back to original SFH basis 
         chain = _chain.copy() 
         chain[:,1:5] = self._transform_to_SFH_basis(_chain[:,1:5]) 
@@ -2546,7 +2742,7 @@ class pseudoFirefly(Fitter):
         final_fit_list = self._iterate(fit_list, bic_n, 0, clipped_arr, chi_models, fit_cap=fit_cap)
 
         chis = np.array([fdict['chi_squared'] for fdict in final_fit_list])
-        best_fits = np.argsort(chis)	
+        best_fits = np.argsort(chis)    
 
         bf = len(best_fits)
         if bf > 10: bf = 10

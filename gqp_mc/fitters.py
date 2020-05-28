@@ -775,56 +775,9 @@ class iFSPS(Fitter):
         theta = self._theta(tt)
         return theta['Z'] 
 
-    # def ACM(self, chain, num_chain, length, silent):
-    #     ''' Adaptive Convergence Monitoring function which monitors the convergence with Gelamn-Rubin diagnostic to return the PSRF and convergence flag
-
-    #     :param chain
-    #         mcmc chain data
-
-    #     :param num_chain:
-    #         number of chains, equivalent to the number of walkers
-
-    #     :param length:             
-    #         the length of each chain
-
-    #     :param silent:
-    #         if true, print statement will not be executed  
-
-    #     :return convergent, PSRF:
-    #         convergence flag determined by the PSRF value. If the PSRF is greater than 1.1, the convergence flag is set to False
-    #     '''
-    #     M = num_chain
-    #     N = length
-        
-    #     r_sample = []
-
-    #     for idx in range(num_chain):
-    #         r_sample.append(chain[idx::num_chain]) #Distinguish chain membership
-
-    #     means = []
-    #     sq_means = []
-
-    #     for m in r_sample:
-    #         means.append(np.mean(m))
-    #         sq_means.append(np.mean(m**2))
-
-    #     tot_mean = np.mean(means)
-    #     B = N*np.sum((means - tot_mean)**2) / (M - 1)
-    #     W = np.sum(sq_means - np.square(means)) / M
-    #     p_var = W*(N-1)/N+(M+1)*B/(M*N)
-    #     PSRF = p_var/W
-    #     if not silent: print(f'PSRF: {PSRF}')
-
-    #     if PSRF < 1.1:
-    #         convergent = True
-    #     else:
-    #         convergent = False
-
-    #     return (convergent, PSRF)
-
     def _emcee(self, lnpost_fn, lnpost_args, lnpost_kwargs, nwalkers=100,
             burnin=100, niter='adaptive', maxiter=200000, opt_maxiter=1000, silent=True,
-            save_func=None, writeout=None,method=None): 
+            save_func=None, writeout=None, method=None): 
         ''' Runs MCMC (using emcee) for a given log posterior function.
 
         :param lnpost_fn: 
@@ -906,7 +859,7 @@ class iFSPS(Fitter):
             
             old_tau = np.inf
 
-            for sample in self.sampler.sample(p0,iterations=maxiter, progress = False):
+            for sample in self.sampler.sample(p0, iterations=maxiter, progress=False):
                 if self.sampler.iteration % STEP:
                     continue
                 if not silent: print(f'chain #{index+1}')
@@ -1121,8 +1074,6 @@ class iFSPS(Fitter):
             fh5.close() 
     
         return None
-
-
 
     def _lnPost_spectrophoto(self, tt_arr, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, 
             mask=None, filters=None, bands=None, prior=None): 

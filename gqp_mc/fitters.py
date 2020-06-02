@@ -95,8 +95,8 @@ class iFSPS(Fitter):
         self.ssp        = self._ssp_initiate() # initial ssp
         
     def MCMC_spectrophoto(self, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, prior=None, 
-            mask=None, bands='desi', nwalkers=100, burnin=100, niter=1000,
-            maxiter=200000, opt_maxiter=100, writeout=None, silent=True): 
+            mask=None, bands='desi', nwalkers=100, burnin=100, niter=1000, maxiter=200000, opt_maxiter=100, 
+            writeout=None, overwrite=False, silent=True): 
         ''' infer the posterior distribution of the free parameters given spectroscopy and photometry:
         observed wavelength, spectra flux, inverse variance flux, photometry, inv. variance photometry
         using MCMC. The function outputs a dictionary with the median theta of the posterior as well as 
@@ -185,9 +185,11 @@ class iFSPS(Fitter):
                 'filters': filters,
                 'prior': prior          # prior
                 }
+        self.data_type = 'specphoto'
+        self.theta_names += ['f_fiber']
         
         # run emcee and get MCMC chains 
-        chain = self._emcee(
+        output = self._emcee(
                 self._lnPost_spectrophoto, 
                 lnpost_args, 
                 lnpost_kwargs, 
@@ -197,53 +199,13 @@ class iFSPS(Fitter):
                 maxiter=maxiter,
                 opt_maxiter=opt_maxiter,
                 silent=silent,
-                save_func=self._save_temp_spectrophoto,
-                writeout=writeout,
-                method='iFsps')
-
-        prior_ranges = np.vstack([prior.min, prior.max]).T
-    
-        self.theta_names += ['f_fiber']
-
-        # get quanitles of the posterior
-        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
-    
-        output = {} 
-        output['redshift'] = zred
-        output['model'] = self.model_name
-        output['theta_names'] = np.array(self.theta_names, dtype='S') 
-        output['theta_med'] = med 
-        output['theta_1sig_plus'] = high
-        output['theta_2sig_plus'] = highhigh
-        output['theta_1sig_minus'] = low
-        output['theta_2sig_minus'] = lowlow
-    
-        w_model, flux_model = self.model(med[:-1], zred=zred, wavelength=wave_obs)
-        output['wavelength_model'] = w_model
-        output['flux_spec_model'] = med[-1] * flux_model
-        flux_model = self.model_photo(med, zred=zred, filters=filters)
-        output['flux_photo_model'] = flux_model 
-       
-        output['wavelength_data'] = wave_obs
-        output['flux_spec_data'] = flux_obs
-        output['flux_spec_ivar_data'] = flux_ivar_obs
-        output['flux_photo_data'] = photo_obs
-        output['flux_photo_ivar_data'] = photo_ivar_obs
-        
-        # save MCMC chain 
-        output['prior_range'] = prior_ranges 
-        output['mcmc_chain'] = chain 
-
-        if writeout is not None: 
-            fh5  = h5py.File(writeout, 'w') 
-            for k in output.keys(): 
-                fh5.create_dataset(k, data=output[k]) 
-            fh5.close() 
+                writeout=writeout, 
+                overwrite=overwrite)
         return output  
 
     def MCMC_spec(self, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, prior=None,
             nwalkers=100, burnin=100, niter=1000, maxiter=200000,
-            opt_maxiter=100, writeout=None, silent=True): 
+            opt_maxiter=100, writeout=None, overwrite=False, silent=True): 
         ''' infer the posterior distribution of the free parameters given observed
         wavelength, spectra flux, and inverse variance using MCMC. The function 
         outputs a dictionary with the median theta of the posterior as well as the 
@@ -317,9 +279,10 @@ class iFSPS(Fitter):
                 'mask': _mask,          # emission line mask 
                 'prior': prior          # prior 
                 }
+        self.data_type = 'spec'
 
         # run emcee and get MCMC chains 
-        chain = self._emcee(
+        output = self._emcee(
                 self._lnPost, 
                 lnpost_args, 
                 lnpost_kwargs, 
@@ -329,47 +292,13 @@ class iFSPS(Fitter):
                 maxiter=maxiter,
                 opt_maxiter=opt_maxiter,
                 silent=silent,
-                save_func=self._save_temp_spec,
-                writeout=writeout,
-                method='iFsps')
-
-        prior_ranges = np.vstack([prior.min, prior.max]).T
-    
-        # get quanitles of the posterior
-        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
-    
-        output = {} 
-        output['redshift'] = zred
-        output['model'] = self.model_name
-        output['theta_names'] = np.array(self.theta_names, dtype='S') 
-        output['theta_med'] = med 
-        output['theta_1sig_plus'] = high
-        output['theta_2sig_plus'] = highhigh
-        output['theta_1sig_minus'] = low
-        output['theta_2sig_minus'] = lowlow
-    
-        w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs)
-        output['wavelength_model'] = w_model
-        output['flux_spec_model'] = flux_model
-       
-        output['wavelength_data'] = wave_obs
-        output['flux_spec_data'] = flux_obs
-        output['flux_spec_ivar_data'] = flux_ivar_obs
-        
-        # save prior and MCMC chain 
-        output['prior_range'] = prior_ranges 
-        output['mcmc_chain'] = chain 
-
-        if writeout is not None: 
-            fh5  = h5py.File(writeout, 'w') 
-            for k in output.keys(): 
-                fh5.create_dataset(k, data=output[k]) 
-            fh5.close() 
+                writeout=writeout, 
+                overwrite=overwrite)
         return output  
     
     def MCMC_photo(self, photo_obs, photo_ivar_obs, zred, bands='desi', prior=None,
             nwalkers=100, burnin=100, niter=1000, maxiter=200000,
-            opt_maxiter=100, writeout=None, silent=True): 
+            opt_maxiter=100, writeout=None, overwrite=False, silent=True): 
         ''' infer the posterior distribution of the free parameters given observed
         photometric flux, and inverse variance using MCMC. The function 
         outputs a dictionary with the median theta of the posterior as well as the 
@@ -445,9 +374,10 @@ class iFSPS(Fitter):
                 'filters': filters,
                 'prior': prior  # prior object
                 }
+        self.data_type = 'photo'
     
         # run emcee and get MCMC chains 
-        chain = self._emcee(
+        output = self._emcee(
                 self._lnPost_photo, 
                 lnpost_args,
                 lnpost_kwargs, 
@@ -457,39 +387,9 @@ class iFSPS(Fitter):
                 maxiter=maxiter,
                 opt_maxiter=opt_maxiter,
                 silent=silent,
-                save_func=self._save_temp_photo,
                 writeout=writeout,
-                method='iFsps')
+                overwrite=overwrite)
 
-        prior_ranges = np.vstack([prior.min, prior.max]).T
-    
-        # get quanitles of the posterior
-        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
-    
-        output = {} 
-        output['redshift'] = zred
-        output['model'] = self.model_name
-        output['theta_names'] = np.array(self.theta_names, dtype='S') 
-        output['theta_med'] = med 
-        output['theta_1sig_plus'] = high
-        output['theta_2sig_plus'] = highhigh
-        output['theta_1sig_minus'] = low
-        output['theta_2sig_minus'] = lowlow
-    
-        flux_model = self.model_photo(med, zred=zred, filters=filters)
-        output['flux_photo_model'] = flux_model
-        output['flux_photo_data'] = photo_obs
-        output['flux_photo_ivar_data'] = photo_ivar_obs
-    
-        # save prior and MCMC chain 
-        output['prior_range'] = prior_ranges
-        output['mcmc_chain'] = chain 
-
-        if writeout is not None: 
-            fh5  = h5py.File(writeout, 'w') 
-            for k in output.keys(): 
-                fh5.create_dataset(k, data=output[k]) 
-            fh5.close() 
         return output  
 
     def model(self, tt_arr, zred=0.1, wavelength=None): 
@@ -776,8 +676,8 @@ class iFSPS(Fitter):
         return theta['Z'] 
 
     def _emcee(self, lnpost_fn, lnpost_args, lnpost_kwargs, nwalkers=100,
-            burnin=100, niter='adaptive', maxiter=200000, opt_maxiter=1000, silent=True,
-            save_func=None, writeout=None, method=None): 
+            burnin=100, niter='adaptive', maxiter=200000, opt_maxiter=1000, 
+            silent=True, writeout=None, overwrite=False): 
         ''' Runs MCMC (using emcee) for a given log posterior function.
 
         :param lnpost_fn: 
@@ -814,52 +714,84 @@ class iFSPS(Fitter):
         :param writeout (default: None)
             name of the writeout files that will be passed into temporary saving function
 
-        :method: ('iFsps' or 'iSpeculator')
-            name of the methods which will be passed into the temporary saving function
+        :param overwrite (default: False) 
+            If True, overwrite mcmc file. Otherwise, append to MCMC file  
+
+        notes:
+        -----
+        * `skip_initial_state_check` included in emcee sampler. This *assumes*
+          that the chain you're appending to is correct. Might be worth
+          revisiting.
         '''
-        import scipy.optimize as op
         import emcee
+        
+        self.nwalkers = nwalkers
 
-        # get initial theta by minimization 
-        if not silent: print('getting initial theta') 
-    
-        ndim = lnpost_kwargs['prior'].ndim
-
-        dprior = lnpost_kwargs['prior'].max - lnpost_kwargs['prior'].min
+        prior = lnpost_kwargs['prior']
+        ndim = prior.ndim
+        dprior = prior.max - prior.min
 
         _lnpost = lambda *args: -2. * lnpost_fn(*args, **lnpost_kwargs) 
 
-        min_result = op.minimize(
-                _lnpost, 
-                0.5*(lnpost_kwargs['prior'].max + lnpost_kwargs['prior'].min), # guess the middle of the prior 
-                args=lnpost_args, 
-                method='Nelder-Mead', 
-                options={'maxiter': opt_maxiter}
-                ) 
-        tt0 = min_result['x'] 
-        if not silent: print('initial theta = [%s]' % ', '.join([str(_t) for _t in tt0])) 
-    
-        # initial sampler 
-        self.sampler = emcee.EnsembleSampler(nwalkers, ndim, lnpost_fn, 
-                args=lnpost_args, kwargs=lnpost_kwargs)
-        # initial walker positions 
-        p0 = [tt0 + 1.e-4 * dprior * np.random.randn(ndim) for i in range(nwalkers)]
-
-        # burn in 
-        if not silent: print('running burn-in') 
-        pos, prob, state = self.sampler.run_mcmc(p0, burnin)
-        self.sampler.reset()
         
+        if (writeout is None) or (not os.path.isfile(writeout)) or (overwrite): 
+            # if mcmc chain file does not exist or we want to overwrite
+            import scipy.optimize as op
+
+            # get initial theta by minimization 
+            if not silent: print('getting initial theta') 
+        
+            min_result = op.minimize(
+                    _lnpost, 
+                    0.5*(prior.max + prior.min), # guess the middle of the prior 
+                    args=lnpost_args, 
+                    method='Nelder-Mead', 
+                    options={'maxiter': opt_maxiter}
+                    ) 
+            tt0 = min_result['x'] 
+            if not silent: print('initial theta = [%s]' % ', '.join([str(_t) for _t in tt0])) 
+        
+            # initial sampler 
+            self.sampler = emcee.EnsembleSampler(nwalkers, ndim, lnpost_fn, 
+                    args=lnpost_args, kwargs=lnpost_kwargs)
+            # initial walker positions 
+            p0 = [tt0 + 1.e-4 * dprior * np.random.randn(ndim) for i in range(nwalkers)]
+
+            # burn in 
+            if not silent: print('running burn-in') 
+            pos, prob, state = self.sampler.run_mcmc(p0, burnin)
+            self.sampler.reset()
+        else: 
+            # file exists and we are appending to it. check that priors and
+            # parameters agree. 
+            if not silent: print('appending chain to ... %s' % writeout) 
+            mcmc = self.read_chain(writeout, flat=False, silent=silent) 
+            assert np.array_equal(mcmc['prior_range'].T[0], prior.min), 'prior range does not agree with existing chain'
+            assert np.array_equal(mcmc['prior_range'].T[1], prior.max), 'prior range does not agree with existing chain'
+
+            # check that theta names agree 
+            for theta in self.theta_names: 
+                assert theta in mcmc['theta_names'][...].astype(str), 'parameters are different than existing chain' 
+
+            # get walker position from MCMC file 
+            pos = mcmc['mcmc_chain'][-1,:,:] 
+            
+            # initial sampler 
+            self.sampler = emcee.EnsembleSampler(nwalkers, ndim, lnpost_fn, 
+                    args=lnpost_args, kwargs=lnpost_kwargs)
+
         if not silent: print('running main chain') 
         if niter == 'adaptive': # adaptive MCMC 
             # ACM interval
             STEP = 1000
             index = 0
+            _niter = 0 
             autocorr = np.empty(maxiter)
             
             old_tau = np.inf
 
-            for sample in self.sampler.sample(p0, iterations=maxiter, progress=False):
+            for sample in self.sampler.sample(pos, iterations=maxiter,
+                    progress=False, skip_initial_state_check=True):
                 if self.sampler.iteration % STEP:
                     continue
                 if not silent: print(f'chain #{index+1}')
@@ -870,210 +802,168 @@ class iFSPS(Fitter):
                 convergent = np.all(tau * 11 < self.sampler.iteration)
                 convergent &= np.all(np.abs(old_tau - tau) / tau < 0.05)
 
-                if convergent:
-                	break
-                old_tau = tau
-                if save_func is not None:
-                    save_func(self.sampler.flatchain,lnpost_args,lnpost_kwargs,writeout,method)
-                    print('Temporary chain saved')
-            
-            import os
-            temp_filename = writeout.replace('.mcmc.hdf5', '.mcmc.TEMP.hdf5')
-            os.remove(temp_filename)
+                if convergent: 
+                    if not silent: print('converged!') 
+                    break
 
+                old_tau = tau
+                
+                _chain = self.sampler.get_chain()
+                if writeout is not None: 
+                    # write out incrementally
+                    if overwrite and index == 1: 
+                        output = self._save_chains(_chain[_niter:,:,:],
+                                lnpost_args, lnpost_kwargs,
+                                writeout=writeout, overwrite=overwrite,
+                                silent=silent) 
+                    else: 
+                        output = self._save_chains(_chain[_niter:,:,:],
+                                lnpost_args, lnpost_kwargs,
+                                writeout=writeout, overwrite=False,
+                                silent=silent)  
+                _niter = _chain.shape[0]
         else:
             # run standard mcmc with niter iterations 
             assert isinstance(niter, int) 
             self.sampler.run_mcmc(pos, niter)
+            _chain = self.sampler.get_chain()
+                    
+            output = self._save_chains(_chain,
+                    lnpost_args, lnpost_kwargs, 
+                    writeout=writeout, overwrite=overwrite, silent=silent) 
         
-        return  self.sampler.flatchain
+        return output 
 
-    def _save_temp_spec(self,_temp_chain,lnpost_args,lnpost_kwargs,writeout,method):
-        ''' saves the chain real time
-
-        :param _temp_chain: 
-            temporary chain to be saved
-        :param lnpost_args:
-            refer to MCMC spec
-        :param lnpost_kwargs: 
-            refer to MCMC spec
-        :param writeout:
-            name of the temporary writeout file.
-        :param method: 
-            name of the method. Must be either 'iFsps' or 'iSpeculator'. The save function calls the different keyword argument according to the passed argument.
+    def _save_chains(self, chain, lnpost_args, lnpost_kwargs, writeout=None,
+            overwrite=False, silent=False):
+        ''' save MCMC chains to file. If file exists, it will append it to the
+        hdf5 file. 
         '''
-
-        wave_obs, flux_obs, flux_ivar_obs, zred = lnpost_args
-        _mask, prior = lnpost_kwargs['mask'], lnpost_kwargs['prior']
-
-        chain = _temp_chain.copy()
-        if method == 'iSpeculator':
-            chain[:,1:5] = self._transform_to_SFH_basis(_temp_chain[:,1:5]) 
-
-        prior_ranges = np.vstack([prior.min, prior.max]).T
+        if self.data_type == 'specphoto': 
+            wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred = lnpost_args
+        elif self.data_type == 'spec': 
+            wave_obs, flux_obs, flux_ivar_obs, zred = lnpost_args 
+        elif self.data_type == 'photo': 
+            photo_obs, photo_ivar_obs, zred = lnpost_args
+        prior = lnpost_kwargs['prior'] 
+    
+        if not overwrite and writeout is not None and os.path.isfile(writeout): 
+            if not silent: print('  appending to ... %s' % writeout)
+            # if file exists and we don't want to overwrite it check that
+            # priors and theta_names are consistent
+            mcmc = self.read_chain(writeout)  
+            old_chain = mcmc['mcmc_chain']
+            
+            # append chain to existing mcmc
+            mcmc = h5py.File(writeout, 'a')  #  append 
+            mcmc.create_dataset('mcmc_chain%i' % mcmc['nchain'], data=chain)
+            chain = np.concatenate([old_chain, chain], axis=0) 
+            newfile = False
+        else:   
+            if writeout is not None: 
+                if not silent: print('  writing to ... %s' % writeout)
+                mcmc = h5py.File(writeout, 'w')  # write 
+                mcmc.create_dataset('mcmc_chain0', data=chain) # first chain 
+                newfile = True
     
         # get quanitles of the posterior
-        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
+        flat_chain = self._flatten_chain(chain)
+        lowlow, low, med, high, highhigh = np.percentile(flat_chain, [2.5, 16, 50, 84, 97.5], axis=0)
     
         output = {} 
-        output['redshift']          = zred
-        output['model']             = self.model_name
-        output['theta_names']       = np.array(self.theta_names, dtype='S') 
-        output['theta_med']         = med 
-        output['theta_1sig_plus']   = high
-        output['theta_2sig_plus']   = highhigh
-        output['theta_1sig_minus']  = low
-        output['theta_2sig_minus']  = lowlow
-    
-        if method == 'iSpeculator':
-            w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs, dont_transform=True)
-        else:
-            w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs)
-
-        output['wavelength_model'] = w_model
-        output['flux_spec_model'] = flux_model
-       
-        output['wavelength_data'] = wave_obs
-        output['flux_spec_data'] = flux_obs
-        output['flux_spec_ivar_data'] = flux_ivar_obs
-        
-        # save prior and MCMC chain 
-        output['prior_range'] = prior_ranges 
-        output['mcmc_chain'] = chain 
-
-        if writeout is not None: 
-            fh5  = h5py.File(writeout.replace('.mcmc.hdf5','.mcmc.TEMP.hdf5'), 'w') 
-            for k in output.keys(): 
-                fh5.create_dataset(k, data=output[k]) 
-            fh5.close()
-        return None
-
-    def _save_temp_photo(self,_temp_chain,lnpost_args,lnpost_kwargs,writeout,method):
-        ''' saves the chain real time
-
-        :param _temp_chain: 
-            temporary chain to be saved
-        :param lnpost_args:
-            refer to MCMC photo
-        :param lnpost_kwargs: 
-            refer to MCMC photo
-        :param writeout:
-            name of the temporary writeout file.
-        :param method: 
-            name of the method. Must be either 'iFsps' or 'iSpeculator'. The save function calls the different keyword argument according to the passed argument.
-        '''
-
-        photo_obs, photo_ivar_obs,zred = lnpost_args
-        filters, prior = lnpost_kwargs['filters'], lnpost_kwargs['prior']
-
-        chain = _temp_chain.copy()
-        if method == 'iSpeculator':
-            chain[:,1:5] = self._transform_to_SFH_basis(_temp_chain[:,1:5]) 
-
-        prior_ranges = np.vstack([prior.min, prior.max]).T
-    
-        # get quanitles of the posterior
-        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
-    
-        output = {} 
-        output['redshift']          = zred
-        output['model']             = self.model_name
-        output['theta_names']       = np.array(self.theta_names, dtype='S') 
-        output['theta_med']         = med 
-        output['theta_1sig_plus']   = high
-        output['theta_2sig_plus']   = highhigh
-        output['theta_1sig_minus']  = low
-        output['theta_2sig_minus']  = lowlow
-    
-        if method == 'iSpeculator':
-            flux_model = self.model_photo(med, zred=zred, filters=filters, dont_transform=True)
-        else:
-            flux_model = self.model_photo(med, zred=zred, filters=filters)
-
-        output['flux_photo_model'] = flux_model 
-        output['flux_photo_data'] = photo_obs
-        output['flux_photo_ivar_data'] = photo_ivar_obs
-    
-        # save prior and MCMC chain 
-        output['prior_range'] = prior_ranges 
-        output['mcmc_chain'] = chain 
-
-        if writeout is not None: 
-            fh5  = h5py.File(writeout.replace('.mcmc.hdf5','.mcmc.TEMP.hdf5'), 'w') 
-            for k in output.keys(): 
-                fh5.create_dataset(k, data=output[k]) 
-            fh5.close() 
-        return None
-
-    def _save_temp_spectrophoto(self,_temp_chain,lnpost_args,lnpost_kwargs,writeout,method):
-        ''' saves the chain real time
-
-        :param _temp_chain: 
-            temporary chain to be saved
-        :param lnpost_args:
-            refer to MCMC spectrophoto
-        :param lnpost_kwargs: 
-            refer to MCMC spectrophoto
-        :param writeout:
-            name of the temporary writeout file.
-        :param method: 
-            name of the method. Must be either 'iFsps' or 'iSpeculator'. The save function calls the different keyword argument according to the passed argument.
-        '''
-
-        wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred = lnpost_args
-        _mask, filters,prior = lnpost_kwargs['mask'], lnpost_kwargs['filters'], lnpost_kwargs['prior']
-        chain = _temp_chain.copy() 
-
-        if method == 'iSpeculator':
-            chain[:,1:5] = self._transform_to_SFH_basis(_temp_chain[:,1:5]) 
-
-        theta_names = self.theta_names + ['f_fiber']
-
-        prior_ranges = np.vstack([prior.min, prior.max]).T
-        
-        # get quanitles of the posterior
-        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
-    
-        output = {} 
-        output['redshift'] = zred
+        output['redshift'] = zred 
         output['model'] = self.model_name
-        output['theta_names'] = np.array(theta_names, dtype='S') 
+        output['theta_names'] = np.array(self.theta_names, dtype='S') 
         output['theta_med'] = med 
         output['theta_1sig_plus'] = high
         output['theta_2sig_plus'] = highhigh
         output['theta_1sig_minus'] = low
         output['theta_2sig_minus'] = lowlow
-    
-        if method == 'iSpeculator':
-            w_model, flux_model = self.model(med[:-1], zred=zred,
-                wavelength=wave_obs, dont_transform=True) 
-            photo_model = self.model_photo(med[:-1], zred=zred, filters=filters,
-                dont_transform=True) 
-        else:
+
+        if self.data_type == 'specphoto': # spectrophotometric data 
             w_model, flux_model = self.model(med[:-1], zred=zred, wavelength=wave_obs)
+            photo_model = self.model_photo(med[:-1], zred=zred, filters=filters)
+
+            output['wavelength_model']  = w_model
+            output['flux_spec_model']   = med[-1] * flux_model
+            output['flux_photo_model']  = photo_model 
+       
+            output['wavelength_data']       = wave_obs
+            output['flux_spec_data']        = flux_obs
+            output['flux_spec_ivar_data']   = flux_ivar_obs
+            output['flux_photo_data']       = photo_obs
+            output['flux_photo_ivar_data']  = photo_ivar_obs
+        elif self.data_type == 'spec': 
+            w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs)
+
+            output['wavelength_model']  = w_model
+            output['flux_spec_model']   = flux_model
+       
+            output['wavelength_data']       = wave_obs
+            output['flux_spec_data']        = flux_obs
+            output['flux_spec_ivar_data']   = flux_ivar_obs
+        elif self.data_type == 'photo': 
             photo_model = self.model_photo(med, zred=zred, filters=filters)
 
-        output['wavelength_model'] = w_model
-        output['flux_spec_model'] = med[-1] * flux_model
-        output['flux_photo_model'] = photo_model
-       
-        output['wavelength_data'] = wave_obs
-        output['flux_spec_data'] = flux_obs
-        output['flux_spec_ivar_data'] = flux_ivar_obs
-        output['flux_photo_data'] = photo_obs
-        output['flux_photo_ivar_data'] = photo_ivar_obs
+            output['flux_photo_model']      = photo_model
+            output['flux_photo_data']       = photo_obs
+            output['flux_photo_ivar_data']  = photo_ivar_obs
         
-        # save MCMC chain 
-        output['prior_range'] = prior_ranges 
-        output['mcmc_chain'] = chain 
+        # save prior range 
+        output['prior_range'] = np.vstack([prior.min, prior.max]).T
+        
+        if writeout is None: 
+            output['mcmc_chain'] = chain 
+            return output 
 
-        if writeout is not None: 
-            fh5  = h5py.File(writeout.replace('.mcmc.hdf5','.mcmc.TEMP.hdf5'), 'w') 
+        if not newfile: 
+            # update these columns
             for k in output.keys(): 
-                fh5.create_dataset(k, data=output[k]) 
-            fh5.close() 
+                mcmc[k][...] = output[k]
+        else: 
+            # writeout these columns
+            for k in output.keys(): 
+                mcmc.create_dataset(k, data=output[k]) 
+        mcmc.close() 
+        output['mcmc_chain'] = chain 
+        return output  
+
+    def read_chain(self, fchain, flat=False, silent=True): 
+        ''' read MCMC chain file. MCMC chains will be saved in chunks. This
+        method reads in all the chunks and appends them together into one big
+        chain 
+        '''
+        if not silent: print('reading %s' % fchain) 
+
+        chains = h5py.File(fchain, 'r') 
     
-        return None
+        mcmc = {} 
+        i_chains = []
+        for k in chains.keys(): 
+            if 'mcmc_chain' in k: 
+                i_chains.append(int(k.replace('mcmc_chain', '')))
+            else: 
+                mcmc[k] = chains[k][...]
+         
+        nchain = np.max(i_chains)+1 # number of chains 
+        mcmc['nchain'] = nchain
+
+        chain_dsets = []
+        for i in range(nchain):
+            chain_dsets.append(chains['mcmc_chain%i' % i]) 
+        if not silent: print('%i chains read' % nchain) 
+
+        if not flat: 
+            mcmc['mcmc_chain'] = np.concatenate(chain_dsets, axis=0) 
+        else:
+            mcmc['mcmc_chain'] = self._flatten_chain(np.concatenate(chain_dsets, axis=0)) 
+        chains.close() 
+        return mcmc 
+
+    def _flatten_chain(self, chain): 
+        s = list(chain.shape[1:])
+        s[0] = np.prod(chain.shape[:2]) 
+        return chain.reshape(s)
 
     def _lnPost_spectrophoto(self, tt_arr, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, 
             mask=None, filters=None, bands=None, prior=None): 
@@ -1334,7 +1224,7 @@ class iSpeculator(iFSPS):
 
     def MCMC_spectrophoto(self, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, prior=None, 
             mask=None, bands='desi', nwalkers=100, burnin=100, niter=1000,
-            maxiter=200000, opt_maxiter=100, writeout=None, silent=True): 
+            maxiter=200000, opt_maxiter=100, writeout=None, overwrite=False, silent=True): 
         ''' infer the posterior distribution of the free parameters given spectroscopy and photometry:
         observed wavelength, spectra flux, inverse variance flux, photometry, inv. variance photometry
         using MCMC. The function outputs a dictionary with the median theta of the posterior as well as 
@@ -1431,9 +1321,11 @@ class iSpeculator(iFSPS):
                 'filters': filters,
                 'prior': prior          # prior
                 }
+        self.data_type = 'specphoto'
+        self.theta_names += ['f_fiber']
         
         # run emcee and get MCMC chains 
-        _chain = self._emcee(
+        output = self._emcee(
                 self._lnPost_spectrophoto, 
                 lnpost_args, 
                 lnpost_kwargs, 
@@ -1443,58 +1335,14 @@ class iSpeculator(iFSPS):
                 maxiter=maxiter,
                 opt_maxiter=opt_maxiter, 
                 silent=silent,
-                save_func=self._save_temp_spectrophoto,
-                writeout=writeout,
-                method='iSpeculator')
+                writeout=writeout, 
+                overwrite=overwrite)
 
-        # transform chain back to original SFH basis 
-        chain = _chain.copy() 
-        chain[:,1:5] = self._transform_to_SFH_basis(_chain[:,1:5]) 
-
-        self.theta_names += ['f_fiber']
-
-        prior_ranges = np.vstack([prior.min, prior.max]).T
-        
-        # get quanitles of the posterior
-        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
-    
-        output = {} 
-        output['redshift'] = zred
-        output['model'] = self.model_name
-        output['theta_names'] = np.array(self.theta_names, dtype='S') 
-        output['theta_med'] = med 
-        output['theta_1sig_plus'] = high
-        output['theta_2sig_plus'] = highhigh
-        output['theta_1sig_minus'] = low
-        output['theta_2sig_minus'] = lowlow
-    
-        w_model, flux_model = self.model(med[:-1], zred=zred,
-                wavelength=wave_obs, dont_transform=True) 
-        photo_model = self.model_photo(med[:-1], zred=zred, filters=filters,
-                dont_transform=True) 
-        output['wavelength_model'] = w_model
-        output['flux_spec_model'] = med[-1] * flux_model
-        output['flux_photo_model'] = photo_model
-       
-        output['wavelength_data'] = wave_obs
-        output['flux_spec_data'] = flux_obs
-        output['flux_spec_ivar_data'] = flux_ivar_obs
-        output['flux_photo_data'] = photo_obs
-        output['flux_photo_ivar_data'] = photo_ivar_obs
-        
-        # save MCMC chain 
-        output['prior_range'] = prior_ranges 
-        output['mcmc_chain'] = chain 
-
-        if writeout is not None: 
-            fh5  = h5py.File(writeout, 'w') 
-            for k in output.keys(): 
-                fh5.create_dataset(k, data=output[k]) 
-            fh5.close() 
         return output  
 
     def MCMC_spec(self, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, prior=None,
-            nwalkers=100, burnin=100, niter=1000, maxiter=200000, opt_maxiter=100, writeout=None, silent=True): 
+            nwalkers=100, burnin=100, niter=1000, maxiter=200000, opt_maxiter=100, 
+            writeout=None, overwrite=False, silent=True): 
         ''' infer the posterior distribution of the free parameters given observed
         wavelength, spectra flux, and inverse variance using MCMC. The function 
         outputs a dictionary with the median theta of the posterior as well as the 
@@ -1569,9 +1417,10 @@ class iSpeculator(iFSPS):
                 'mask': _mask,          # emission line mask 
                 'prior': prior          # prior 
                 }
+        self.data_type = 'spec'
 
         # run emcee and get MCMC chains 
-        _chain = self._emcee(
+        output = self._emcee(
                 self._lnPost, 
                 lnpost_args, 
                 lnpost_kwargs, 
@@ -1581,50 +1430,13 @@ class iSpeculator(iFSPS):
                 maxiter=maxiter,
                 opt_maxiter=opt_maxiter,
                 silent=silent,
-                save_func=self._save_temp_spec,
-                writeout=writeout,
-                method='iSpeculator')
-        # transform chain back to original SFH basis 
-        chain = _chain.copy() 
-        chain[:,1:5] = self._transform_to_SFH_basis(_chain[:,1:5]) 
-
-        prior_ranges = np.vstack([prior.min, prior.max]).T
-    
-        # get quanitles of the posterior
-        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
-    
-        output = {} 
-        output['redshift']          = zred
-        output['model']             = self.model_name
-        output['theta_names']       = np.array(self.theta_names, dtype='S') 
-        output['theta_med']         = med 
-        output['theta_1sig_plus']   = high
-        output['theta_2sig_plus']   = highhigh
-        output['theta_1sig_minus']  = low
-        output['theta_2sig_minus']  = lowlow
-    
-        w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs, dont_transform=True)
-        output['wavelength_model'] = w_model
-        output['flux_spec_model'] = flux_model
-       
-        output['wavelength_data'] = wave_obs
-        output['flux_spec_data'] = flux_obs
-        output['flux_spec_ivar_data'] = flux_ivar_obs
-        
-        # save prior and MCMC chain 
-        output['prior_range'] = prior_ranges 
-        output['mcmc_chain'] = chain 
-
-        if writeout is not None: 
-            fh5  = h5py.File(writeout, 'w') 
-            for k in output.keys(): 
-                fh5.create_dataset(k, data=output[k]) 
-            fh5.close() 
+                writeout=writeout, 
+                overwrite=overwrite)
         return output  
     
     def MCMC_photo(self, photo_obs, photo_ivar_obs, zred, bands='desi', prior=None,
-            nwalkers=100, burnin=100, niter=1000, maxiter=200000,
-            opt_maxiter=100, writeout=None, silent=True): 
+            nwalkers=100, burnin=100, niter=1000, maxiter=200000, opt_maxiter=100, 
+            writeout=None, overwrite=False, silent=True): 
         ''' infer the posterior distribution of the free parameters given observed
         photometric flux, and inverse variance using MCMC. The function 
         outputs a dictionary with the median theta of the posterior as well as the 
@@ -1698,9 +1510,10 @@ class iSpeculator(iFSPS):
                 'filters': filters,
                 'prior': prior   # prior object
                 }
+        self.data_type = 'photo'
     
         # run emcee and get MCMC chains 
-        _chain = self._emcee(
+        output = self._emcee(
                 self._lnPost_photo, 
                 lnpost_args, 
                 lnpost_kwargs, 
@@ -1710,42 +1523,8 @@ class iSpeculator(iFSPS):
                 maxiter=maxiter, 
                 opt_maxiter=opt_maxiter, 
                 silent=silent,
-                save_func=self._save_temp_photo,
-                writeout = writeout,
-                method='iSpeculator')
-        # transform chain back to original SFH basis 
-        chain = _chain.copy() 
-        chain[:,1:5] = self._transform_to_SFH_basis(_chain[:,1:5]) 
-
-        prior_ranges = np.vstack([prior.min, prior.max]).T
-    
-        # get quanitles of the posterior
-        lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
-    
-        output = {} 
-        output['redshift']          = zred
-        output['model']             = self.model_name
-        output['theta_names']       = np.array(self.theta_names, dtype='S') 
-        output['theta_med']         = med 
-        output['theta_1sig_plus']   = high
-        output['theta_2sig_plus']   = highhigh
-        output['theta_1sig_minus']  = low
-        output['theta_2sig_minus']  = lowlow
-    
-        flux_model = self.model_photo(med, zred=zred, filters=filters, dont_transform=True)
-        output['flux_photo_model'] = flux_model 
-        output['flux_photo_data'] = photo_obs
-        output['flux_photo_ivar_data'] = photo_ivar_obs
-    
-        # save prior and MCMC chain 
-        output['prior_range'] = prior_ranges 
-        output['mcmc_chain'] = chain 
-
-        if writeout is not None: 
-            fh5  = h5py.File(writeout, 'w') 
-            for k in output.keys(): 
-                fh5.create_dataset(k, data=output[k]) 
-            fh5.close() 
+                writeout=writeout,
+                overwrite=overwrite) 
         return output  
 
     def model(self, zz_arr, zred=0.1, wavelength=None, dont_transform=False): 
@@ -1925,6 +1704,118 @@ class iSpeculator(iFSPS):
 
         return outspec, np.array(list(maggies[0])) * 1e9
    
+    def _save_chains(self, _chain, lnpost_args, lnpost_kwargs, writeout=None,
+            overwrite=False, silent=True):
+        ''' save MCMC chains to file. If file exists, it will append it to the
+        hdf5 file. 
+        '''
+        if self.data_type == 'specphoto': 
+            wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred = lnpost_args
+        elif self.data_type == 'spec': 
+            wave_obs, flux_obs, flux_ivar_obs, zred = lnpost_args 
+        elif self.data_type == 'photo': 
+            photo_obs, photo_ivar_obs, zred = lnpost_args
+        prior = lnpost_kwargs['prior']
+         
+        # transform chain back to original SFH basis 
+        niter, nwalker, nparam = _chain.shape
+        # flatten chain for transformation
+        chain = self._flatten_chain(_chain).copy() 
+        chain[:,1:5] = self._transform_to_SFH_basis(self._flatten_chain(_chain)[:,1:5]) 
+        chain = chain.reshape(niter, nwalker, nparam) 
+
+        if not overwrite and writeout is not None and os.path.isfile(writeout): 
+            if not silent: print('  appending to ... %s' % writeout)
+            # if file exists and we don't want to overwrite it check that
+            # priors and theta_names are consistent
+            _mcmc = self.read_chain(writeout, silent=silent)  
+            old_chain = _mcmc['mcmc_chain']
+            
+            # append chain to existing mcmc
+            mcmc = h5py.File(writeout, 'a')  #  append 
+            mcmc.create_dataset('mcmc_chain%i' % _mcmc['nchain'], data=chain)
+
+            chain = np.concatenate([old_chain, chain], axis=0) 
+            newfile = False
+        else:   
+            if writeout is not None: 
+                if not silent: print('  writing to ... %s' % writeout)
+                mcmc = h5py.File(writeout, 'w')  # write 
+                mcmc.create_dataset('mcmc_chain0', data=chain) # first chain 
+                newfile = True
+    
+        # get quanitles of the posterior
+        flat_chain = self._flatten_chain(chain)
+        lowlow, low, med, high, highhigh = np.percentile(flat_chain, [2.5, 16, 50, 84, 97.5], axis=0)
+    
+        output = {} 
+        output['redshift'] = zred 
+        output['model'] = self.model_name
+        output['theta_names'] = np.array(self.theta_names, dtype='S') 
+        output['theta_med'] = med 
+        output['theta_1sig_plus'] = high
+        output['theta_2sig_plus'] = highhigh
+        output['theta_1sig_minus'] = low
+        output['theta_2sig_minus'] = lowlow
+
+        if self.data_type == 'specphoto': # spectrophotometric data 
+            w_model, flux_model = self.model(
+                    med[:-1], 
+                    zred=zred,
+                    wavelength=wave_obs, 
+                    dont_transform=True) 
+            photo_model = self.model_photo(
+                    med[:-1], 
+                    zred=zred, 
+                    filters=lnpost_kwargs['filters'],
+                    dont_transform=True) 
+
+            output['wavelength_model']  = w_model
+            output['flux_spec_model']   = med[-1] * flux_model
+            output['flux_photo_model']  = photo_model 
+       
+            output['wavelength_data']       = wave_obs
+            output['flux_spec_data']        = flux_obs
+            output['flux_spec_ivar_data']   = flux_ivar_obs
+            output['flux_photo_data']       = photo_obs
+            output['flux_photo_ivar_data']  = photo_ivar_obs
+        elif self.data_type == 'spec': 
+            w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs, dont_transform=True)
+            output['wavelength_model'] = w_model
+            output['flux_spec_model'] = flux_model
+           
+            output['wavelength_data'] = wave_obs
+            output['flux_spec_data'] = flux_obs
+            output['flux_spec_ivar_data'] = flux_ivar_obs
+        elif self.data_type == 'photo': 
+            photo_model = self.model_photo(
+                    med, 
+                    zred=zred,
+                    filters=lnpost_kwargs['filters'], 
+                    dont_transform=True)
+            output['flux_photo_model'] = photo_model 
+            output['flux_photo_data'] = photo_obs
+            output['flux_photo_ivar_data'] = photo_ivar_obs
+
+        # save prior range 
+        output['prior_range'] = np.vstack([prior.min, prior.max]).T
+        
+        if writeout is None: 
+            output['mcmc_chain'] = chain 
+            return output 
+
+        if not newfile: 
+            # update these columns
+            for k in output.keys(): 
+                mcmc[k][...] = output[k]
+        else: 
+            # writeout these columns
+            for k in output.keys(): 
+                mcmc.create_dataset(k, data=output[k]) 
+        mcmc.close() 
+        output['mcmc_chain'] = chain 
+        return output  
+
     def get_SFR(self, tt, zred, dt=1.):
         ''' given theta calculate SFR averaged over dt Gyr. 
 

@@ -1,6 +1,50 @@
 '''
 
-scripts to generate data for the mini Mock Challenge (mini mocha) 
+script for the *mini* Mock Challenge (mini mocha) 
+
+>>> python mini_mocha.py arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14
+
+* arg1: 'photo' or 'specphoto'
+* arg2: simulation (e.g. 'lgal') 
+* arg3: first galaxy number 
+* arg4: last galaxy number 
+* arg5: noise model 
+    * 'legacy' for `arg1 == photo`
+    * 'bgs0_legacy' for `arg1 == specphoto`
+* arg6: fitter method ('ifsps' or 'ispeculator') 
+* arg7: SPS model 
+    * 'vanilla' for `arg6 == 'ifsps'`
+    * 'emulator', 'fsps', 'fsps_complexdust' for `arg6 == 'ispeculator'`
+* arg8: number of threads
+* arg9: number of emcee walkers 
+* arg10: number of iterations for burnin 
+* arg11: number of iterations for main chain. If `arg11 == 'adaptive'`, it will
+  adaptively determine the number of iterations until convergence 
+* arg12: maximum number of iterations for `arg11 == adaptive`. This is ignored
+  if the number of iteration is specified 
+* arg13: False, 'append', or 'overwrite'. If False, it just reads the mcmc
+  chain from file. If 'append', it continues running the chain from where it
+  left off and appends it to the file. If 'overwrite', it overwrites the entire
+  mcmc file. 
+* arg14: If True, post processes the MCMC chain.
+
+Here are some examples: 
+
+e.g. ifsps run on forward modeled photometry of lgal galaxies 0 to 90 with vanilla
+  model. 20 walkers, adaptive mcmc with maximum iteration of 50000. This call will 
+  overwrite the mcmc file entirely. 
+
+>>> python mini_mocha.py photo lgal 0 90 legacy ifsps vanilla 1 20 200 adaptive 50000 overwrite False 
+
+e.g. ispeculator run on forward modeled spectrophotometry of lgal galaxies 0 to
+  90 with emulator model. 40 walkers, adaptive mcmc with maximum iteration of
+  50000. This call will append to existing MCMC chain. 
+
+>>> python mini_mocha.py specphoto lgal 0 90 bgs0_legacy ispeculator emulator 1 40 200 adaptive 50000 append False
+
+See `run/cori/lgal_ispeculator_photo.slurm` or 
+`run/cori/lgal_ispeculator_specphoto.slurm` for examples on how to run this on
+NERSC cori. 
 
 
 '''
@@ -437,11 +481,6 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
         sub = plt.subplot(gs[0]) 
         #sub.errorbar(np.arange(len(photo_obs)), photo_obs,
         #        yerr=photo_ivar_obs**-0.5, fmt='.k', label='data')
-        print(ifitter.model_photo(mcmc['theta_med'][:-1],  mcmc['redshift'],
-            bands='desi', dont_transform=True))
-        print(mcmc['flux_photo_data'])
-        print(mcmc['flux_photo_model']) 
-
         sub.errorbar(np.arange(len(photo_obs)), mcmc['flux_photo_data'],
                 yerr=mcmc['flux_photo_ivar_data']**-0.5, fmt='.k', label='data')
         sub.scatter(np.arange(len(photo_obs)), mcmc['flux_photo_model'], c='C1',

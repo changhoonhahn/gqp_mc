@@ -851,12 +851,12 @@ class iFSPS(Fitter):
             if not silent: print('  appending to ... %s' % writeout)
             # if file exists and we don't want to overwrite it check that
             # priors and theta_names are consistent
-            mcmc = self.read_chain(writeout)  
-            old_chain = mcmc['mcmc_chain']
+            _mcmc = self.read_chain(writeout)  
+            old_chain = _mcmc['mcmc_chain']
             
             # append chain to existing mcmc
             mcmc = h5py.File(writeout, 'a')  #  append 
-            mcmc.create_dataset('mcmc_chain%i' % mcmc['nchain'], data=chain)
+            mcmc.create_dataset('mcmc_chain%i' % _mcmc['nchain'], data=chain)
             chain = np.concatenate([old_chain, chain], axis=0) 
             newfile = False
         else:   
@@ -881,8 +881,14 @@ class iFSPS(Fitter):
         output['theta_2sig_minus'] = lowlow
 
         if self.data_type == 'specphoto': # spectrophotometric data 
-            w_model, flux_model = self.model(med[:-1], zred=zred, wavelength=wave_obs)
-            photo_model = self.model_photo(med[:-1], zred=zred, filters=filters)
+            w_model, flux_model = self.model(
+                    med[:-1], 
+                    zred=zred, 
+                    wavelength=wave_obs)
+            photo_model = self.model_photo(
+                    med[:-1], 
+                    zred=zred,
+                    filters=lnpost_kwargs['filters'])
 
             output['wavelength_model']  = w_model
             output['flux_spec_model']   = med[-1] * flux_model
@@ -903,7 +909,10 @@ class iFSPS(Fitter):
             output['flux_spec_data']        = flux_obs
             output['flux_spec_ivar_data']   = flux_ivar_obs
         elif self.data_type == 'photo': 
-            photo_model = self.model_photo(med, zred=zred, filters=filters)
+            photo_model = self.model_photo(
+                    med, 
+                    zred=zred, 
+                    filters=lnpost_kwargs['filters'])
 
             output['flux_photo_model']      = photo_model
             output['flux_photo_data']       = photo_obs

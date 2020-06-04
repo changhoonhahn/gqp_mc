@@ -1,6 +1,50 @@
 '''
 
-scripts to generate data for the mini Mock Challenge (mini mocha) 
+script for the *mini* Mock Challenge (mini mocha) 
+
+>>> python mini_mocha.py arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14
+
+* arg1: 'photo' or 'specphoto'
+* arg2: simulation (e.g. 'lgal') 
+* arg3: first galaxy number 
+* arg4: last galaxy number 
+* arg5: noise model 
+    * 'legacy' for `arg1 == photo`
+    * 'bgs0_legacy' for `arg1 == specphoto`
+* arg6: fitter method ('ifsps' or 'ispeculator') 
+* arg7: SPS model 
+    * 'vanilla' for `arg6 == 'ifsps'`
+    * 'emulator', 'fsps', 'fsps_complexdust' for `arg6 == 'ispeculator'`
+* arg8: number of threads
+* arg9: number of emcee walkers 
+* arg10: number of iterations for burnin 
+* arg11: number of iterations for main chain. If `arg11 == 'adaptive'`, it will
+  adaptively determine the number of iterations until convergence 
+* arg12: maximum number of iterations for `arg11 == adaptive`. This is ignored
+  if the number of iteration is specified 
+* arg13: False, 'append', or 'overwrite'. If False, it just reads the mcmc
+  chain from file. If 'append', it continues running the chain from where it
+  left off and appends it to the file. If 'overwrite', it overwrites the entire
+  mcmc file. 
+* arg14: If True, post processes the MCMC chain.
+
+Here are some examples: 
+
+e.g. ifsps run on forward modeled photometry of lgal galaxies 0 to 90 with vanilla
+  model. 20 walkers, adaptive mcmc with maximum iteration of 50000. This call will 
+  overwrite the mcmc file entirely. 
+
+>>> python mini_mocha.py photo lgal 0 90 legacy ifsps vanilla 1 20 200 adaptive 50000 overwrite False 
+
+e.g. ispeculator run on forward modeled spectrophotometry of lgal galaxies 0 to
+  90 with emulator model. 40 walkers, adaptive mcmc with maximum iteration of
+  50000. This call will append to existing MCMC chain. 
+
+>>> python mini_mocha.py specphoto lgal 0 90 bgs0_legacy ispeculator emulator 1 40 200 adaptive 50000 append False
+
+See `run/cori/lgal_ispeculator_photo.slurm` or 
+`run/cori/lgal_ispeculator_specphoto.slurm` for examples on how to run this on
+NERSC cori. 
 
 
 '''
@@ -217,14 +261,15 @@ def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps',
     if (justplot or not overwrite) and os.path.isfile(f_mcmc): 
         # read in best-fit file with mcmc chain
         print('    reading in %s' % f_mcmc) 
-        fmcmc = h5py.File(f_mcmc, 'r')  
-        mcmc = {} 
-        for k in fmcmc.keys(): 
-            mcmc[k] = fmcmc[k][...]
-        fmcmc.close() 
+        mcmc = ifitter.read_chain(f_mcmc, silent=False)
     else: 
         if os.path.isfile(f_mcmc) and not overwrite: 
             print("** CAUTION: %s already exists **" % os.path.basename(f_bf)) 
+        
+        if overwrite == 'overwrite': 
+            _overwrite = True
+        elif overwrite == 'append':
+            _overwrite = False
         
         print('    writing %s' % f_mcmc) 
         prior = ifitter._default_prior(f_fiber_prior=None)
@@ -241,6 +286,7 @@ def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps',
                 maxiter=maxiter, 
                 opt_maxiter=opt_maxiter, 
                 writeout=f_mcmc,
+                overwrite=_overwrite,
                 silent=False)
     
     if postprocess:
@@ -266,7 +312,8 @@ def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps',
             print('log SFR 100myr = %f' % np.median(mcmc['mcmc_chain'][:,i_sfr]))
             print('log Z MW = %f' % np.median(mcmc['mcmc_chain'][:,i_zmw]))
 
-        fig = DFM.corner(mcmc['mcmc_chain'], range=mcmc['prior_range'], quantiles=[0.16, 0.5, 0.84], 
+        flat_chain = ifitter._flatten_chain(mcmc['mcmc_chain'])
+        fig = DFM.corner(flat_chain, range=mcmc['prior_range'], quantiles=[0.16, 0.5, 0.84], 
                 levels=[0.68, 0.95], nbin=40, smooth=True, 
                 truths=truths, labels=labels, label_kwargs={'fontsize': 20}) 
         if postprocess: 
@@ -360,17 +407,17 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
     if (justplot or not overwrite) and os.path.isfile(f_mcmc): 
         print('     reading... %s' % os.path.basename(f_mcmc)) 
         # read in mcmc chain
-        fmcmc = h5py.File(f_mcmc, 'r')  
-        mcmc = {} 
-        for k in fmcmc.keys(): 
-            mcmc[k] = fmcmc[k][...]
-        fmcmc.close() 
+        mcmc = ifitter.read_chain(f_mcmc, silent=False)
     else: 
         if os.path.isfile(f_mcmc) and not overwrite: 
             print("** CAUTION: %s already exists **" % os.path.basename(f_mcmc)) 
         print('     writing... %s' % os.path.basename(f_mcmc)) 
         # initiating fit
         prior = ifitter._default_prior(f_fiber_prior=f_fiber_prior)
+        if overwrite == 'overwrite': 
+            _overwrite = True
+        elif overwrite == 'append':
+            _overwrite = False
 
         mcmc = ifitter.MCMC_spectrophoto(
                 w_obs, 
@@ -387,6 +434,7 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
                 maxiter=maxiter, 
                 opt_maxiter=opt_maxiter, 
                 writeout=f_mcmc,
+                overwrite=_overwrite,
                 silent=False)
     
     if postprocess:
@@ -417,7 +465,9 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
             print('log Z_MW = %f' % np.median(mcmc['mcmc_chain'][:,i_zw]))
 
         # corner plot of the posteriors 
-        fig = DFM.corner(mcmc['mcmc_chain'], range=mcmc['prior_range'], quantiles=[0.16, 0.5, 0.84], 
+        flat_chain = ifitter._flatten_chain(mcmc['mcmc_chain'])
+
+        fig = DFM.corner(flat_chain, range=mcmc['prior_range'], quantiles=[0.16, 0.5, 0.84], 
                 levels=[0.68, 0.95], nbin=40, smooth=True, 
                 truths=truths, labels=labels, label_kwargs={'fontsize': 20}) 
         if postprocess: 
@@ -429,8 +479,10 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
         fig = plt.figure(figsize=(18,5))
         gs = mpl.gridspec.GridSpec(1, 2, figure=fig, width_ratios=[1,3], wspace=0.2) 
         sub = plt.subplot(gs[0]) 
-        sub.errorbar(np.arange(len(photo_obs)), photo_obs,
-                yerr=photo_ivar_obs**-0.5, fmt='.k', label='data')
+        #sub.errorbar(np.arange(len(photo_obs)), photo_obs,
+        #        yerr=photo_ivar_obs**-0.5, fmt='.k', label='data')
+        sub.errorbar(np.arange(len(photo_obs)), mcmc['flux_photo_data'],
+                yerr=mcmc['flux_photo_ivar_data']**-0.5, fmt='.k', label='data')
         sub.scatter(np.arange(len(photo_obs)), mcmc['flux_photo_model'], c='C1',
                 label='model') 
         sub.legend(loc='upper left', markerscale=3, handletextpad=0.2, fontsize=15) 
@@ -439,7 +491,8 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
         sub.set_xlim(-0.5, len(photo_obs)-0.5)
 
         sub = plt.subplot(gs[1]) 
-        sub.plot(w_obs, flux_obs, c='k', lw=1, label='data')
+        #sub.plot(w_obs, flux_obs, c='k', lw=1, label='data')
+        sub.plot(mcmc['wavelength_data'], mcmc['flux_spec_data'], c='k', lw=1, label='data') 
         sub.plot(mcmc['wavelength_model'], mcmc['flux_spec_model'], c='C1',
                 ls='--', lw=1, label=method) 
         sub.legend(loc='upper right', fontsize=15) 
@@ -481,6 +534,10 @@ def MP_sed_fit(spec_or_photo, igals, sim='lgal', noise='none', method='ifsps',
     '''
     args = igals # galaxy indices 
 
+    _overwrite = overwrite
+    if overwrite == 'False': 
+        _overwrite = False
+
     kwargs = {
             'sim': sim, 
             'noise': noise, 
@@ -491,7 +548,7 @@ def MP_sed_fit(spec_or_photo, igals, sim='lgal', noise='none', method='ifsps',
             'niter': niter, 
             'maxiter': maxiter, 
             'opt_maxiter': 1000, 
-            'overwrite': overwrite, 
+            'overwrite': _overwrite, 
             'postprocess': postprocess, 
             'justplot': justplot
             }
@@ -583,123 +640,6 @@ def fit_pFF_spectra(igal, noise='none', iter_max=10, overwrite=False):
     return None 
 
 
-"""
-    def fit_spectra(igal, sim='lgal', noise='bgs0', method='ifsps', model='emulator', nwalkers=100,
-            burnin=100, niter=1000, overwrite=False, justplot=False):
-        ''' Fit Lgal spectra. `noise` specifies whether to fit spectra without noise or 
-        with BGS-like noise. Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
-
-        :param igal: 
-            index of Lgal galaxy within the spectral_challenge 
-        :param noise: 
-            If 'bgs1'...'bgs8', fit BGS-like spectra. (default: 'none') 
-        :param justplot: 
-            If True, skip the fitting and plot the best-fit. This is mainly implemented 
-            because I'm having issues plotting in NERSC. (default: False) 
-        '''
-        # read noiseless Lgal spectra of the spectral_challenge mocks 
-        specs, meta = Data.Spectra(sim=sim, noise=noise, lib='bc03', sample='mini_mocha') 
-        
-        if meta['redshift'][igal] < 0.1: 
-            # current Speculator wavelength doesn't extend far enough
-            # current Speculator wavelength doesn't extend far enough
-            # current Speculator wavelength doesn't extend far enough
-            # current Speculator wavelength doesn't extend far enough
-            # current Speculator wavelength doesn't extend far enough
-            return None 
-
-        w_obs       = specs['wave']
-        flux_obs    = specs['flux'][igal]
-        ivar_obs    = specs['ivar'][igal]
-
-        labels      = theta_dict['%s_%s' % (method, model)]
-        truths      = [None for _ in labels] 
-        truths[0]   = meta['logM_fiber'][igal] 
-
-        print('--- input ---') 
-        print('z = %f' % meta['redshift'][igal])
-        print('log M* total = %f' % meta['logM_total'][igal])
-        print('log M* fiber = %f' % meta['logM_fiber'][igal])
-
-        f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', method, 
-                '%s.spec.noise_%s.%s.%i.hdf5' % (sim, noise, model, igal))
-        
-        # initiate fitter
-        if method == 'ifsps': 
-            ifitter = Fitters.iFSPS(model_name=model) 
-        else: 
-            ifitter = Fitters.iSpeculator(model_name=model) 
-        
-        if (justplot or not overwrite) and os.path.isfile(f_bf): 
-            print('     reading... %s' % os.path.basename(f_bf)) 
-            # read in best-fit file with mcmc chain
-            fbestfit = h5py.File(f_bf, 'r')  
-            bestfit = {} 
-            for k in fbestfit.keys(): 
-                bestfit[k] = fbestfit[k][...]
-            fbestfit.close() 
-        else: 
-            if os.path.isfile(f_bf) and not overwrite: 
-                print("** CAUTION: %s already exists **" % os.path.basename(f_bf)) 
-            prior = ifitter._default_prior(f_fiber_prior=None)
-
-            bestfit = ifitter.MCMC_spec(
-                    w_obs, 
-                    flux_obs, 
-                    ivar_obs, 
-                    meta['redshift'][igal], 
-                    mask='emline', 
-                    prior=prior, 
-                    nwalkers=nwalkers, 
-                    burnin=burnin, 
-                    niter=niter, 
-                    writeout=f_bf,
-                    silent=False)
-
-        print('--- bestfit ---') 
-        print('written to %s' % f_bf) 
-        print('log M* = %f' % bestfit['theta_med'][0])
-        print('---------------') 
-
-        if bestfit['mcmc_chain'].shape[1] == len(truths): 
-            # calculate sfr_100myr for MC chain add it in 
-            bestfit['mcmc_chain'] = ifitter.add_logSFR_to_chain(bestfit['mcmc_chain'],
-                    meta['redshift'][igal], dt=0.1) 
-            bestfit['prior_range'] = np.concatenate([bestfit['prior_range'],
-                np.array([[-4., 4]])], axis=0) 
-            
-            fbestfit = h5py.File(f_bf, 'w')  
-            for k in bestfit.keys(): 
-                fbestfit[k] = bestfit[k] 
-            fbestfit.close() 
-
-        truths += [np.log10(meta['sfr_100myr'][igal])]
-        labels += [r'$\log {\rm SFR}_{\rm 100 Myr}$'] 
-
-        try: 
-            # plotting on nersc never works.
-            if os.environ['NERSC_HOST'] == 'cori': return None 
-        except KeyError: 
-            # corner plot of the posteriors 
-            fig = DFM.corner(bestfit['mcmc_chain'], range=bestfit['prior_range'], quantiles=[0.16, 0.5, 0.84], 
-                    levels=[0.68, 0.95], nbin=40, smooth=True, 
-                    truths=truths, labels=labels, label_kwargs={'fontsize': 20}) 
-            fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
-            plt.close()
-            
-            fig = plt.figure(figsize=(10,5))
-            sub = fig.add_subplot(111)
-            sub.plot(w_obs, flux_obs, c='k', lw=1, label='data')
-            sub.plot(bestfit['wavelength_model'], bestfit['flux_spec_model'], c='C1',
-                    ls='--', lw=1, label='model') 
-            sub.legend(loc='upper right', fontsize=15) 
-            sub.set_xlabel('wavelength [$A$]', fontsize=20) 
-            sub.set_xlim(3600., 9800.)
-            fig.savefig(f_bf.replace('.hdf5', '.bestfit.png'), bbox_inches='tight') 
-            plt.close()
-        return None 
-"""
-
 if __name__=="__main__": 
     # >>> python mini_mocha.py
     spec_or_photo   = sys.argv[1]
@@ -720,7 +660,7 @@ if __name__=="__main__":
     burnin          = int(sys.argv[10]) 
     niter           = sys.argv[11] 
     maxiter         = int(sys.argv[12]) 
-    overwrite       = sys.argv[13] == 'True'
+    overwrite       = sys.argv[13]
     postprocess     = sys.argv[14] == 'True'
 
     # if specified, it assumes the chains already exist and just makes the 

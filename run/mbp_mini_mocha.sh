@@ -10,17 +10,19 @@ echo 'fitting galaxies # '$i0' to '$i1
 
 # --- iFSPS fitting --- 
 #python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
-#    photo $sim $i0 $i1 legacy ifsps vanilla 1 20 20 40 True True #200 4000 True 
-#python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
-#    specphoto $sim $i0 $i1 bgs0_legacy ifsps vanilla 1 40 20 40 True True #200 4000 True 
+#    photo $sim $i0 $i1 legacy ifsps vanilla 1 20 200\
+#    adaptive 2000 overwrite False 
+python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
+    specphoto $sim $i0 $i1 bgs0_legacy ifsps vanilla 1 20 200\
+    adaptive 2000 False False 
 
 # --- iSpeculator fitting w/ emulator --- 
-python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
-    photo $sim $i0 $i1 legacy ispeculator emulator 1 20 200\
-    adaptive 1000 True False 
-python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
-    specphoto $sim $i0 $i1 bgs0_legacy ispeculator emulator 1 40 200\
-    adaptive 1000 True False
+#python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
+#    photo $sim $i0 $i1 legacy ispeculator emulator 1 20 200\
+#    adaptive 10000 False False 
+#python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
+#    specphoto $sim $i0 $i1 bgs0_legacy ispeculator emulator 1 40 200\
+#    adaptive 10000 overwrite False
 
 # --- iSpeculator fitting w/ fsps --- 
 #python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \

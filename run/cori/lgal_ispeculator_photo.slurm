@@ -19,10 +19,17 @@ n_cpu=64
 
 export OMP_NUM_THREADS=1
 
-# run MCMC with adaptive convergence and maxiter=50000 
+# run MCMC with adaptive convergence and maxiter=50000. This overwrites the
+# MCMC file entirely.
 python -W ignore /global/homes/c/chahah/projects/gqp_mc/run/mini_mocha.py \
     photo $sim $i0 $i1 legacy ispeculator emulator $n_cpu 40 200 \
-    adaptive 50000 True False 
+    adaptive 50000 overwrite False 
+
+# continue running MCMC with adaptive convergence and maxiter=50000. This
+# appends extra chains on existing chain.
+#python -W ignore /global/homes/c/chahah/projects/gqp_mc/run/mini_mocha.py \
+#    photo $sim $i0 $i1 legacy ispeculator emulator $n_cpu 40 200 \
+#    adaptive 50000 append False 
 
 # postprocess the MC chains 
 #python -W ignore /global/homes/c/chahah/projects/gqp_mc/run/mini_mocha.py \

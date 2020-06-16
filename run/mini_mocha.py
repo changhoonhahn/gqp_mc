@@ -2,7 +2,7 @@
 
 script for the *mini* Mock Challenge (mini mocha) 
 
->>> python mini_mocha.py arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14
+>>> python mini_mocha.py arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15
 
 * arg1: 'photo' or 'specphoto'
 * arg2: simulation (e.g. 'lgal') 
@@ -27,6 +27,8 @@ script for the *mini* Mock Challenge (mini mocha)
   left off and appends it to the file. If 'overwrite', it overwrites the entire
   mcmc file. 
 * arg14: If True, post processes the MCMC chain.
+* arg15: If post processing, this specifies how much to thin the chain. 
+
 
 Here are some examples: 
 

@@ -525,11 +525,12 @@ class iFSPS(Fitter):
 
         return outspec, np.array(list(maggies[0])) * 1e9
     
-    def postprocess(self, mcmc_output=None, f_mcmc=None, writeout=None): 
+    def postprocess(self, mcmc=None, f_mcmc=None, thin=1,
+            writeout=None, silent=True): 
         ''' postprocess MC chain and calculate SFR and Z for the chain using
         NMF bases 
 
-        :param mcmc_output:
+        :param mcmc:
             output dictionary from MCMC_specphoto, MCMC_spec, or MCMC_photo
             that contains all the information from the MCMC sampling. 
             (default: None) 
@@ -537,50 +538,47 @@ class iFSPS(Fitter):
             alternatively you can specify the hdf5 file name where the MCMC
             dictionary is saved. 
             (default: None) 
+        :param thin: 
+            Thin out MCMC chains by thin factor.
+            (default: 1) 
         :param writeout: 
             optional file name you can specify to write out the post processed
             mcmc chain to file. 
+        :param silent: 
+            If False, print stuff
         :return mcmc_output: 
             postprocessed mcmc chain dictionary 
         '''
-        if mcmc_output is None and f_mcmc is None: 
+        if mcmc is None and f_mcmc is None: 
             raise ValueError
-        if mcmc_output is not None and f_mcmc is not None:
+        if mcmc is not None and f_mcmc is not None:
             raise ValueError
         
-        if f_mcmc is not None: # read chain from file 
-            mcmc_output = {} 
-            fh5 = h5py.File(f_mcmc, 'r') 
-            for k in fh5.keys(): 
-                mcmc_output[k] = fh5[k][...]
+        if f_mcmc is not None: 
+            mcmc = self.read_chain(f_mcmc, silent=silent)
 
         # check the model names agree with one another 
-        assert self.model_name == mcmc_output['model'] 
+        assert self.model_name == mcmc['model'] 
 
-        theta_names = list(mcmc_output['theta_names'].astype(str))
+        theta_names = list(mcmc['theta_names'].astype(str))
 
-        for prop in ['logsfr.100myr', 'logsfr.1gyr']: 
+        for prop in ['logsfr.100myr', 'logsfr.1gyr', 'logz.mw']: 
             if prop in theta_names: 
-                raise ValueError
+                raise ValueError('there are already SFR or Z for the chain')
     
-        chain   = mcmc_output['mcmc_chain'].copy() 
-        zred    = mcmc_output['redshift'].copy() 
-        prior_ranges = mcmc_output['prior_range'].copy() 
-        
+        chain   = self._flatten_chain(mcmc['mcmc_chain'])[::thin] # flattened and thined chain
+        zred    = mcmc['redshift']
+        prior_ranges = mcmc['prior_range']
+
         # calculate 100 Myr and 1Gyr logSFRs from the posteriors 
         theta_names += ['logsfr.100myr']
-        logsfr100myr = np.log10(
-                np.array([self.get_SFR(tt, zred, dt=0.1) for tt in chain])
-                ).flatten() 
+        logsfr100myr = np.log10(self.get_SFR(chain.T, zred, dt=0.1))
 
         theta_names += ['logsfr.1gyr']
-        logsfr1gyr = np.log10(
-                np.array([self.get_SFR(tt, zred, dt=1.) for tt in chain])
-                ).flatten() 
+        logsfr1gyr = np.log10(self.get_SFR(chain.T, zred, dt=1.)) 
 
         theta_names += ['logz.mw'] # log10(mass weighted metallicity) 
-        logzmw = np.log10(
-                np.array([self.get_Z_MW(tt, zred) for tt in chain])).flatten() 
+        logzmw = np.log10(self.get_Z_MW(chain.T, zred)) 
 
         # concatenate SFRs to the markov chain  
         chain = np.concatenate([
@@ -591,26 +589,30 @@ class iFSPS(Fitter):
             axis=1) 
         prior_ranges = np.concatenate([prior_ranges, np.array([[-4., 4]]),
             np.array([[-4., 4]]), np.array([[-3., 1.]])], axis=0)  
-    
+
         # get quanitles of the chain 
         lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
 
-        # update the mcmc_output 
-        mcmc_output['theta_names']      = np.array(theta_names, dtype='S') 
-        mcmc_output['theta_med']        = med 
-        mcmc_output['theta_1sig_plus']  = high
-        mcmc_output['theta_2sig_plus']  = highhigh
-        mcmc_output['theta_1sig_minus'] = low
-        mcmc_output['theta_2sig_minus'] = lowlow
-        mcmc_output['prior_range']      = prior_ranges 
-        mcmc_output['mcmc_chain']       = chain 
+        # update the mcmc_output with SFR, Z, and thinned chain 
+        mcmc['theta_names']      = np.array(theta_names, dtype='S') 
+        mcmc['theta_med']        = med 
+        mcmc['theta_1sig_plus']  = high
+        mcmc['theta_2sig_plus']  = highhigh
+        mcmc['theta_1sig_minus'] = low
+        mcmc['theta_2sig_minus'] = lowlow
+
+        mcmc['prior_range']      = prior_ranges 
+
+        mcmc['mcmc_chain']       = chain 
 
         if writeout is not None: 
+            assert writeout != f_mcmc, "don't overwrite the MCMC chain file!"
+
             fh5  = h5py.File(writeout, 'w') 
-            for k in mcmc_output.keys(): 
-                fh5.create_dataset(k, data=mcmc_output[k]) 
+            for k in mcmc.keys(): 
+                fh5.create_dataset(k, data=mcmc[k]) 
             fh5.close() 
-        return mcmc_output  
+        return mcmc  
 
     def get_SFR(self, tt, zred, dt=1.):
         ''' given theta calculate SFR averaged over dt Gyr
@@ -970,6 +972,11 @@ class iFSPS(Fitter):
         return mcmc 
 
     def _flatten_chain(self, chain): 
+        ''' flatten mcmc chain. If chain object is 2D then it assumes it's
+        already flattened. 
+        '''
+        if len(chain.shape) == 2: return chain # already flat 
+
         s = list(chain.shape[1:])
         s[0] = np.prod(chain.shape[:2]) 
         return chain.reshape(s)
@@ -1838,15 +1845,18 @@ class iSpeculator(iFSPS):
 
         tt_sfh = tt[1:5] # sfh bases 
         
+        # normalized basis 
+        _basis = np.array([self._sfh_basis[i](t)/np.trapz(self._sfh_basis[i](t), t) for i in range(4)])
+
         # caluclate normalized SFH
-        sfh = np.sum(np.array([
-            tt_sfh[i]*self._sfh_basis[i](t)/np.trapz(self._sfh_basis[i](t), t) 
-            for i in range(4)]), 
-            axis=0)
-        
+        if len(tt_sfh.shape) == 1: 
+            sfh = np.sum(np.array([tt_sfh[i] * _basis[i] for i in range(4)]), axis=0)
+        else: 
+            sfh = np.sum(np.array([tt_sfh[i][:,None] * _basis[i][None,:] for i in range(4)]), axis=0)
+
         # add up the stellar mass formed during the dt time period 
-        i_low = np.clip(np.abs(t - (tage - dt)).argmin(), None, 48) 
-        avsfr = np.trapz(sfh[i_low:], t[i_low:]) / (tage - t[i_low]) / 1e9
+        i_low = np.clip(np.argmin(np.abs(t - (tage - dt)), axis=0), None, 48) 
+        avsfr = np.trapz(sfh[:,i_low:], t[i_low:]) / (tage - t[i_low]) / 1e9
         avsfr *= 10**tt[0]
         return np.clip(np.atleast_1d(avsfr), 0, np.inf)
     
@@ -1860,14 +1870,17 @@ class iSpeculator(iFSPS):
         tt_sfh = tt[1:5] # sfh bases 
         tt_zh = tt[5:7] # zh bases 
         
-        # caluclate normalized SFH
-        sfh = np.sum(np.array([
-            tt_sfh[i]*self._sfh_basis[i](t)/np.trapz(self._sfh_basis[i](t), t) 
-            for i in range(4)]), axis=0)
+        # normalized basis 
+        _basis = np.array([self._sfh_basis[i](t)/np.trapz(self._sfh_basis[i](t), t) for i in range(4)])
 
-        zh = np.sum(np.array([
-            tt_zh[i] * self._zh_basis[i](t) 
-            for i in range(2)]), axis=0)
+        # caluclate normalized SFH
+        if len(tt_sfh.shape) == 1: 
+            sfh = np.sum(np.array([tt_sfh[i] * _basis[i] for i in range(4)]), axis=0)
+        else: 
+            sfh = np.sum(np.array([tt_sfh[i][:,None] * _basis[i][None,:] for i in range(4)]), axis=0)
+        
+        _z_basis = np.array([self._zh_basis[i](t) for i in range(2)]) 
+        zh = np.sum(np.array([tt_zh[i][:,None] * _z_basis[i][None,:] for i in range(2)]), axis=0)
         
         # mass weighted average
         z_mw = np.trapz(zh * sfh, t) / np.trapz(sfh, t)

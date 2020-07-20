@@ -21,10 +21,10 @@ python doctor.py diagnose $data_dir $sim $spec_or_photo $noise $model $igal None
 python doctor.py check_walkers $data_dir $sim $spec_or_photo $noise $model $igal True
 
 #Inspect the distribution of walkers throughout the chains and generate a log file
-#python doctor.py check_walkers $data_dir $sim $spec_or_photo $noise $model $igal False
+python doctor.py check_walkers $data_dir $sim $spec_or_photo $noise $model $igal False
 
 #Plot the median vs iteration of walkers in the last chain (might take substantially long - able to adjust thinning in the doctor.py)
-#python doctor.py plot_walkers $data_dir $sim $spec_or_photo $noise $model $igal True
+python doctor.py plot_walkers $data_dir $sim $spec_or_photo $noise $model $igal True
 
 #Plot the median vs iteration of walkers in the entire chain (might take substantially long - able to adjust thinning in the doctor.py))
-#python doctor.py plot_walkers $data_dir $sim $spec_or_photo $noise $model $igal True
+python doctor.py plot_walkers $data_dir $sim $spec_or_photo $noise $model $igal True

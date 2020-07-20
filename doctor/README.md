@@ -1,4 +1,4 @@
-`Doctor` can run 4 diagnosis.
+`doctor` can run 4 diagnosis.
 
 1. Retrieve medians, 84.1 and 15.9 percentile data of specified galaxies. Can be run with `mcmc` files or `postproc` files.
 2. Generate fractional error plots for 3 (photo) or 4 (specphoto) parameters - logM_total log SFR 100Myr logSFR 1Gyr (and f_fiber if specphoto). This requires `postproc` files.

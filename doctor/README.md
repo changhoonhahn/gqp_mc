@@ -2,7 +2,7 @@
 
 4 diagnoses available.
 
-1. Retrieve medians, 84.1 and 15.9 percentile data of specified galaxies from `mcmc` files or `postproc` files. The output will be stored at `~/doctor/data_list/data_retrieval/{model}/{sim}.{spec_or_photo}.noise_{noise}.{model}.{median or upsig or losig}.npy`, where the last entry will have one of `median`, `upsig` (+1 sigma), or `losig` (-1 sigma).
+1. Retrieve medians, 84.1 and 15.9 percentile data of specified galaxies from `.mcmc` files or `.postproc` files. The output will be stored at `~/doctor/data_list/data_retrieval/{model}/{sim}.{spec_or_photo}.noise_{noise}.{model}.{median or upsig or losig}.npy`, where the last entry will have one of `median`, `upsig` (+1 sigma), or `losig` (-1 sigma).
 
 2. Generate fractional error plots for 3 (photo) or 4 (specphoto) parameters - logM_total log SFR 100Myr logSFR 1Gyr (and f_fiber if `spec_or_photo=specphoto`). This requires `postproc` files. The output will be stored at `~/doctor/data_list/diagnostic/{model}/{sim}.{spec_or_photo}.noise_{noise}.{model}.{igal}.diagnostic.pdf`.
 

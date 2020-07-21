@@ -110,8 +110,12 @@ class Doctor():
             val = np.percentile(mcmc_data,perc)
 
         else:
-            mcmc_data = f['mcmc_chain'][...]
-            val = np.percentile(mcmc_data,perc)
+            if perc == 50:
+                val = f['theta_med'][...]
+            elif perc == 84.1:
+                val = f['theta_1sig_plus'][...]
+            elif perc == 15.9:
+                val = f['theta_1sig_minus'][...]
         f.close()
 
         return val
@@ -122,6 +126,8 @@ class Doctor():
         else:
             param_list = np.array(['logmstar', 'beta1_sfh', 'beta2_sfh', 'beta3_sfh', 'beta4_sfh', 'gamma1_zh',
                                     'gamma2_zh', 'tau', 'f_fiber'])
+        if mcmc_postproc == 'postproc':
+            param_list = np.append(param_list,['logsfr.100myr','logsfr.1gyr','logz.mw'])
         param_medians = {}
         param_up_sigmas = {}
         param_lo_sigmas = {}

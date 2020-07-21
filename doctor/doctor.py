@@ -111,11 +111,11 @@ class Doctor():
 
         else:
             if perc == 50:
-                val = f['theta_med'][...]
+                val = f['theta_med'][...][param_idx]
             elif perc == 84.1:
-                val = f['theta_1sig_plus'][...]
+                val = f['theta_1sig_plus'][...][param_idx]
             elif perc == 15.9:
-                val = f['theta_1sig_minus'][...]
+                val = f['theta_1sig_minus'][...][param_idx]
         f.close()
 
         return val

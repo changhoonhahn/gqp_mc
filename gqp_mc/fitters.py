@@ -1844,6 +1844,7 @@ class iSpeculator(iFSPS):
         t = np.linspace(0, tage, 50)
 
         tt_sfh = tt[1:5] # sfh bases 
+
         
         # normalized basis 
         _basis = np.array([self._sfh_basis[i](t)/np.trapz(self._sfh_basis[i](t), t) for i in range(4)])
@@ -1899,7 +1900,7 @@ class iSpeculator(iFSPS):
         offset = np.log(np.sum(tt[0:4]))
         layers = [(self._transform_theta(tt) - self._emu_theta_mean)/self._emu_theta_std]
         for i in range(self._emu_n_layers-1):
-        
+       
             # linear network operation
             act.append(np.dot(layers[-1], self._emu_W[i]) + self._emu_b[i])
 
@@ -1912,7 +1913,7 @@ class iSpeculator(iFSPS):
         # rescale PCA coefficients, multiply out PCA basis -> normalized spectrum, shift and re-scale spectrum -> output spectrum
         logflux = np.dot(layers[-1]*self._emu_pca_std + self._emu_pca_mean, self._emu_pcas)*self._emu_spec_std + self._emu_spec_mean + offset
         flux = np.exp(logflux)
-        
+
         # normalization for the SSP SED because the SED is not normalized by
         # the integral of the SFH. This normalization should be incorporated
         # into the training set of Speculator rather than here, but for now
@@ -1967,7 +1968,7 @@ class iSpeculator(iFSPS):
             axis=0)
         
         for i, tage, m, z in zip(range(len(tages)), tages, sfh, zh): 
-            if m <= 0: # no star formation in this bin 
+            if m <= 0 and i != 0: # no star formation in this bin 
                 continue
             self._ssp.params['logzsol'] = np.log10(z/0.0190) # log(Z/Zsun)
             if self.model_name == 'fsps': 
@@ -1978,8 +1979,7 @@ class iSpeculator(iFSPS):
                 self._ssp.params['dust_index'] = tt_dust_index
             wave_rest, lum_i = self._ssp.get_spectrum(tage=tage, peraa=True) # in units of Lsun/AA
 
-            if i == 0: 
-                lum_ssp = np.zeros(len(wave_rest))
+            if i == 0: lum_ssp = np.zeros(len(wave_rest))
             lum_ssp += m * lum_i 
 
         lum_ssp /= np.sum(sfh)

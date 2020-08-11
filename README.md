@@ -60,11 +60,16 @@ pip install pytest
 pip install astropy 
 pip install emcee 
 pip install speclite 
-pip install fsps
 pip install multiprocessing
 pip install configobj
 pip install sqlalchemy
 pip install corner
+
+# install python-fsps from github because gqp_mc repo uses
+# the development version 0.3.0 (not the stable PIP version) 
+git clone https://github.com/dfm/python-fsps.git
+cd python-fsps
+python setup.py install
 
 # clone the repo 
 git clone https://github.com/changhoonhahn/gqp_mc.git 

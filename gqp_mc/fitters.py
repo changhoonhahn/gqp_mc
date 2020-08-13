@@ -811,18 +811,18 @@ class iFSPS(Fitter):
                 old_tau = tau
                 
                 _chain = self.sampler.get_chain()
-                if writeout is not None: 
-                    # write out incrementally
-                    if overwrite and index == 1: 
-                        output = self._save_chains(_chain[_niter:,:,:],
-                                lnpost_args, lnpost_kwargs,
-                                writeout=writeout, overwrite=overwrite,
-                                silent=silent) 
-                    else: 
-                        output = self._save_chains(_chain[_niter:,:,:],
-                                lnpost_args, lnpost_kwargs,
-                                writeout=writeout, overwrite=False,
-                                silent=silent)  
+
+                # write out incrementally
+                if overwrite and index == 1: 
+                    output = self._save_chains(_chain[_niter:,:,:],
+                            lnpost_args, lnpost_kwargs,
+                            writeout=writeout, overwrite=overwrite,
+                            silent=silent) 
+                else: 
+                    output = self._save_chains(_chain[_niter:,:,:],
+                            lnpost_args, lnpost_kwargs,
+                            writeout=writeout, overwrite=False,
+                            silent=silent)  
                 _niter = _chain.shape[0]
         else:
             # run standard mcmc with niter iterations 

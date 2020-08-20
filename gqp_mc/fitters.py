@@ -679,7 +679,7 @@ class iFSPS(Fitter):
 
     def _emcee(self, lnpost_fn, lnpost_args, lnpost_kwargs, nwalkers=100,
             burnin=100, niter='adaptive', maxiter=200000, opt_maxiter=1000, 
-            silent=True, writeout=None, overwrite=False): 
+            silent=True, writeout=None, overwrite=False, **kwargs): 
         ''' Runs MCMC (using emcee) for a given log posterior function.
 
         :param lnpost_fn: 
@@ -817,12 +817,12 @@ class iFSPS(Fitter):
                     output = self._save_chains(_chain[_niter:,:,:],
                             lnpost_args, lnpost_kwargs,
                             writeout=writeout, overwrite=overwrite,
-                            silent=silent) 
+                            silent=silent, **kwargs) 
                 else: 
                     output = self._save_chains(_chain[_niter:,:,:],
                             lnpost_args, lnpost_kwargs,
                             writeout=writeout, overwrite=False,
-                            silent=silent)  
+                            silent=silent, **kwargs)  
                 _niter = _chain.shape[0]
         else:
             # run standard mcmc with niter iterations 
@@ -982,7 +982,7 @@ class iFSPS(Fitter):
         return chain.reshape(s)
 
     def _lnPost_spectrophoto(self, tt_arr, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, 
-            mask=None, filters=None, bands=None, prior=None): 
+            mask=None, filters=None, bands=None, prior=None, debug=False): 
         ''' calculate the log posterior 
 
         :param tt_arr: 
@@ -1006,31 +1006,40 @@ class iFSPS(Fitter):
             callable prior object 
         '''
         lp = self._lnPrior(tt_arr, prior=prior) # log prior
+        if debug: 
+            print('--- iFSPS._lnPost_spectrophoto ---') 
+            print('  log Prior = %f' % lp) 
         if not np.isfinite(lp): 
             return -np.inf
 
         chi_tot = self._Chi2_spectrophoto(tt_arr[:-1], wave_obs, flux_obs,
                 flux_ivar_obs, photo_obs, photo_ivar_obs, zred, mask=mask,
-                f_fiber=tt_arr[-1], filters=filters, bands=bands) 
+                f_fiber=tt_arr[-1], filters=filters, bands=bands, debug=debug) 
+        if debug: print('  total Chi2 = %f' % chi_tot) 
 
         return lp - 0.5 * chi_tot
 
     def _Chi2_spectrophoto(self, tt_arr, wave_obs, flux_obs, flux_ivar_obs, photo_obs,
             photo_ivar_obs, zred, mask=None, f_fiber=1., filters=None,
-            bands=None): 
+            bands=None, debug=False): 
         ''' calculated the chi-squared between the data and model spectra. 
         '''
         # model(theta) 
         flux, photo = self._model_spectrophoto(tt_arr, zred=zred,
-                wavelength=wave_obs, filters=filters, bands=bands) 
+                wavelength=wave_obs, filters=filters, bands=bands, debug=debug) 
         # data - model(theta) with masking 
         dflux = (f_fiber * flux[~mask] - flux_obs[~mask]) 
         # calculate chi-squared for spectra
         _chi2_spec = np.sum(dflux**2 * flux_ivar_obs[~mask]) 
+        if debug: 
+            print('--- iFSPS._Chi2_spectrophoto ---') 
+            print('  Spectroscopic Chi2 = %f' % _chi2_spec)
         # data - model(theta) for photometry  
         dphoto = (photo - photo_obs) 
         # calculate chi-squared for photometry 
         _chi2_photo = np.sum(dphoto**2 * photo_ivar_obs) 
+        if debug: 
+            print('  Photometric Chi2 = %f' % _chi2_photo)
 
         return _chi2_spec + _chi2_photo 
 
@@ -1239,7 +1248,7 @@ class iSpeculator(iFSPS):
                 Interp.InterpolatedUnivariateSpline(_z, _d_lum_cm, k=3)
 
     def MCMC_spectrophoto(self, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, prior=None, 
-            mask=None, bands='desi', nwalkers=100, burnin=100, niter=1000,
+            mask=None, bands='desi', dirichlet_transform=False, nwalkers=100, burnin=100, niter=1000,
             maxiter=200000, opt_maxiter=100, writeout=None, overwrite=False, silent=True): 
         ''' infer the posterior distribution of the free parameters given spectroscopy and photometry:
         observed wavelength, spectra flux, inverse variance flux, photometry, inv. variance photometry
@@ -1270,6 +1279,14 @@ class iSpeculator(iFSPS):
         :param mask: (optional) 
             boolean array specifying where to mask the spectra. If mask == 'emline' the spectra
             is masked around emission lines at 3728., 4861., 5007., 6564. Angstroms. (default: None) 
+
+        :param bands: 
+            photometric bands to generate the photometry. Either bands or filters has to be 
+            specified. (default: None)  
+
+        :param dirichlet_transform: 
+            If True, apply warped_manifold_transform. Don't use this unless you
+            explicitly know what you're doing. (default: False) 
 
         :param nwalkers: (optional) 
             number of walkers. (default: 100) 
@@ -1325,6 +1342,15 @@ class iSpeculator(iFSPS):
         # get filters
         filters = specFilter.load_filters(*tuple(bands_list))
 
+        if dirichlet_transform: 
+            print('WARNING: you are applying a warped manifold transform') 
+            print('  which mean you the SFH basis coefficients are sampled')
+            print('  from a Dirichlet distribution!') 
+            # check that the priors are sensible for the warped manifold
+            # transform 
+            assert np.min(prior.min) >= 0.
+            assert np.max(prior.max) <= 1.
+
         # posterior function args and kwargs
         lnpost_args = (wave_obs, 
                 flux_obs,               # 10^-17 ergs/s/cm^2/Ang
@@ -1335,7 +1361,8 @@ class iSpeculator(iFSPS):
         lnpost_kwargs = {
                 'mask': _mask,          # emission line mask 
                 'filters': filters,
-                'prior': prior          # prior
+                'prior': prior,         # prior
+                'dirichlet_transform': dirichlet_transform
                 }
         self.data_type = 'specphoto'
         self.theta_names += ['f_fiber']
@@ -1352,12 +1379,13 @@ class iSpeculator(iFSPS):
                 opt_maxiter=opt_maxiter, 
                 silent=silent,
                 writeout=writeout, 
-                overwrite=overwrite)
+                overwrite=overwrite, 
+                dirichlet_transform=dirichlet_transform)
 
         return output  
 
     def MCMC_spec(self, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None, prior=None,
-            nwalkers=100, burnin=100, niter=1000, maxiter=200000, opt_maxiter=100, 
+            dirichlet_transform=False, nwalkers=100, burnin=100, niter=1000, maxiter=200000, opt_maxiter=100, 
             writeout=None, overwrite=False, silent=True): 
         ''' infer the posterior distribution of the free parameters given observed
         wavelength, spectra flux, and inverse variance using MCMC. The function 
@@ -1382,6 +1410,10 @@ class iSpeculator(iFSPS):
 
         :param prior: (optional) 
              callable prior object (e.g. prior(theta)). See priors below. (default: None) 
+        
+        :param dirichlet_transform: 
+            If True, apply warped_manifold_transform. Don't use this unless you
+            explicitly know what you're doing. (default: False) 
 
         :param nwalkers: (optional) 
             number of walkers. (default: 100) 
@@ -1423,6 +1455,15 @@ class iSpeculator(iFSPS):
         '''
         # check mask 
         _mask = self._check_mask(mask, wave_obs, flux_ivar_obs, zred) 
+        
+        if dirichlet_transform: 
+            print('WARNING: you are applying a warped manifold transform') 
+            print('  which mean you the SFH basis coefficients are sampled')
+            print('  from a Dirichlet distribution!') 
+            # check that the priors are sensible for the warped manifold
+            # transform 
+            assert np.min(prior.min) >= 0.
+            assert np.max(prior.max) <= 1.
 
         # posterior function args and kwargs
         lnpost_args = (wave_obs, 
@@ -1431,7 +1472,8 @@ class iSpeculator(iFSPS):
                 zred) 
         lnpost_kwargs = {
                 'mask': _mask,          # emission line mask 
-                'prior': prior          # prior 
+                'prior': prior,          # prior 
+                'dirichlet_transform': dirichlet_transform
                 }
         self.data_type = 'spec'
 
@@ -1447,12 +1489,14 @@ class iSpeculator(iFSPS):
                 opt_maxiter=opt_maxiter,
                 silent=silent,
                 writeout=writeout, 
-                overwrite=overwrite)
+                overwrite=overwrite, 
+                dirichlet_transform=dirichlet_transform)
         return output  
     
     def MCMC_photo(self, photo_obs, photo_ivar_obs, zred, bands='desi', prior=None,
-            nwalkers=100, burnin=100, niter=1000, maxiter=200000, opt_maxiter=100, 
-            writeout=None, overwrite=False, silent=True): 
+            dirichlet_transform=False, nwalkers=100, burnin=100, niter=1000,
+            maxiter=200000, opt_maxiter=100, writeout=None, overwrite=False,
+            silent=True): 
         ''' infer the posterior distribution of the free parameters given observed
         photometric flux, and inverse variance using MCMC. The function 
         outputs a dictionary with the median theta of the posterior as well as the 
@@ -1472,6 +1516,10 @@ class iSpeculator(iFSPS):
             if bands == 'desi' then 
             bands_list = ['decam2014-g', 'decam2014-r', 'decam2014-z','wise2010-W1', 'wise2010-W2', 'wise2010-W3', 'wise2010-W4']. 
             (default: 'desi') 
+        
+        :param dirichlet_transform: 
+            If True, apply warped_manifold_transform. Don't use this unless you
+            explicitly know what you're doing. (default: False) 
 
         :param nwalkers: (optional) 
             number of walkers. (default: 100) 
@@ -1515,6 +1563,15 @@ class iSpeculator(iFSPS):
         assert len(bands_list) == len(photo_obs) 
         # get filters
         filters = specFilter.load_filters(*tuple(bands_list))
+        
+        if dirichlet_transform: 
+            print('WARNING: you are applying a warped manifold transform') 
+            print('  which mean you the SFH basis coefficients are sampled')
+            print('  from a Dirichlet distribution!') 
+            # check that the priors are sensible for the warped manifold
+            # transform 
+            assert np.min(prior.min) >= 0.
+            assert np.max(prior.max) <= 1.
 
         # posterior function args and kwargs
         lnpost_args = (
@@ -1524,7 +1581,8 @@ class iSpeculator(iFSPS):
                 ) 
         lnpost_kwargs = {
                 'filters': filters,
-                'prior': prior   # prior object
+                'prior': prior,   # prior object
+                'dirichlet_transform': dirichlet_transform
                 }
         self.data_type = 'photo'
     
@@ -1540,25 +1598,230 @@ class iSpeculator(iFSPS):
                 opt_maxiter=opt_maxiter, 
                 silent=silent,
                 writeout=writeout,
-                overwrite=overwrite) 
+                overwrite=overwrite,
+                dirichlet_transform=dirichlet_transform)
         return output  
 
-    def model(self, zz_arr, zred=0.1, wavelength=None, dont_transform=False): 
+    def _lnPost_spectrophoto(self, tt_arr, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, 
+            mask=None, filters=None, bands=None, prior=None, dirichlet_transform=False, debug=False): 
+        ''' calculate the log posterior for spectrum and photometry 
+
+        :param tt_arr: 
+            array of free parameters. last element is fspectrophoto factor 
+        :param wave_obs:
+            wavelength of 'observations'
+        :param flux_obs: 
+            flux of the observed spectra
+        :param flux_ivar_obs :
+            inverse variance of of the observed spectra
+        :param photo_obs: 
+            flux of the observed photometry maggies  
+        :param photo_ivar_obs :
+            inverse variance of of the observed photometry  
+        :param zred:
+            redshift of the 'observations'
+        :param mask: (optional) 
+            A boolean array that specifies what part of the spectra to mask 
+            out. (default: None) 
+        :param prior: (optional) 
+            callable prior object 
+        :param dirichlet_transform: (optional) 
+            If True, apply warped_manifold_transform so that the SFH basis
+            coefficient is sampled from a Dirichlet prior
+        '''
+        lp = self._lnPrior(tt_arr, prior=prior) # log prior
+        if debug: 
+            print('iSpeculator._lnPost_spectrophoto: log Prior = %f' % lp) 
+        if not np.isfinite(lp): 
+            return -np.inf
+
+        chi_tot = self._Chi2_spectrophoto(tt_arr[:-1], wave_obs, flux_obs,
+                flux_ivar_obs, photo_obs, photo_ivar_obs, zred, mask=mask,
+                f_fiber=tt_arr[-1], filters=filters, bands=bands, 
+                dirichlet_transform=dirichlet_transform, debug=debug) 
+
+        return lp - 0.5 * chi_tot
+
+    def _Chi2_spectrophoto(self, tt_arr, wave_obs, flux_obs, flux_ivar_obs, photo_obs,
+            photo_ivar_obs, zred, mask=None, f_fiber=1., filters=None,
+            bands=None, dirichlet_transform=False, debug=False): 
+        ''' calculated the chi-squared between the data and model spectra. 
+        '''
+        # model(theta) 
+        flux, photo = self._model_spectrophoto(tt_arr, zred=zred,
+                wavelength=wave_obs, filters=filters, bands=bands, 
+                dirichlet_transform=dirichlet_transform, debug=debug) 
+        # data - model(theta) with masking 
+        dflux = (f_fiber * flux[~mask] - flux_obs[~mask]) 
+        # calculate chi-squared for spectra
+        _chi2_spec = np.sum(dflux**2 * flux_ivar_obs[~mask]) 
+        if debug: 
+            print('iSpeculator._Chi2_spectrophoto: Spectroscopic Chi2 = %f' % _chi2_spec)
+        # data - model(theta) for photometry  
+        dphoto = (photo - photo_obs) 
+        # calculate chi-squared for photometry 
+        _chi2_photo = np.sum(dphoto**2 * photo_ivar_obs) 
+        if debug: 
+            print('iSpeculator._Chi2_spectrophoto: Photometric Chi2 = %f' % _chi2_photo)
+
+        if debug: print('iSpeculator._Chi2_spectrophoto: total Chi2 = %f' %
+                (_chi2_spec + _chi2_photo))
+        return _chi2_spec + _chi2_photo 
+
+    def _lnPost(self, tt_arr, wave_obs, flux_obs, flux_ivar_obs, zred,
+            mask=None, prior=None, dirichlet_transform=False, debug=False): 
+        ''' calculate the log posterior for a spectrum
+
+        :param tt_arr: 
+            array of free parameters
+
+        :param wave_obs:
+            wavelength of 'observations'
+
+        :param flux_obs: 
+            flux of the observed spectra
+
+        :param flux_ivar_obs :
+            inverse variance of of the observed spectra
+
+        :param zred:
+            redshift of the 'observations'
+
+        :param mask: (optional) 
+            A boolean array that specifies what part of the spectra to mask 
+            out. (default: None) 
+
+        :param prior: (optional) 
+            callable prior object. (default: None) 
+
+        :param dirichlet_transform: (optional) 
+            If True, apply warped_manifold_transform so that the SFH basis
+            coefficient is sampled from a Dirichlet prior (default: False) 
+    
+        :param debug: (optional)
+            If True, print debug statements (default: False) 
+        '''
+        lp = self._lnPrior(tt_arr, prior=prior) # log prior
+        if not np.isfinite(lp): 
+            return -np.inf
+        
+        if debug: print('iSpeculator._lnPost: log Prior = %f' % lp) 
+
+        chi_tot = self._Chi2(tt_arr, wave_obs, flux_obs, flux_ivar_obs, zred,
+                mask=mask, dirichlet_transform=dirichlet_transform, debug=debug)
+
+        return lp - 0.5 * chi_tot
+
+    def _Chi2(self, tt_arr, wave_obs, flux_obs, flux_ivar_obs, zred, mask=None,
+            f_fiber=1., dirichlet_transform=False, debug=False): 
+        ''' calculated the chi-squared between the data and model spectra. 
+
+        :param dirichlet_transform: (optional) 
+            If True, apply warped_manifold_transform so that the SFH basis
+            coefficient is sampled from a Dirichlet prior (default: False) 
+    
+        :param debug: (optional)
+            If True, print debug statements (default: False) 
+        '''
+        # model(theta) 
+        _, flux = self.model(tt_arr, zred=zred, wavelength=wave_obs,
+                dirichlet_transform=dirichlet_transform) 
+        # data - model(theta) with masking 
+        dflux = (f_fiber * flux[~mask] - flux_obs[~mask]) 
+        # calculate chi-squared
+        _chi2 = np.sum(dflux**2 * flux_ivar_obs[~mask]) 
+
+        if debug: print('iSpeculator._Chi2: total Chi2 = %f' % _chi2) 
+
+        return _chi2
+
+    def _lnPost_photo(self, tt_arr, flux_obs, flux_ivar_obs, zred, filters=None, bands=None, 
+            prior=None, dirichlet_transform=False, debug=False): 
+        ''' calculate the log posterior for photometry
+
+        :param tt_arr: 
+            array of free parameters
+
+        :param flux_obs: 
+            flux of the observed photometry maggies  
+
+        :param flux_ivar_obs :
+            inverse variance of of the observed spectra
+
+        :param zred:
+            redshift of the 'observations'
+
+        :param filters: 
+            speclite.filters filter object. Either filters or bands has to be specified. (default: None) 
+
+        :param bands: 
+            photometric bands to generate the photometry. Either bands or filters has to be 
+            specified. (default: None)  
+
+        :param prior: (optional) 
+            callable prior object. 
+        
+        :param dirichlet_transform: (optional) 
+            If True, apply warped_manifold_transform so that the SFH basis
+            coefficient is sampled from a Dirichlet prior (default: False) 
+    
+        :param debug: (optional)
+            If True, print debug statements (default: False) 
+        '''
+        lp = self._lnPrior(tt_arr, prior=prior) # log prior
+        if not np.isfinite(lp): 
+            return -np.inf
+        
+        if debug: print('iSpeculator._lnPost_photo: log Prior = %f' % lp) 
+
+        return lp - 0.5 * self._Chi2_photo(tt_arr, flux_obs, flux_ivar_obs,
+                zred, filters=filters, bands=bands,
+                dirichlet_transform=dirichlet_transform, debug=debug)
+
+    def _Chi2_photo(self, tt_arr, flux_obs, flux_ivar_obs, zred, filters=None, bands=None,
+            dirichlet_transform=False, debug=False): 
+        ''' calculated the chi-squared between the data and model photometry
+        
+        :param dirichlet_transform: (optional) 
+            If True, apply warped_manifold_transform so that the SFH basis
+            coefficient is sampled from a Dirichlet prior (default: False) 
+    
+        :param debug: (optional)
+            If True, print debug statements (default: False) 
+        '''
+        # model(theta) 
+        flux = self.model_photo(tt_arr, zred=zred, filters=filters,
+                bands=bands, dirichlet_transform=dirichlet_transform,
+                debug=debug) 
+        # data - model(theta) with masking 
+        dflux = (flux - flux_obs) 
+        # calculate chi-squared
+        _chi2 = np.sum(dflux**2 * flux_ivar_obs) 
+        
+        if debug: print('iSpeculator._chi2_photo: total Chi2 = %f' % _chi2) 
+        return _chi2
+
+    def model(self, zz_arr, zred=0.1, wavelength=None, dirichlet_transform=False,
+            debug=False): 
         ''' calls Speculator to computee SED given theta. theta[1:4] are the **transformed** SFH basis coefficients, 
         not the actual coefficients! This method is called by the inference method. 
 
         :param zz_arr:
             array of parameters: [logmstar, bSFH1, bSFH2, bSFH3, bSFH4, bZ1,
-            bZ2, tau]. If dont_transform == False, zz_arr[1:4] are the
-            **transformed** SFH basis coefficients. If dont_transform == True,
-            zz_arr[1:4] are the SFH basis coefficients. 
+            bZ2, tau]. If you want the SFH basis coefficients bSFH1, bSFH2,
+            bSFH3, bSFH4 to be sampled from a Dirichlet distribution see kwarg
+            `dirichlet_transform`.
+
         :param zred: float,array (default: 0.1) 
             The output wavelength and spectra are redshifted.
+
         :param wavelength: (default: None)  
             If specified, the model will interpolate the spectra to the specified 
             wavelengths.
-        :param dont_transform:
-            If True, skips the transformation  
+
+        :param dirichlet_transform:
+            If True, transforms SFH basis coefficients to be within a Dirichlet
+            distribution. (default: False) 
 
         returns
         -------
@@ -1567,16 +1830,22 @@ class iSpeculator(iFSPS):
         outspec : array 
             spectra generated from FSPS model(theta) in units of 1e-17 * erg/s/cm^2/Angstrom
         '''
-        tage    = self._tage_z_interp(zred)
+        tage = self._tage_z_interp(zred)
+        if debug: 
+            print('iSpeculator.model: redshift = %f' % zred)
+            print('iSpeculator.model: tage = %f' % tage) 
 
         # logmstar, b1SFH, b2SFH, b3SFH, b4SFH, g1ZH, g2ZH, tau, tage
         ntheta = zz_arr.shape[0]
         tt_arr = np.zeros(ntheta+1) 
         tt_arr[:ntheta] = zz_arr
         tt_arr[-1] = tage
-        # transform back to SFH basis coefficients 
-        if not dont_transform: 
+
+        if debug: print('iSpeculator.model: theta', tt_arr)
+        if dirichlet_transform: 
+            # transform SFH basis coefficients to Dirichlet distribution
             tt_arr[1:5] = self._transform_to_SFH_basis(zz_arr[1:5]) 
+            if debug: print('iSpeculator.model: transformed theta', tt_arr)
         
         # input: b1SFH, b2SFH, b3SFH, b4SFH, g1ZH, g2ZH, tau, tage
         if self.model_name == 'emulator': 
@@ -1584,6 +1853,7 @@ class iSpeculator(iFSPS):
             w = self._emu_wave
         elif 'fsps' in self.model_name: 
             w, ssp_lum = self._fsps_model(tt_arr[1:]) 
+        if debug: print('iSpeculator.model: ssp lum', ssp_lum)
 
         # mass normalization
         lum_ssp = (10**tt_arr[0]) * ssp_lum
@@ -1601,7 +1871,8 @@ class iSpeculator(iFSPS):
             outspec = np.interp(outwave, w_z, flux_z, left=0, right=0)
         return outwave, outspec 
     
-    def model_photo(self, zz_arr, zred=0.1, filters=None, bands=None, dont_transform=False): 
+    def model_photo(self, zz_arr, zred=0.1, filters=None, bands=None,
+            dirichlet_transform=False, debug=False): 
         ''' very simple wrapper for a fsps model with minimal overhead. Generates photometry 
         in specified photometric bands 
 
@@ -1618,6 +1889,13 @@ class iSpeculator(iFSPS):
             photometric bands to generate the photometry. Either bands or filters has to be 
             specified. (default: None)  
 
+        :param dirichlet_transform:
+            If True, transforms SFH basis coefficients to be within a Dirichlet
+            distribution. (default: False) 
+
+        :param debug: 
+            If True, print debug statements. (default: False)  
+
         :return outphoto:
             array of photometric fluxes in nanomaggies in the specified bands 
         '''
@@ -1628,7 +1906,8 @@ class iSpeculator(iFSPS):
             else: 
                 raise ValueError("specify either filters or bands") 
 
-        w, spec = self.model(zz_arr, zred=zred, dont_transform=dont_transform) # get SED  
+        w, spec = self.model(zz_arr, zred=zred,
+                dirichlet_transform=dirichlet_transform, debug=debug) # get SED  
          
         try: 
             maggies = filters.get_ab_maggies(np.atleast_2d(spec) * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom, wavelength=w*U.Angstrom) # maggies 
@@ -1655,10 +1934,13 @@ class iSpeculator(iFSPS):
                 spec, 
                 np.zeros(n_above-1)])
             maggies = filters.get_ab_maggies(np.atleast_2d(spec_pad) * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom, wavelength=w_pad*U.Angstrom) # maggies 
+
+        if debug: print('iSpeculator.model_photo: maggies', maggies) 
+
         return np.array(list(maggies[0])) * 1e9
     
     def _model_spectrophoto(self, tt_arr, zred=0.1, wavelength=None,
-            filters=None, bands=None, dont_transform=False): 
+            filters=None, bands=None, dirichlet_transform=False, debug=False): 
         ''' very simple wrapper for a fsps model with minimal overhead. Generates photometry 
         in specified photometric bands 
 
@@ -1675,6 +1957,11 @@ class iSpeculator(iFSPS):
             photometric bands to generate the photometry. Either bands or filters has to be 
             specified. (default: None)  
 
+        :param dirichlet_transform: (optional) 
+            If True, apply warped manifold transform so that the SFH basis
+            coefficients are sampled from a Dirichlet distribution. 
+            (default: False)  
+
         :return outphoto:
             array of photometric fluxes in nanomaggies in the specified bands 
         '''
@@ -1685,11 +1972,19 @@ class iSpeculator(iFSPS):
             else: 
                 raise ValueError("specify either filters or bands") 
 
-        w, spec = self.model(tt_arr, zred=zred, dont_transform=dont_transform) # get spectra  
+        if debug: print('iSpeculator._model_spectrophoto: theta', tt_arr)
+
+        w, spec = self.model(tt_arr, zred=zred,
+                dirichlet_transform=dirichlet_transform, debug=debug) # get spectra  
+
 
         if wavelength is not None: 
             outspec = np.zeros(wavelength.shape)
             outspec = np.interp(wavelength, w, spec, left=0, right=0)
+            if debug: print('iSpeculator._model_spectrophoto: out wave', wavelength)
+        else: 
+            outspec = spec 
+        if debug: print('iSpeculator._model_spectrophoto: out flux', outspec)
     
         try: 
             maggies = filters.get_ab_maggies(np.atleast_2d(spec) * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom,
@@ -1718,10 +2013,12 @@ class iSpeculator(iFSPS):
                 np.zeros(n_above-1)])
             maggies = filters.get_ab_maggies(np.atleast_2d(spec_pad) * 1e-17*U.erg/U.s/U.cm**2/U.Angstrom, wavelength=w_pad*U.Angstrom) # maggies 
 
+        if debug: print('iSpeculator.model_spectrophoto: maggies', maggies) 
+
         return outspec, np.array(list(maggies[0])) * 1e9
    
-    def _save_chains(self, _chain, lnpost_args, lnpost_kwargs, writeout=None,
-            overwrite=False, silent=True):
+    def _save_chains(self, _chain, lnpost_args, lnpost_kwargs, writeout=None, 
+            dirichlet_transform=False, overwrite=False, silent=True):
         ''' save MCMC chains to file. If file exists, it will append it to the
         hdf5 file. 
         '''
@@ -1735,10 +2032,13 @@ class iSpeculator(iFSPS):
          
         # transform chain back to original SFH basis 
         niter, nwalker, nparam = _chain.shape
-        # flatten chain for transformation
-        chain = self._flatten_chain(_chain).copy() 
-        chain[:,1:5] = self._transform_to_SFH_basis(self._flatten_chain(_chain)[:,1:5]) 
-        chain = chain.reshape(niter, nwalker, nparam) 
+        if dirichlet_transform: 
+            # flatten chain for transformation
+            chain = self._flatten_chain(_chain).copy() 
+            chain[:,1:5] = self._transform_to_SFH_basis(self._flatten_chain(_chain)[:,1:5]) 
+            chain = chain.reshape(niter, nwalker, nparam) 
+        else: 
+            chain = _chain.copy() 
 
         if not overwrite and writeout is not None and os.path.isfile(writeout): 
             if not silent: print('  appending to ... %s' % writeout)
@@ -1779,12 +2079,12 @@ class iSpeculator(iFSPS):
                     med[:-1], 
                     zred=zred,
                     wavelength=wave_obs, 
-                    dont_transform=True) 
+                    dirichlet_transform=dirichlet_transform)
             photo_model = self.model_photo(
                     med[:-1], 
                     zred=zred, 
                     filters=lnpost_kwargs['filters'],
-                    dont_transform=True) 
+                    dirichlet_transform=dirichlet_transform)
 
             output['wavelength_model']  = w_model
             output['flux_spec_model']   = med[-1] * flux_model
@@ -1796,7 +2096,8 @@ class iSpeculator(iFSPS):
             output['flux_photo_data']       = photo_obs
             output['flux_photo_ivar_data']  = photo_ivar_obs
         elif self.data_type == 'spec': 
-            w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs, dont_transform=True)
+            w_model, flux_model = self.model(med, zred=zred, wavelength=wave_obs, 
+                    dirichlet_transform=dirichlet_transform)
             output['wavelength_model'] = w_model
             output['flux_spec_model'] = flux_model
            
@@ -1808,7 +2109,7 @@ class iSpeculator(iFSPS):
                     med, 
                     zred=zred,
                     filters=lnpost_kwargs['filters'], 
-                    dont_transform=True)
+                    dirichlet_transform=dirichlet_transform)
             output['flux_photo_model'] = photo_model 
             output['flux_photo_data'] = photo_obs
             output['flux_photo_ivar_data'] = photo_ivar_obs

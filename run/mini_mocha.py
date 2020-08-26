@@ -207,9 +207,9 @@ def validate_sample(sim):
     return None 
 
 
-def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps', 
-        model='emulator', nwalkers=100, burnin=100, niter='adaptive',
-        maxiter=200000, opt_maxiter=100, overwrite=False, 
+def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps',
+        model='emulator', dirichlet_transform=True, nwalkers=100, burnin=100,
+        niter='adaptive', maxiter=200000, opt_maxiter=100, overwrite=False,
         postprocess=False, thin=1):   
     ''' Fit simulated photometry. `noise` specifies whether to fit spectra without noise or 
     with legacy-like noise. `dust` specifies whether to if spectra w/ dust or not. 
@@ -290,7 +290,10 @@ def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps',
     if postprocess:
         print('--- postprocessing ---') 
         f_post = f_mcmc.replace('.mcmc.hdf5', '.postproc.hdf5')
-        mcmc = ifitter.postprocess(mcmc=mcmc, writeout=f_post, thin=thin)
+        mcmc = ifitter.postprocess(mcmc=mcmc, writeout=None, thin=thin)
+        print('--- SSFR prior correction ---') 
+        mcmc = ifitter.prior_correction(mcmc=mcmc, writeout=f_post, thin=1,
+                dirichlet_transform=dirichlet_transform)
 
     print('log M* total = %f' % mcmc['theta_med'][0])
     print('---------------') 
@@ -339,9 +342,9 @@ def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps',
 
 
 def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
-        method='ifsps', model='emulator', nwalkers=100, burnin=100,
-        niter='adaptive', maxiter=200000, opt_maxiter=100, overwrite=False,
-        postprocess=False, thin=1):    
+        method='ifsps', model='emulator', dirichlet_transform=True,
+        nwalkers=100, burnin=100, niter='adaptive', maxiter=200000,
+        opt_maxiter=100, overwrite=False, postprocess=False, thin=1):    
     ''' Fit Lgal spectra. `noise` specifies whether to fit spectra without noise or 
     with BGS-like noise. Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
 
@@ -423,6 +426,7 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
                 meta['redshift'][igal], 
                 mask='emline', 
                 prior=prior, 
+                dirichlet_transform=dirichlet_transform, 
                 nwalkers=nwalkers, 
                 burnin=burnin, 
                 niter=niter, 
@@ -435,7 +439,10 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
     if postprocess:
         print('--- postprocessing ---') 
         f_post = f_mcmc.replace('.mcmc.hdf5', '.postproc.hdf5')
-        mcmc = ifitter.postprocess(mcmc=mcmc, writeout=f_post, thin=thin)
+        mcmc = ifitter.postprocess(mcmc=mcmc, writeout=None, thin=thin)
+        print('--- SSFR prior correction ---') 
+        mcmc = ifitter.prior_correction(mcmc=mcmc, writeout=f_post, thin=1,
+                dirichlet_transform=dirichlet_transform)
 
     i_fib = list(mcmc['theta_names'].astype(str)).index('f_fiber')  
 
@@ -504,8 +511,9 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
 
 
 def MP_sed_fit(spec_or_photo, igals, sim='lgal', noise='none', method='ifsps', 
-        model='emulator', nthreads=1, nwalkers=100, burnin=100, niter=1000,
-        maxiter=200000, overwrite=False, postprocess=False, thin=1): 
+        model='emulator', dirichlet_transform=True, nthreads=1, nwalkers=100,
+        burnin=100, niter=1000, maxiter=200000, overwrite=False,
+        postprocess=False, thin=1): 
     ''' multiprocessing wrapepr for fit_spectra and fit_photometry. This does *not* parallelize 
     the MCMC sampling of individual fits but rather runs multiple fits simultaneously. 
     
@@ -538,6 +546,7 @@ def MP_sed_fit(spec_or_photo, igals, sim='lgal', noise='none', method='ifsps',
             'noise': noise, 
             'method': method, 
             'model': model,
+            'dirichlet_transform': dirichlet_transform,
             'nwalkers': nwalkers,
             'burnin': burnin,
             'niter': niter, 
@@ -674,6 +683,6 @@ if __name__=="__main__":
     igals = range(igal0, igal1+1)
 
     MP_sed_fit(spec_or_photo, igals, sim=sim, noise=noise, method=method,
-            model=model, nthreads=nthreads,  nwalkers=nwalkers, burnin=burnin,
-            niter=niter, maxiter=maxiter, overwrite=overwrite, 
-            postprocess=postprocess, thin=thin)
+            model=model, dirichlet_transform=True, nthreads=nthreads,
+            nwalkers=nwalkers, burnin=burnin, niter=niter, maxiter=maxiter,
+            overwrite=overwrite, postprocess=postprocess, thin=thin)

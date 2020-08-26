@@ -1246,7 +1246,10 @@ class iSpeculator(iFSPS):
                 Interp.InterpolatedUnivariateSpline(_z, _tage, k=3)
         self._d_lum_z_interp = \
                 Interp.InterpolatedUnivariateSpline(_z, _d_lum_cm, k=3)
-
+        
+        # initiate p(SSFR) 
+        self.ssfr_prior = None 
+    
     def MCMC_spectrophoto(self, wave_obs, flux_obs, flux_ivar_obs, photo_obs, photo_ivar_obs, zred, prior=None, 
             mask=None, bands='desi', dirichlet_transform=False, nwalkers=100, burnin=100, niter=1000,
             maxiter=200000, opt_maxiter=100, writeout=None, overwrite=False, silent=True): 
@@ -2187,6 +2190,154 @@ class iSpeculator(iFSPS):
         # mass weighted average
         z_mw = np.trapz(zh * sfh, t) / np.trapz(sfh, t)
         return np.clip(np.atleast_1d(z_mw), 0, np.inf)
+   
+    def prior_correction(self, mcmc=None, f_mcmc=None, thin=1,
+            writeout=None, dirichlet_transform=False, silent=True): 
+        ''' postprocess importance weight to impose uniformative prior on SSFR  
+        for different timescales. The method appends two set of importance
+        weights, that will impose uniform priors on 1Gyr SSFR and 100Myr SSFR
+
+        :param mcmc:
+            output dictionary from MCMC_specphoto, MCMC_spec, or MCMC_photo
+            that contains all the information from the MCMC sampling. 
+            (default: None) 
+        :param f_mcmc: 
+            alternatively you can specify the hdf5 file name where the MCMC
+            dictionary is saved. 
+            (default: None) 
+        :param thin: 
+            Thin out MCMC chains by thin factor.
+            (default: 1) 
+        :param writeout: 
+            optional file name you can specify to write out the post processed
+            mcmc chain to file. 
+            (default: None) 
+        :param dirichlet_transform: 
+            If True, the SFH basis coefficients were sampled from a Dirichlet
+            prior; if False from a flat prior.
+            (default: False) 
+        :param silent: 
+            If False, print stuff
+
+        :return mcmc_output: 
+            postprocessed mcmc chain dictionary 
+        '''
+        if mcmc is None and f_mcmc is None: 
+            raise ValueError
+        if mcmc is not None and f_mcmc is not None:
+            raise ValueError
+        
+        if f_mcmc is not None: 
+            mcmc = self.read_chain(f_mcmc, silent=silent)
+
+        # check the model names agree with one another 
+        assert self.model_name == mcmc['model'] 
+
+        chain = self._flatten_chain(mcmc['mcmc_chain'])[::thin] # flattened and thined chain
+        
+        # importance weights for 1Gyr SSFR
+        mcmc['w_uniform_ssfr1gyr'] = self.w_maxentropy_ssfrprior(
+                chain, 
+                dt_sfr=1., 
+                log=False,
+                redshift=mcmc['redshift'], 
+                Nkde=10000,
+                dirichlet_transform=dirichlet_transform)
+        # importance weights for 100Myr SSFR
+        mcmc['w_uniform_ssfr100myr'] = self.w_maxentropy_ssfrprior(
+                chain, 
+                dt_sfr=0.1, 
+                log=False,
+                redshift=mcmc['redshift'], 
+                Nkde=10000,
+                dirichlet_transform=dirichlet_transform)
+
+        if writeout is not None: 
+            assert writeout != f_mcmc, "don't overwrite the MCMC chain file!"
+
+            fh5  = h5py.File(writeout, 'w') 
+            for k in mcmc.keys(): 
+                fh5.create_dataset(k, data=mcmc[k]) 
+            fh5.close() 
+        return mcmc  
+
+    def w_maxentropy_ssfrprior(self, chain, dt_sfr=1., log=False,
+            redshift=None, Nkde=10000, dirichlet_transform=False): 
+        ''' calculate the importance sampling weights to correct for the MCMC
+        chain so that we have an uninformative prior on SSFR averaged over
+        `dt_sfr`. 
+    
+        The input chain are samples drawn from the inferred posteriors for our
+        parameters: M*, b1, b2, b3, b4, g1, g2, etc. Regardless of whether we 
+        use a Dirichlet or Uniform priors for b1, b2, b3, b4 (the SFH basis
+        coefficients), we impose an undesirable prior on SSFR. We correct for
+        this using importance weighting with weights derived from maximum
+        entropy prior correction of Handley & Millea (2019). 
+
+        :param chain: 
+            mcmc chain. Assumes parameter order [M*, b1, b2, b3, b4, ... ]. I
+            would suggest thinning out the chain here otherwise this method
+            will take a while. (Nsteps x Nparam) 
+
+        :param dt_sfr: 
+            timescale of SFR in Gyrs. (default: 1)
+
+        :param log: 
+            If True, the weights will impose a flat prior on log(SSFR); if
+            False on SSFR. (default: False) 
+
+        :param redshift: 
+            redshift of the galaxy. The prior on SSFR changes as a function of
+            redshift. (default: None) 
+
+        :param Nkde: 
+            number of samples used to fit the p(SSFR) KDE
+
+        :param dirichlet_transform: 
+            If True, the SFH basis coefficients were sampled from a Dirichlet
+            prior; if False from a flat prior.
+        '''
+        from scipy.stats import gaussian_kde as gkde
+        
+        if self.ssfr_prior is not None and np.all([
+            (self.ssfr_prior['redshift'] == redshift), 
+            (self.ssfr_prior['dt_sfr'] == dt_sfr), 
+            (self.ssfr_prior['log'] == log), 
+            (self.ssfr_prior['dirichlet_transform'] == dirichlet_transform)]):
+            pass # use stored self.ssfr_prior 
+        else: 
+            self.ssfr_prior = {} 
+            self.ssfr_prior['redshift'] = redshift
+            self.ssfr_prior['dt_sfr'] = dt_sfr
+            self.ssfr_prior['log'] = log 
+            self.ssfr_prior['dirichlet_transform'] = dirichlet_transform
+            
+            # draw SFH basis coefficients from prior 
+            if dirichlet_transform: 
+                _b_prior = self._transform_to_SFH_basis(np.random.uniform(size=(Nkde,4)))
+            else: 
+                _b_prior = np.random.uniform(size=(Nkde,4))
+
+            # calculate SSFR for the prior draws
+            _ssfr_prior = self.get_SFR(
+                    np.array([np.ones(Nkde), _b_prior[:,0], _b_prior[:,1], _b_prior[:,2], _b_prior[:,3]]),
+                    redshift, dt=dt_sfr)
+
+            if log: _ssfr_prior = np.log10(_ssfr_prior)
+            else: _ssfr_prior *= 1e10 # this is so that we don't deal with 1e-11
+
+            # fit KDE to p(SSFR(prior draws))
+            self.ssfr_prior['kde'] = gkde(_ssfr_prior) 
+
+        b1, b2, b3, b4 = chain[:,1:5].T 
+
+        ssfr = self.get_SFR(
+                np.array([np.ones(len(b1)), b1, b2, b3, b4]), redshift,
+                dt=dt_sfr)
+        if log: ssfr = np.log10(ssfr)
+        else: ssfr *= 1e10 
+
+        return 1./self.ssfr_prior['kde'].pdf(ssfr) 
 
     def _emulator(self, tt):
         ''' emulator for FSPS 

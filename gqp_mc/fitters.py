@@ -2437,13 +2437,19 @@ class iSpeculator(iFSPS):
         lum_ssp /= np.sum(sfh)
         return wave_rest, lum_ssp
     
-    def _load_model_params(self): 
+    def _load_model_params(self, filename=None): 
         ''' read in pickle file that contains all the parameters required for the emulator
         model
+
+        :param filename: 
+            name of model pickle file 
         '''
-        fpkl = open(os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), 'dat', 
-            'model_summary64.pkl'), 'rb')
+        if filename is None:
+            fpkl = open(os.path.join(
+                os.path.dirname(os.path.realpath(__file__)), 'dat', 
+                'model_summary64.pkl'), 'rb')
+        else: 
+            fpkl = filename 
         params = pickle.load(fpkl)
         fpkl.close()
 

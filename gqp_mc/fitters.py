@@ -2449,7 +2449,7 @@ class iSpeculator(iFSPS):
                 os.path.dirname(os.path.realpath(__file__)), 'dat', 
                 'model_summary64.pkl'), 'rb')
         else: 
-            fpkl = filename 
+            fpkl = open(filename , 'rb')
         params = pickle.load(fpkl)
         fpkl.close()
 

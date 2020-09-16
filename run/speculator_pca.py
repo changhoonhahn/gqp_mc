@@ -1,10 +1,9 @@
 '''
 
-train PCA and save to pickle file 
-
+train PCA for speculator training data sets and save to pickle file 
 
 '''
-import os
+import os, sys 
 import pickle
 import numpy as np
 # -- gqp_mc --
@@ -13,9 +12,10 @@ from gqp_mc import util as UT
 from speculator import SpectrumPCA
 
 
-def train_pca(batch0, batch1, seed=0): 
-
-    # training set 
+def train_desi_simpledust_pca(batch0, batch1, seed=0): 
+    ''' train PCA for DESI simple dust training set 
+    '''
+    # fsps wavelength 
     fwave   = os.path.join(UT.dat_dir(), 'speculator', 'wave_fsps.npy') 
     wave    = np.load(fwave)
 
@@ -52,3 +52,10 @@ def train_pca(batch0, batch1, seed=0):
     pickle.dump(PCABasis, open(os.path.join(UT.dat_dir(), 'speculator', 
                 'DESI_simpledust.%i_%i.seed%i.p' % (batch0, batch1, seed)), 'wb'))
     return None 
+
+
+if __name__=="__main__": 
+    ibatch0 = int(sys.argv[1])
+    ibatch2 = int(sys.argv[2])
+
+    train_desi_simpledust_pca(ibatch0, ibatch1, seed=0)

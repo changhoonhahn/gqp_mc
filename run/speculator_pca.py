@@ -48,9 +48,11 @@ def train_desi_simpledust_pca(batch0, batch1, seed=0):
                 'DESI_simpledust.%i_%i.seed%i' % (batch0, batch1, seed)), 
             retain=True) 
 
-    # save to pickle file 
-    pickle.dump(PCABasis, open(os.path.join(UT.dat_dir(), 'speculator', 
-                'DESI_simpledust.%i_%i.seed%i.p' % (batch0, batch1, seed)), 'wb'))
+    #  save to file 
+    PCABasis._save_to_file(
+            os.path.join(UT.dat_dir(), 'speculator', 
+                'DESI_simpledust.%i_%i.seed%i.pca.hdf5' % (batch0, batch1, seed))
+            )
     return None 
 
 

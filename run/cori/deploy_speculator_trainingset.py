@@ -6,7 +6,7 @@ python script to deploy slurm jobs for constructing training set for speculator
 import os, sys 
 
 
-def deploy_trainingset_job(ibatch): 
+def deploy_trainingset_job(ibatch, model='simpledust'): 
     ''' create slurm script and then submit 
     '''
     cntnt = '\n'.join([
@@ -16,7 +16,7 @@ def deploy_trainingset_job(ibatch):
         "#SBATCH --constraint=haswell", 
         "#SBATCH -N 1", 
         "#SBATCH -J train%i" % ibatch,  
-        "#SBATCH -o ofiles/train%i.o" % ibatch, 
+        "#SBATCH -o ofiles/train_%s%i.o" % (model[0], ibatch), 
         "#SBATCH -L SCRATCH,project", 
         "", 
         'now=$(date +"%T")', 
@@ -24,7 +24,7 @@ def deploy_trainingset_job(ibatch):
         "", 
         "conda activate gqp", 
         "",
-        "python /global/homes/c/chahah/projects/gqp_mc/run/speculator_training.py %i" % ibatch, 
+        "python /global/homes/c/chahah/projects/gqp_mc/run/speculator_training.py %s %i" % (model, ibatch), 
         'now=$(date +"%T")', 
         'echo "end time ... $now"', 
         ""]) 
@@ -75,9 +75,10 @@ ibatch0 = int(sys.argv[2])
 ibatch1 = int(sys.argv[3])
 
 if job_type == 'trainingset': 
+    model = sys.argv[4]
     for ibatch in range(ibatch0, ibatch1+1): 
-        print('submitting batch %i' % ibatch) 
-        deploy_trainingset_job(ibatch)
+        print('submitting %s batch %i' % (model, ibatch))
+        deploy_trainingset_job(ibatch, model=model)
 elif job_type == 'trainpca': 
     print('submitting pca training') 
     deploy_trainpca_job(ibatch0, ibatch1)

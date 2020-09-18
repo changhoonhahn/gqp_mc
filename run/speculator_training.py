@@ -27,6 +27,15 @@ def sample_simpledust_prior(n_sample):
     return prior_min + (prior_max - prior_min) * np.random.uniform(size=(n_sample, len(prior_min)))
 
 
+def sample_complexdust_prior(n_sample):
+    ''' sample a padded uniform prior
+    '''
+    prior_min = np.array([0.0, 0.0, 0.0, 0.0, 6.5e-5, 6.5e-5, 0.0, 0.0, -2.5, 8.6])
+    prior_max = np.array([1.1, 1.1, 1.1, 1.1, 7.5e-3, 7.5e-3, 3.5, 4.0, 0.5, 13.8])
+
+    return prior_min + (prior_max - prior_min) * np.random.uniform(size=(n_sample, len(prior_min)))
+
+
 def train_desi_simpledust(ibatch, seed=0): 
     ''' generate FSPS training set for DESI with simple calzetti dust model.
     '''
@@ -44,7 +53,7 @@ def train_desi_simpledust(ibatch, seed=0):
 
     speculate = Fitters.iSpeculator(model_name='fsps')
 
-    theta_train = sample_prior(batch*nspec)
+    theta_train = sample_simpledust_prior(batch*nspec)
     theta_train[10000:,:4] =\
             speculate._transform_to_SFH_basis(np.random.uniform(size=(batch*nspec-10000,4)))
     
@@ -99,7 +108,7 @@ def train_desi_complexdust(ibatch, seed=0):
 
     speculate = Fitters.iSpeculator(model_name='fsps_complexdust')
 
-    theta_train = sample_prior(batch*nspec)
+    theta_train = sample_complexdust_prior(batch*nspec)
     # I'll keep 10000 outside of dirichlet priors as padding. Not sure if this
     # is a good idea or not. 
     theta_train[10000:,:4] =\
@@ -114,9 +123,9 @@ def train_desi_complexdust(ibatch, seed=0):
         np.save(fwave, w_fsps[wlim])
 
     ftheta = os.path.join(UT.dat_dir(), 'speculator',
-            'DESI_simpledust.theta_train.%i.seed%i.npy' % (ibatch, seed))
+            'DESI_complexdust.theta_train.%i.seed%i.npy' % (ibatch, seed))
     fspectrum = os.path.join(UT.dat_dir(), 'speculator',
-            'DESI_simpledust.logspectrum_fsps_train.%i.seed%i.npy' % 
+            'DESI_complexdust.logspectrum_fsps_train.%i.seed%i.npy' % 
             (ibatch, seed))
 
     if os.path.isfile(ftheta) and os.path.isfile(fspectrum): 
@@ -140,5 +149,14 @@ def train_desi_complexdust(ibatch, seed=0):
 
 
 if __name__=='__main__': 
-    ibatch = int(sys.argv[1])
-    train_desi_simpledust(ibatch, seed=0)
+    # e.g. 
+    # >>> speculator_training.py simpledust 0
+    
+    model = sys.argv[1]
+    ibatch = int(sys.argv[2])
+    if model == 'simpledust':
+        train_desi_simpledust(ibatch, seed=0)
+    elif model == 'complexdust': 
+        train_desi_complexdust(ibatch, seed=0)
+    else:
+        raise ValueError 

@@ -56,6 +56,6 @@ def train_desi_simpledust_pca(batch0, batch1, seed=0):
 
 if __name__=="__main__": 
     ibatch0 = int(sys.argv[1])
-    ibatch2 = int(sys.argv[2])
+    ibatch1 = int(sys.argv[2])
 
     train_desi_simpledust_pca(ibatch0, ibatch1, seed=0)

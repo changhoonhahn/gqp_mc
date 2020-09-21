@@ -38,7 +38,7 @@ def deploy_trainingset_job(ibatch, model='simpledust'):
     return None 
 
 
-def deploy_trainpca_job(ibatch0, ibatch1): 
+def deploy_trainpca_job(ibatch0, ibatch1, model='simpledust'): 
     ''' create slurm script and then submit 
     '''
     cntnt = '\n'.join([
@@ -48,7 +48,7 @@ def deploy_trainpca_job(ibatch0, ibatch1):
         "#SBATCH --constraint=haswell", 
         "#SBATCH -N 1", 
         "#SBATCH -J pca%i_%i" % (ibatch0, ibatch1),  
-        "#SBATCH -o ofiles/pca%i_%i.o" % (ibatch0, ibatch1), 
+        "#SBATCH -o ofiles/pca_%s_%i_%i.o" % (model[0], ibatch0, ibatch1), 
         "#SBATCH -L SCRATCH,project", 
         "", 
         'now=$(date +"%T")', 
@@ -56,7 +56,7 @@ def deploy_trainpca_job(ibatch0, ibatch1):
         "", 
         "conda activate gqp", 
         "",
-        "python /global/homes/c/chahah/projects/gqp_mc/run/speculator_pca.py %i %i" % (ibatch0, ibatch1), 
+        "python /global/homes/c/chahah/projects/gqp_mc/run/speculator_pca.py %s %i %i" % (model, ibatch0, ibatch1),
         'now=$(date +"%T")', 
         'echo "end time ... $now"', 
         ""]) 
@@ -80,7 +80,8 @@ if job_type == 'trainingset':
         print('submitting %s batch %i' % (model, ibatch))
         deploy_trainingset_job(ibatch, model=model)
 elif job_type == 'trainpca': 
-    print('submitting pca training') 
-    deploy_trainpca_job(ibatch0, ibatch1)
+    model = sys.argv[4]
+    print('submitting pca training for %s' model) 
+    deploy_trainpca_job(ibatch0, ibatch1, model=model)
 else: 
     raise ValueError

@@ -81,7 +81,7 @@ if job_type == 'trainingset':
         deploy_trainingset_job(ibatch, model=model)
 elif job_type == 'trainpca': 
     model = sys.argv[4]
-    print('submitting pca training for %s' model) 
+    print('submitting pca training for %s' % model) 
     deploy_trainpca_job(ibatch0, ibatch1, model=model)
 else: 
     raise ValueError

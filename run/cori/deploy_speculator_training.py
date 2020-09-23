@@ -38,7 +38,7 @@ def deploy_trainingset_job(ibatch, model='simpledust'):
     return None 
 
 
-def deploy_trainpca_job(ibatch0, ibatch1, model='simpledust'): 
+def deploy_trainpca_job(ibatch0, ibatch1, n_pca, model='simpledust'): 
     ''' create slurm script and then submit 
     '''
     cntnt = '\n'.join([
@@ -56,7 +56,7 @@ def deploy_trainpca_job(ibatch0, ibatch1, model='simpledust'):
         "", 
         "conda activate gqp", 
         "",
-        "python /global/homes/c/chahah/projects/gqp_mc/run/speculator_pca.py %s %i %i" % (model, ibatch0, ibatch1),
+        "python /global/homes/c/chahah/projects/gqp_mc/run/speculator_pca.py %s %i %i %i" % (model, ibatch0, ibatch1, n_pca),
         'now=$(date +"%T")', 
         'echo "end time ... $now"', 
         ""]) 
@@ -81,7 +81,8 @@ if job_type == 'trainingset':
         deploy_trainingset_job(ibatch, model=model)
 elif job_type == 'trainpca': 
     model = sys.argv[4]
-    print('submitting pca training for %s' % model) 
-    deploy_trainpca_job(ibatch0, ibatch1, model=model)
+    n_pca = int(sys.argv[5]) 
+    print('submitting %i component pca training for %s' % (n_pca, model))
+    deploy_trainpca_job(ibatch0, ibatch1, n_pca, model=model)
 else: 
     raise ValueError

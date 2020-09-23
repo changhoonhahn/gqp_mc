@@ -26,3 +26,29 @@ python mini_mocha.py ${1} ${2} ${3} ${4} ${5} ${6} ${7} ${4} ${4} ${4}
 python -W ignore mini_mocha.py photo lgal 0 10 legacy ispeculator emulator 1 20 20 40 True True 
 python -W ignore mini_mocha.py specphoto lgal 0 10 bgs0_legacy ispeculator emulator 1 20 20 40 True True 
 ```
+---
+# training `Speculator`
+## generating training SED data using FSPS 
+`Speculator` is trained on SEDs generated using FSPS. The script
+`run/speculator_training.py` can be used to generate extra batches of 
+training SED data. The script samples 10000 parameters from the prior and 
+runs them through FSPS to generate SEDs. 
+
+```bash
+python speculator_training.py train {1} {2}
+```
+1. model name: 'simpledust' or 'complexdust' 
+2. batch number (batches 0 to 99 have already been generated) 
+
+This will generate two `.npy` files. One that contains the parameter values
+sampled from the prior. 
+
+```python
+'DESI_%s.theta_train.%i.seed%i.npy' % (model, ibatch, seed))
+```
+
+Another that contains the corresponding SED values. 
+
+```python
+'DESI_%s.logspectrum_fsps_train.%i.seed%i.npy' % (model ibatch, seed))
+```

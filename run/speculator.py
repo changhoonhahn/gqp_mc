@@ -431,8 +431,7 @@ class SpectrumPCA():
         import h5py 
 
         attr_names = [
-                'training_parameters', 
-                'training_spectrum',
+                'training_parameters', #'training_spectrum',
                 'training_pca', 
                 'pca_transform_matrix', 
                 'parameters_shift',

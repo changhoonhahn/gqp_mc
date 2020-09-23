@@ -32,7 +32,8 @@ python -W ignore mini_mocha.py specphoto lgal 0 10 bgs0_legacy ispeculator emula
 `Speculator` is trained on SEDs generated using FSPS. The script
 `run/speculator_training.py` can be used to generate extra batches of 
 training SED data. The script samples 10000 parameters from the prior and 
-runs them through FSPS to generate SEDs. 
+runs them through FSPS to generate SEDs. The script is meant to be run on 
+NERSC cori. 
 
 ```bash
 python speculator_training.py train {1} {2}
@@ -52,3 +53,28 @@ Another that contains the corresponding SED values.
 ```python
 'DESI_%s.logspectrum_fsps_train.%i.seed%i.npy' % (model ibatch, seed))
 ```
+
+## training the PCA
+Before you can use the training SED data to train `Speculator`, you first have
+to train a PCA and decompose the training SED data into PCA componenets. PCA
+components are what `Speculator` ultmiately predict. 
+
+The script `run/speculator_pca.py`can be used to train the PCA over multiple
+batches of SED training data created from the section above. The script is 
+meant to be run on NERSC cori. 
+
+```bash
+python speculator_pca.py {1} {2} {3} {4} 
+```
+1. model name: 'simpledust' or 'complexdust'
+2. batch0: first batch number 
+3. batch1: last batch number
+4. n_pcas: number of pca components 
+
+This will train a PCA with n_pcas components for specified model name over 
+batches batch0 to batch1. 
+
+
+
+
+

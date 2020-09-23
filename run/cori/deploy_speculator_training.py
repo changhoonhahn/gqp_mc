@@ -44,7 +44,7 @@ def deploy_trainpca_job(ibatch0, ibatch1, n_pca, model='simpledust'):
     cntnt = '\n'.join([
         "#!/bin/bash", 
         "#SBATCH --qos=regular", 
-        "#SBATCH --time=01:00:00", 
+        "#SBATCH --time=02:00:00", 
         "#SBATCH --constraint=haswell", 
         "#SBATCH -N 1", 
         "#SBATCH -J pca%i_%i" % (ibatch0, ibatch1),  

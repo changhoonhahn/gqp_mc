@@ -105,7 +105,7 @@ def test_desi_seds(model):
         theta_train = sample_simpledust_prior(nspec)
     elif model == 'complexdust': 
         speculate = Fitters.iSpeculator(model_name='fsps_complexdust')
-        theta_train = sample_complexdust_prior(batch*nspec)
+        theta_train = sample_complexdust_prior(nspec)
 
     theta_train[:,:4] =\
             speculate._transform_to_SFH_basis(np.random.uniform(size=(nspec,4)))

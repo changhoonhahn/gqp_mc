@@ -74,7 +74,7 @@ python speculator_pca.py {1} {2} {3} {4}
 This will train a PCA with n_pcas components for specified model name over 
 batches batch0 to batch1. 
 
-
-
-
+## running on cori
+To run either of the above scripts on cori, you can modify and use the slurm 
+script `run/cori/speculator.slurm`. 
 

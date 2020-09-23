@@ -24,7 +24,7 @@ def deploy_trainingset_job(ibatch, model='simpledust'):
         "", 
         "conda activate gqp", 
         "",
-        "python /global/homes/c/chahah/projects/gqp_mc/run/speculator_training.py %s %i" % (model, ibatch), 
+        "python /global/homes/c/chahah/projects/gqp_mc/run/speculator_training.py train %s %i" % (model, ibatch), 
         'now=$(date +"%T")', 
         'echo "end time ... $now"', 
         ""]) 

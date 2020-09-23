@@ -70,7 +70,7 @@ def train_desi_seds(model, ibatch, seed=0):
     ftheta = os.path.join(UT.dat_dir(), 'speculator',
             'DESI_%s.theta_train.%i.seed%i.npy' % (model, ibatch, seed))
     fspectrum = os.path.join(UT.dat_dir(), 'speculator',
-            'DESI_%s.logspectrum_fsps_train.%i.seed%i.npy' % (model ibatch, seed))
+            'DESI_%s.logspectrum_fsps_train.%i.seed%i.npy' % (model, ibatch, seed))
 
     if os.path.isfile(ftheta) and os.path.isfile(fspectrum): 
         print('') 
@@ -105,7 +105,7 @@ def test_desi_seds(model):
     elif model == 'complexdust': 
         speculate = Fitters.iSpeculator(model_name='fsps_complexdust')
 
-    theta_train = sample_simpledust_prior(batch*nspec)
+    theta_train = sample_simpledust_prior(nspec)
     theta_train[:,:4] =\
             speculate._transform_to_SFH_basis(np.random.uniform(size=(nspec,4)))
     

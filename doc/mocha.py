@@ -16,7 +16,6 @@ from gqp_mc import data as Data
 from gqp_mc import fitters as Fitters
 # --- astro ---
 from astropy.io import fits
-from astroML.datasets import fetch_sdss_specgals
 # --- plotting --- 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -54,6 +53,7 @@ def BGS():
     z_bgs   = np.array(bgs['z_obs'])
     
     # read SDSS galaxies from astroML (https://www.astroml.org/modules/generated/astroML.datasets.fetch_sdss_specgals.html)
+    from astroML.datasets import fetch_sdss_specgals
     sdss        = fetch_sdss_specgals()
     ra_sdss     = sdss['ra'] 
     dec_sdss    = sdss['dec'] 
@@ -69,9 +69,9 @@ def BGS():
     sub = plt.subplot(gs1[0], projection='mollweide')
     sub.grid(True, linewidth=0.1) 
     # DESI footprint 
-    sub.scatter((ra_bgs - 180.) * np.pi/180., dec_bgs * np.pi/180., s=1, lw=0, c='k')
+    sub.scatter((ra_bgs - 180.) * np.pi/180., dec_bgs * np.pi/180., s=1, lw=0, c='C0')
     # SDSS footprint 
-    sub.scatter((ra_sdss - 180.) * np.pi/180., dec_sdss * np.pi/180., s=1, lw=0, c='C0')#, alpha=0.01)
+    sub.scatter((ra_sdss - 180.) * np.pi/180., dec_sdss * np.pi/180., s=1, lw=0, c='C1')#, alpha=0.01)
     # GAMA footprint for comparison 
     gama_ra_min = (np.array([30.2, 129., 174., 211.5, 339.]) - 180.) * np.pi/180.
     gama_ra_max = (np.array([38.8, 141., 186., 223.5, 351.]) - 180.) * np.pi/180. 
@@ -81,18 +81,19 @@ def BGS():
         rect = patches.Rectangle((gama_ra_min[i_f], gama_dec_min[i_f]), 
                 gama_ra_max[i_f] - gama_ra_min[i_f], 
                 gama_dec_max[i_f] - gama_dec_min[i_f], 
-                facecolor='C1')
+                facecolor='r')
         sub.add_patch(rect)
     sub.set_xlabel('RA', fontsize=20, labelpad=10) 
-    sub.set_xticklabels(['', '', '$90^o$', '', '', '$180^o$', '', '', '$270^o$'])#, fontsize=10)
+    #sub.set_xticks([-150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150]) 
+    sub.set_xticklabels(['', '', '$90^o$', '', '', '$180^o$', '', '', '$270^o$', '', ''])#, fontsize=10)
     sub.set_ylabel('Dec', fontsize=20)
 
     gs2 = mpl.gridspec.GridSpec(1,1, figure=fig) 
     gs2.update(left=0.70, right=0.98)#, wspace=0.05)
     sub = plt.subplot(gs2[0])
-    sub.hist(z_bgs, range=[0.0, 1.], color='k', bins=100) 
-    sub.hist(sdss['z'], range=[0.0, 1.], color='C0', bins=100) 
-    sub.hist(np.array(gama['Z']), range=[0.0, 1.], color='C1', bins=100) 
+    sub.hist(z_bgs, range=[0.0, 1.], color='C0', bins=100) 
+    sub.hist(sdss['z'], range=[0.0, 1.], color='C1', bins=100) 
+    sub.hist(np.array(gama['Z']), range=[0.0, 1.], color='r', bins=100) 
     sub.set_xlabel('Redshift', fontsize=20) 
     sub.set_xlim([0., 0.6])
     sub.set_ylabel('dN/dz', fontsize=20) 
@@ -108,7 +109,7 @@ def BGS():
 
     sub.get_yaxis().set_major_formatter(ticker.FuncFormatter(_fmt))
     plts = []  
-    for clr in ['k', 'C0', 'C1']: 
+    for clr in ['C0', 'C1', 'r']: 
         _plt = sub.fill_between([0], [0], [0], color=clr, linewidth=0)
         plts.append(_plt) 
     sub.legend(plts, ['DESI', 'SDSS', 'GAMA'], loc='upper right', handletextpad=0.3, prop={'size': 20}) 
@@ -1447,12 +1448,79 @@ def Fbestfit_specphoto(igal, sim='lgal', noise='bgs0_legacy', method='ifsps',
     return f_bf
 
 
+def _NMF_bases(): 
+    ''' There's some confusion around the NMF SFH bases. The basis read
+    directly from the file does not correspond to the ordering in Justin's
+    paper. There's also discrepancies in the normalization. 
+    '''
+    fsfh = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+            'gqp_mc', 'dat', 'NMF_2basis_SFH_components_nowgt_lin_Nc4.txt')
+    ft = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+            'gqp_mc', 'dat', 'sfh_t_int.txt') 
+
+    nmf_sfh = np.loadtxt(fsfh) 
+    nmf_t   = np.loadtxt(ft) # look back time 
+    
+    ispec0 = Fitters.iSpeculator()
+    tt0 = np.array([0, 1, 0, 0, 0, 0.1, 0.1, 0.]) 
+    w_emu, flux_emu = ispec0.model(tt0, zred=0.0, dont_transform=True)
+
+    ispec1 = Fitters.iSpeculator(model_name='fsps')
+    #tt1 = tt0.copy() 
+    tt1 = np.array([0, 1, 0, 0, 0, 0.1, 0.1, 0.]) 
+    w_fsps, flux_fsps = ispec1.model(tt1, zred=0.0, dont_transform=True)
+    
+    tt_sfh = tt1[1:5]
+    tage = ispec0._tage_z_interp(0.0)
+    _t = np.linspace(0, tage, 50)
+    tages   = max(_t) - _t + 1e-8 
+    sfh = np.sum(np.array([
+        tt_sfh[i] *
+        ispec1._sfh_basis[i](_t)/np.trapz(ispec1._sfh_basis[i](_t), _t) 
+        for i in range(4)]), 
+        axis=0)
+    sfh /= np.sum(sfh)
+    
+    fig = plt.figure(figsize=(6,4))
+    sub = fig.add_subplot(111)
+    for i, basis in enumerate(nmf_sfh): 
+        sub.plot(nmf_t, basis, label=r'$s_{%i}^{\rm SFH}$' % (i+1)) 
+    sub.plot(tages, sfh, c='k', ls='--') 
+    sub.set_xlim(0., 13.7) 
+    sub.set_ylabel(r'star formation rate [$M_\odot/{\rm Gyr}$]', fontsize=20) 
+    sub.set_ylim(0., 0.18) 
+    sub.set_yticks([0.05, 0.1, 0.15]) 
+    sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
+
+    bkgd = fig.add_subplot(111, frameon=False)
+    bkgd.set_xlabel(r'lookback time [Gyr]', labelpad=10, fontsize=25) 
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+    fig.subplots_adjust(wspace=0.2)
+    _ffig = os.path.join(dir_doc, '_NMF_bases_check.png') 
+    fig.savefig(_ffig, bbox_inches='tight') 
+
+
+    fig = plt.figure(figsize=(10,4))
+    sub = fig.add_subplot(111)
+    sub.plot(w_emu, flux_emu)
+    sub.plot(w_fsps, flux_fsps, ls=':')
+    sub.set_xlim(3000., 10000) 
+    #sub.set_ylim(0., 0.18) 
+    sub.set_yscale('log') 
+    _ffig = os.path.join(dir_doc, '_emu_vs_fsps.png') 
+    fig.savefig(_ffig, bbox_inches='tight') 
+    return None 
+
+
 if __name__=="__main__": 
-    #BGS()
+    BGS()
     #FM_photo()
     #FM_spec()
     
     #speculator()
+    #_NMF_bases() 
     
     #mcmc_posterior()
 
@@ -1466,8 +1534,8 @@ if __name__=="__main__":
     #photo_vs_specphoto(sim='tng', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
     #        method='ifsps', model='vanilla')
 
-    photo_vs_specphoto(sim='lgal', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
-            method='ispeculator', model='emulator')
+    #photo_vs_specphoto(sim='lgal', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
+    #        method='ispeculator', model='emulator')
     #photo_vs_specphoto(sim='tng', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
     #        method='ispeculator', model='emulator')
     #eta_Delta(sim='lgal', noise='bgs0_legacy', method='ifsps', model='vanilla')

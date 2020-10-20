@@ -78,7 +78,7 @@ git clone https://github.com/changhoonhahn/gqp_mc.git
 cd gqp_mc 
 
 # install package
-python setup.py install
+pip install -e . 
 
 # test the package
 pytest 

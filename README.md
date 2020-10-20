@@ -54,17 +54,6 @@ With the data all set up, we can now install the package:
 # create conda environment 
 conda create -n gqp python=3.7 jupyter ipython pip
 
-# install dependencies
-pip install h5py 
-pip install pytest 
-pip install astropy 
-pip install emcee 
-pip install speclite 
-pip install multiprocessing
-pip install configobj
-pip install sqlalchemy
-pip install corner
-
 # install python-fsps from github because gqp_mc repo uses
 # the development version 0.3.0 (not the stable PIP version) 
 git clone https://github.com/dfm/python-fsps.git

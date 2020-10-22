@@ -1,8 +1,6 @@
 import os, sys
 import numpy as np 
-import dask
-import dask_jobqueue
-from dask.distributed import Client 
+import multiprocess as mp
 # -- gqp_mc --
 from gqp_mc import util as UT
 from gqp_mc import fitters as Fitters
@@ -83,25 +81,37 @@ def train_desi_seds(model, ibatch, seed=0, ncpu=1):
         return None 
     else: 
         print('--- batch %i ---' % ibatch)
-        if ncpu == 1: 
+        if (ncpu == 1): 
             logspectra_train = []
             for _theta in theta_train:
                 _, _spectrum = speculate._fsps_model(_theta)
                 logspectra_train.append(np.log(_spectrum[wlim]))
+        #elif os.environ['machine'] != 'tiger':
         else: 
-            cluster = dask_jobqueue.SLURMCluster(cores=1, processes=ncpu)
-
-            client = Client(cluster)
+            from multiprocess import Pool
 
             def _fsps_model_wrapper(theta):
                 _, _spectrum = speculate._fsps_model(theta)
                 return np.log(_spectrum[wlim]) 
 
-            lazys = [] 
-            for _theta in theta_train: 
-                lazy = dask.delayed(_fsps_model_wrapper)(_theta)
-                lazys.append(lazy) 
-            logspectra_train = dask.compute(*lazys) 
+            pewl = Pool(ncpu) 
+            logspectra_train = pewl.map(_fsps_model_wrapper, theta_train) 
+
+        #elif os.environ['machine'] == 'tiger': 
+        #    import dask
+        #    from dask.distributed import Client 
+
+        #    client = Client(threads_per_worker=ncpu, n_workers=1)
+
+        #    def _fsps_model_wrapper(theta):
+        #        _, _spectrum = speculate._fsps_model(theta)
+        #        return np.log(_spectrum[wlim]) 
+
+        #    lazys = [] 
+        #    for _theta in theta_train: 
+        #        lazy = dask.delayed(_fsps_model_wrapper)(_theta)
+        #        lazys.append(lazy) 
+        #    logspectra_train = dask.compute(*lazys) 
 
         np.save(ftheta, theta_train)
         np.save(fspectrum, np.array(logspectra_train))
@@ -156,6 +166,8 @@ def test_desi_seds(model):
 
 
 if __name__=='__main__': 
+    mp.freeze_support()
+
     # e.g. 
     # >>> speculator_training.py train simpledust 0
     train_or_test   = sys.argv[1] 

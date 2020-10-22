@@ -87,7 +87,7 @@ def train_desi_seds(model, ibatch, seed=0, ncpu=1):
                 _, _spectrum = speculate._fsps_model(_theta)
                 logspectra_train.append(np.log(_spectrum[wlim]))
         else: 
-            def _fsps_model_wrapper(theta)
+            def _fsps_model_wrapper(theta):
                 _, _spectrum = speculate._fsps_model(theta)
                 return np.log(_spectrum[wlim]) 
 

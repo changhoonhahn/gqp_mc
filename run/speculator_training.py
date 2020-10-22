@@ -1,6 +1,8 @@
 import os, sys
 import numpy as np 
 import dask
+import dask_jobqueue
+from dask.distributed import Client 
 # -- gqp_mc --
 from gqp_mc import util as UT
 from gqp_mc import fitters as Fitters
@@ -87,6 +89,10 @@ def train_desi_seds(model, ibatch, seed=0, ncpu=1):
                 _, _spectrum = speculate._fsps_model(_theta)
                 logspectra_train.append(np.log(_spectrum[wlim]))
         else: 
+            cluster = dask_jobqueue.SLURMCluster(cores=1, processes=ncpu)
+
+            client = Client(cluster)
+
             def _fsps_model_wrapper(theta):
                 _, _spectrum = speculate._fsps_model(theta)
                 return np.log(_spectrum[wlim]) 

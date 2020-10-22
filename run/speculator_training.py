@@ -1,6 +1,6 @@
 import os, sys
 import numpy as np 
-from multiprocessing.pool import Pool 
+import dask
 # -- gqp_mc --
 from gqp_mc import util as UT
 from gqp_mc import fitters as Fitters
@@ -91,11 +91,11 @@ def train_desi_seds(model, ibatch, seed=0, ncpu=1):
                 _, _spectrum = speculate._fsps_model(theta)
                 return np.log(_spectrum[wlim]) 
 
-            pool = Pool(processes=ncpu) 
-            logspectra_train = pool.map(_fsps_model_wrapper, theta_train)
-            pool.close()
-            pool.terminate()
-            pool.join()
+            lazys = [] 
+            for _theta in theta_train: 
+                lazy = dask.delayed(_fsps_model_wrapper)(_theta)
+                lazys.append(lazy) 
+            logspectra_train = dask.compute(*lazys) 
 
         np.save(ftheta, theta_train)
         np.save(fspectrum, np.array(logspectra_train))

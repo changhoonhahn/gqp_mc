@@ -1,5 +1,6 @@
 import os, sys
 import numpy as np 
+from multiprocessing.pool import Pool 
 # -- gqp_mc --
 from gqp_mc import util as UT
 from gqp_mc import fitters as Fitters
@@ -41,7 +42,7 @@ def sample_complexdust_prior(n_sample):
     return prior_min + (prior_max - prior_min) * np.random.uniform(size=(n_sample, len(prior_min)))
 
 
-def train_desi_seds(model, ibatch, seed=0): 
+def train_desi_seds(model, ibatch, seed=0, ncpu=1): 
     ''' generate FSPS training set for DESI with either the simple calzetti
     dust model or a more complex Noll+2009 dust model 
     '''
@@ -80,10 +81,21 @@ def train_desi_seds(model, ibatch, seed=0):
         return None 
     else: 
         print('--- batch %i ---' % ibatch)
-        logspectra_train = []
-        for _theta in theta_train:
-            _, _spectrum = speculate._fsps_model(_theta)
-            logspectra_train.append(np.log(_spectrum[wlim]))
+        if ncpu == 1: 
+            logspectra_train = []
+            for _theta in theta_train:
+                _, _spectrum = speculate._fsps_model(_theta)
+                logspectra_train.append(np.log(_spectrum[wlim]))
+        else: 
+            def _fsps_model_wrapper(theta)
+                _, _spectrum = speculate._fsps_model(theta)
+                return np.log(_spectrum[wlim]) 
+
+            pool = Pool(processes=ncpu) 
+            logspectra_train = pool.map(_fsps_model_wrapper, theta_train)
+            pool.close()
+            pool.terminate()
+            pool.join()
 
         np.save(ftheta, theta_train)
         np.save(fspectrum, np.array(logspectra_train))
@@ -146,8 +158,10 @@ if __name__=='__main__':
     assert model in ['simpledust', 'complexdust']
 
     if train_or_test == 'train': 
-        ibatch          = int(sys.argv[3])
-        train_desi_seds(model, ibatch, seed=0)
+        ibatch  = int(sys.argv[3])
+        ncpu    = int(sys.argv[4]) 
+    
+        train_desi_seds(model, ibatch, seed=0, ncpu=ncpu)
     elif train_or_test == 'test' :
         test_desi_seds(model)
     else:

@@ -15,7 +15,7 @@ def deploy_trainingset_job(ibatch, model='simpledust', ncpu=1):
         "#SBATCH --nodes=1",
         "#SBATCH --ntasks-per-node=40",
         "#SBATCH --partition=general",
-        "#SBATCH --time=00:29:59",
+        "#SBATCH --time=00:14:59",
         "#SBATCH --export=ALL",
         "#SBATCH --output=ofiles/train_%s%i.o" % (model[0], ibatch), 
         "#SBATCH --mail-type=all",

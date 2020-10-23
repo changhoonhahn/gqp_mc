@@ -41,7 +41,7 @@ def deploy_trainingset_job(ibatch, model='simpledust', ncpu=1):
     return None 
 
 
-def deploy_trainpca_job(ibatch0, ibatch1, n_pca, model='simpledust'): 
+def deploy_trainpca_job(ibatch0, ibatch1, n_pca, model='simpledust', train_or_transform='transform'): 
     ''' create slurm script and then submit 
     '''
     cntnt = '\n'.join(["#!/bin/bash", 
@@ -50,9 +50,9 @@ def deploy_trainpca_job(ibatch0, ibatch1, n_pca, model='simpledust'):
         "#SBATCH --nodes=1",
         "#SBATCH --ntasks-per-node=40",
         "#SBATCH --partition=general",
-        "#SBATCH --time=01:59:59",
+        "#SBATCH --time=%s" % {"train": "01:59:59", "transform": "01:00:01"}[train_or_transform],
         "#SBATCH --export=ALL",
-        "#SBATCH --output=ofiles/pca_%s_%i_%i.o" % (model[0], ibatch0, ibatch1), 
+        "#SBATCH --output=ofiles/%s_pca%i_%s_%i_%i.o" % (train_or_transform, n_pca, model[0], ibatch0, ibatch1), 
         "#SBATCH --mail-type=all",
         "#SBATCH --mail-user=changhoon.hahn@princeton.edu",
         "", 
@@ -62,7 +62,7 @@ def deploy_trainpca_job(ibatch0, ibatch1, n_pca, model='simpledust'):
         "module load anaconda3", 
         "conda activate gqp", 
         "",
-        "python /home/chhahn/projects/gqp_mc/run/speculator_pca.py %s %i %i %i" % (model, ibatch0, ibatch1, n_pca),
+        "python /home/chhahn/projects/gqp_mc/run/speculator_pca.py %s %i %i %i %s" % (model, ibatch0, ibatch1, n_pca, train_or_transform),
         'now=$(date +"%T")', 
         'echo "end time ... $now"', 
         ""]) 
@@ -89,7 +89,8 @@ if job_type == 'trainingset':
 elif job_type == 'trainpca': 
     model = sys.argv[4]
     n_pca = int(sys.argv[5]) 
-    print('submitting %i component pca training for %s' % (n_pca, model))
-    deploy_trainpca_job(ibatch0, ibatch1, n_pca, model=model)
+    train_or_transform = sys.argv[6]
+    print('submitting %i component pca %s for %sing' % (n_pca, model, train_or_transform))
+    deploy_trainpca_job(ibatch0, ibatch1, n_pca, model=model, train_or_transform=train_or_transform)
 else: 
     raise ValueError

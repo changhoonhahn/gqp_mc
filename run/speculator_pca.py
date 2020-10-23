@@ -105,7 +105,12 @@ if __name__=="__main__":
     ibatch0 = int(sys.argv[2])
     ibatch1 = int(sys.argv[3])
     n_pcas  = int(sys.argv[4]) 
+
+    train_or_transform = sys.argv[5]
     
     assert model in ['simpledust', 'complexdust'] 
     
-    transform_desi_pca(model, ibatch0, ibatch1, n_pcas, seed=0)
+    if train_or_transform == 'train': 
+        train_desi_pca(model, ibatch0, ibatch1, n_pcas, seed=0)
+    elif train_or_transform == 'transform':
+        transform_desi_pca(model, ibatch0, ibatch1, n_pcas, seed=0)

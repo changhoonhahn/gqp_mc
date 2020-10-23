@@ -375,8 +375,6 @@ class SpectrumPCA():
         # transform the spectra to PCA basis
         training_pca = np.concatenate([self.PCA.transform((np.load(self.spectrum_filenames[i]) - self.spectrum_shift)/self.spectrum_scale) for i in range(self.n_batches)])
         print('done transforming') 
-        #training_spectrum = np.concatenate([np.load(self.spectrum_filenames[i])
-        #    for i in range(self.n_batches)])
 
         # stack the input parameters
         training_parameters = np.concatenate([np.load(self.parameter_filenames[i]) for i in range(self.n_batches)])
@@ -397,7 +395,9 @@ class SpectrumPCA():
         # retain training data as attributes if retain == True
         if retain:
             self.training_pca = training_pca
-            self.training_spectrum = training_spectrum
+            #training_spectrum = np.concatenate([np.load(self.spectrum_filenames[i])
+            #    for i in range(self.n_batches)])
+            #self.training_spectrum = training_spectrum
             self.training_parameters = training_parameters
             
     # make a validation plot of the PCA given some validation data

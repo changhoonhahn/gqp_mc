@@ -5,9 +5,9 @@ Fill out the `done` column in the table below with the date in which the trainin
 | done | model       | training batches | n_pca | pca training batches | 99% accuracy |
 | ---- | ----------- | ------- | ----- | ------------------------ | ------------ |
 | CHH 10/20/2020     | simpledust  | 300     | 20    | 200                      |   4%           |
-| KJK 10/21/2020     | simpledust  | 300     | 20    | 200                      |   -3.5%, 4%           |
+| KJK 10/21/2020     | simpledust  | 300     | 20    | 200                      |   -4.0%, 4.5%           |
 |      | simpledust  | 300     | 30    | 200                      |              |
-|      | simpledust  | 300     | 40    | 200                      |              |
+| KJK 10/23/2020     | simpledust  | 300     | 40    | 200                      |   -4.8%, 4.6%           |
 |      | complexdust | 300     | 20    | 200                      |              |
 |      | complexdust | 300     | 30    | 200                      |              |
 |      | complexdust |         |       |                          |              |

@@ -45,33 +45,73 @@ dir_fbgs = os.path.join(os.path.dirname(os.path.dirname(UT.dat_dir())), 'feasiBG
 def BGS(): 
     ''' plot highlighting BGS footprint and redshift number density
     '''
-    # read BGS MXXL galaxies 
-    mxxl    = h5py.File(os.path.join(dir_fbgs, 'BGS_r20.0.hdf5'), 'r') 
+    # read BGS MXXL mock galaxies 
+    fmxxl = os.path.join(UT.dat_dir(), 'mxxl.bgs_r20.6.hdf5')
+    mxxl = h5py.File(fmxxl, 'r')
+
     bgs     = mxxl['Data']
-    ra_bgs  = bgs['ra'][...][::10]
-    dec_bgs = bgs['dec'][...][::10]
+    ra_bgs  = bgs['ra'][...]
+    dec_bgs = bgs['dec'][...]
     z_bgs   = np.array(bgs['z_obs'])
-    
-    # read SDSS galaxies from astroML (https://www.astroml.org/modules/generated/astroML.datasets.fetch_sdss_specgals.html)
-    from astroML.datasets import fetch_sdss_specgals
-    sdss        = fetch_sdss_specgals()
-    ra_sdss     = sdss['ra'] 
-    dec_sdss    = sdss['dec'] 
-    
+
+    M_r = bgs['abs_mag'][...] # absolute magnitude
+    m_r = bgs['app_mag'][...] # r-band magnitude
+    g_r = bgs['g_r'][...] # g-r color 
+
+    # read SDSS 
+    from astrologs.astrologs import Astrologs 
+    sdss = Astrologs('vagc', sample='vagc', cross_nsa=False) 
+    ra_sdss     = sdss.data['ra'] 
+    dec_sdss    = sdss.data['dec'] 
+    z_sdss      = sdss.data['redshift'] 
+    M_r_sdss    = sdss.data['M_r']
+    g_r_sdss    = sdss.data['m_g'] - sdss.data['m_r'] 
+     
     # read GAMA objects
     f_gama = os.path.join(dir_fbgs, 'gama', 'dr3', 'SpecObj.fits') 
     gama = fits.open(f_gama)[1].data 
-
-    fig = plt.figure(figsize=(15,5))
     
-    gs1 = mpl.gridspec.GridSpec(1,1, figure=fig) 
-    gs1.update(left=0.02, right=0.7)
-    sub = plt.subplot(gs1[0], projection='mollweide')
+    #-------------------------------------------------------------------
+    # stellar mass estimate using g-r color 
+    #-------------------------------------------------------------------
+    M_r_sun = 4.67 # Bell+(2003)
+
+    def MtoL_Bell2003(g_r):
+        # Bell+(2003) M/L ratio
+        return 10**(-0.306 + (1.097 * g_r))
+
+    def Mr_to_Mstar(Mr, g_r):
+        '''given r-band abs mag calculate M*
+        '''
+        M_to_L = MtoL_Bell2003(g_r)
+
+        L_r = 10**((M_r_sun - Mr)/2.5)
+
+        return M_to_L * L_r
+
+    Mstar_bgs   = Mr_to_Mstar(M_r, g_r)
+    Mstar_sdss  = Mr_to_Mstar(M_r_sdss, g_r_sdss) 
+    #-------------------------------------------------------------------
+    # BGS samples 
+    #-------------------------------------------------------------------
+    main_sample     = (m_r < 19.5)
+    faint_sample    = (m_r < 20.)
+    
+    #-------------------------------------------------------------------
+    # footprint comparison 
+    #-------------------------------------------------------------------
+    fig = plt.figure(figsize=(10,10))
+    gs1 = mpl.gridspec.GridSpec(2,3, figure=fig) 
+    sub = plt.subplot(gs1[0,:], projection='mollweide')
     sub.grid(True, linewidth=0.1) 
     # DESI footprint 
-    sub.scatter((ra_bgs - 180.) * np.pi/180., dec_bgs * np.pi/180., s=1, lw=0, c='C0')
+    sub.scatter(
+            (ra_bgs[faint_sample] - 180.) * np.pi/180., 
+            dec_bgs[faint_sample] * np.pi/180., s=1, lw=0, c='C0',
+            rasterized=True)
     # SDSS footprint 
-    sub.scatter((ra_sdss - 180.) * np.pi/180., dec_sdss * np.pi/180., s=1, lw=0, c='C1')#, alpha=0.01)
+    sub.scatter((ra_sdss - 180.) * np.pi/180., dec_sdss * np.pi/180., 
+            s=1, lw=0, c='C1', rasterized=True)
     # GAMA footprint for comparison 
     gama_ra_min = (np.array([30.2, 129., 174., 211.5, 339.]) - 180.) * np.pi/180.
     gama_ra_max = (np.array([38.8, 141., 186., 223.5, 351.]) - 180.) * np.pi/180. 
@@ -87,12 +127,13 @@ def BGS():
     #sub.set_xticks([-150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150]) 
     sub.set_xticklabels(['', '', '$90^o$', '', '', '$180^o$', '', '', '$270^o$', '', ''])#, fontsize=10)
     sub.set_ylabel('Dec', fontsize=20)
-
-    gs2 = mpl.gridspec.GridSpec(1,1, figure=fig) 
-    gs2.update(left=0.70, right=0.98)#, wspace=0.05)
-    sub = plt.subplot(gs2[0])
+    
+    #-------------------------------------------------------------------
+    # n(z) comparison 
+    #-------------------------------------------------------------------
+    sub = plt.subplot(gs1[1,0])
     sub.hist(z_bgs, range=[0.0, 1.], color='C0', bins=100) 
-    sub.hist(sdss['z'], range=[0.0, 1.], color='C1', bins=100) 
+    sub.hist(z_sdss, range=[0.0, 1.], color='C1', bins=100) 
     sub.hist(np.array(gama['Z']), range=[0.0, 1.], color='r', bins=100) 
     sub.set_xlabel('Redshift', fontsize=20) 
     sub.set_xlim([0., 0.6])
@@ -113,9 +154,22 @@ def BGS():
         _plt = sub.fill_between([0], [0], [0], color=clr, linewidth=0)
         plts.append(_plt) 
     sub.legend(plts, ['DESI', 'SDSS', 'GAMA'], loc='upper right', handletextpad=0.3, prop={'size': 20}) 
-    sub.set_xticklabels([]) 
+    #-------------------------------------------------------------------
+    # mstar(z) comparison 
+    #-------------------------------------------------------------------
+    sub = plt.subplot(gs1[1,1:]) 
+    _bgs = sub.scatter(z_bgs[faint_sample], np.log10(Mstar_bgs[faint_sample]), c='C0', s=1, rasterized=True)
+    _sdss = sub.scatter(z_sdss, np.log10(Mstar_sdss), c='C1', s=1, rasterized=True)
+    #_main = sub.scatter(z[main_sample], np.log10(Mstar[main_sample]), c='C1', s=1, rasterized=True)
 
-    ffig = os.path.join(dir_fig, 'bgs.png')
+    sub.legend([_bgs, _sdss], ['BGS', 'SDSS VAGC'], loc='lower right', fontsize=25, markerscale=10, handletextpad=0.)
+    sub.set_xlabel('Redshift', fontsize=20)
+    sub.set_xlim(0., 0.6)
+    sub.set_ylabel('$\log M_*$ [$M_\odot$]', fontsize=20)
+    sub.set_ylim(6, 12.5)
+    sub.text(0.97, 0.35, 'MXXL BGS mock', ha='right', va='top', transform=sub.transAxes, fontsize=25)
+
+    ffig = os.path.join(dir_doc, 'bgs.png')
     fig.savefig(ffig, bbox_inches='tight')
     fig.savefig(UT.fig_tex(ffig, pdf=True), bbox_inches='tight') 
     return None 

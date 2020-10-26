@@ -373,7 +373,12 @@ class SpectrumPCA():
     def transform_and_stack_training_data(self, filename, retain = False):
 
         # transform the spectra to PCA basis
-        training_pca = np.concatenate([self.PCA.transform((np.load(self.spectrum_filenames[i]) - self.spectrum_shift)/self.spectrum_scale) for i in range(self.n_batches)])
+        _training_pca = [] 
+        for i in range(self.n_batches): 
+            _training_pca.append(self.PCA.transform((np.load(self.spectrum_filenames[i]) - self.spectrum_shift)/self.spectrum_scale))
+
+        training_pca = np.concatenate(_training_pca) 
+        #training_pca = np.concatenate([self.PCA.transform((np.load(self.spectrum_filenames[i]) - self.spectrum_shift)/self.spectrum_scale) for i in range(self.n_batches)])
         print('done transforming') 
 
         # stack the input parameters

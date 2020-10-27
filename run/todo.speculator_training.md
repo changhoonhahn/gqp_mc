@@ -9,6 +9,7 @@ Fill out the `done` column in the table below with the date in which the trainin
 |      | simpledust  | 300     | 30    | 200                      |              |
 | KJK 10/23/2020     | simpledust  | 300     | 40    | 200                      |   -4.8%, 4.6%           |
 | CHH 10/26/2020     | complexdust | 300     | 30    | 200                      |   -8.7%, 10%            |
+| KJK 10/26/2020     | complexdust | 300     | 30    | 200                      |   -4.8%, 5.5%            |
 |      | complexdust | 300     | 40    | 200                      |              |
 |      | complexdust |         |       |                          |              |
 |      |             |         |       |                          |              |

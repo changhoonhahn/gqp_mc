@@ -41,18 +41,19 @@ def deploy_trainingset_job(ibatch, model='simpledust', ncpu=1):
     return None 
 
 
-def deploy_trainpca_job(ibatch0, ibatch1, n_pca, model='simpledust', train_or_transform='transform'): 
+def deploy_trainpca_job(ibatch0, ibatch1, n_pcas, model='simpledust'):
     ''' create slurm script and then submit 
     '''
+    n_pca0, n_pca1, n_pca2 = n_pcas
     cntnt = '\n'.join(["#!/bin/bash", 
-        "#SBATCH -J pca%i_%i_%i" % (n_pca, ibatch0, ibatch1),  
+        "#SBATCH -J pca%i%i%i_%i_%i" % (n_pca0, n_pca1, n_pca2, ibatch0, ibatch1),  
         "#SBATCH --exclusive",
         "#SBATCH --nodes=1",
         "#SBATCH --ntasks-per-node=40",
         "#SBATCH --partition=general",
-        "#SBATCH --time=%s" % {"train": "01:59:59", "transform": "01:00:01"}[train_or_transform],
+        "#SBATCH --time=01:59:59", 
         "#SBATCH --export=ALL",
-        "#SBATCH --output=ofiles/%s_pca%i_%s_%i_%i.o" % (train_or_transform, n_pca, model[0], ibatch0, ibatch1), 
+        "#SBATCH --output=ofiles/train_pca%i%i%i_%s_%i_%i.o" % (n_pca0, n_pca1, n_pca2, model[0], ibatch0, ibatch1), 
         "#SBATCH --mail-type=all",
         "#SBATCH --mail-user=changhoon.hahn@princeton.edu",
         "", 
@@ -62,7 +63,7 @@ def deploy_trainpca_job(ibatch0, ibatch1, n_pca, model='simpledust', train_or_tr
         "module load anaconda3", 
         "conda activate gqp", 
         "",
-        "python /home/chhahn/projects/gqp_mc/run/speculator_pca.py %s %i %i %i %s" % (model, ibatch0, ibatch1, n_pca, train_or_transform),
+        "python /home/chhahn/projects/gqp_mc/run/speculator_pca.py train %s %i %i %i %i %i" % (model, ibatch0, ibatch1, n_pca0, n_pca1, n_pca2),
         'now=$(date +"%T")', 
         'echo "end time ... $now"', 
         ""]) 
@@ -88,9 +89,11 @@ if job_type == 'trainingset':
         deploy_trainingset_job(ibatch, model=model, ncpu=ncpu)
 elif job_type == 'trainpca': 
     model = sys.argv[4]
-    n_pca = int(sys.argv[5]) 
-    train_or_transform = sys.argv[6]
-    print('submitting %i component pca %s for %sing' % (n_pca, model, train_or_transform))
-    deploy_trainpca_job(ibatch0, ibatch1, n_pca, model=model, train_or_transform=train_or_transform)
+    n_pca0 = int(sys.argv[5]) 
+    n_pca1 = int(sys.argv[6]) 
+    n_pca2 = int(sys.argv[7]) 
+    n_pcas = [n_pca0, n_pca1, n_pca2]
+    print('submitting [%i, %i, %i] component pca %s training' % (n_pca0, n_pca1, n_pca2, model))
+    deploy_trainpca_job(ibatch0, ibatch1, n_pcas, model=model)
 else: 
     raise ValueError

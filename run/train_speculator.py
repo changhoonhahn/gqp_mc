@@ -1,4 +1,4 @@
-import os 
+import os, sys
 import pickle
 import numpy as np
 import tensorflow as tf
@@ -14,7 +14,7 @@ i_wave = int(sys.argv[2])
 n_pcas = int(sys.argv[3]) 
 Ntrain = int(sys.argv[4]) 
 #-------------------------------------------------------
-dat_dir = os.path.join(UT.dat_dir(), 'speculator')
+dat_dir = os.path.join(os.environ['GQPMC_DIR'], 'speculator')
 wave = np.load(os.path.join(dat_dir, 'wave_fsps.npy')) 
 
 wave_bins = [(wave < 4500), ((wave >= 4500) & (wave < 6500)), (wave >= 6500)]
@@ -47,7 +47,7 @@ training_pca = tf.convert_to_tensor(_training_pca.astype(np.float32)[:Ntrain,:])
 
 # train Speculator
 speculator = Speculator(
-        n_parameters=n_param, # number of model parameters
+        n_parameters=10, # number of model parameters
         wavelengths=wave, # array of wavelengths
         pca_transform_matrix=PCABasis.pca_transform_matrix,
         parameters_shift=PCABasis.parameters_shift,

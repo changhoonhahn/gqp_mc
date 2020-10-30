@@ -224,10 +224,10 @@ class Speculator(tf.keras.Model):
 
     @tf.function
     def compute_loss(self, theta, pca):
-        print('--- pcas ---') 
-        for i in range(5): 
-            tf.print(self.call(theta)[i])
-            tf.print(pca[i])
+        #print('--- pcas ---') 
+        #for i in range(5): 
+        #    tf.print(self.call(theta)[i])
+        #    tf.print(pca[i])
 
         return tf.sqrt(tf.reduce_mean(tf.math.squared_difference(self.call(theta), pca)))      
 

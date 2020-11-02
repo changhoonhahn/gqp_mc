@@ -20,6 +20,7 @@ Fill out the `done` column in the table below with the date in which the trainin
 | CHH 10/29/2020*     | complexdust | 400     | 30, 30, 30 | 400 | -10%, 6% | |
 | CHH 10/29/2020*     | complexdust | 400     | 40, 40, 40 | 400 | -10%, 7.5% | |
 | CHH 10/29/2020*     | complexdust | 400     | 50, 50, 50 | 400 | -10%, 8% | |
+| [CHH 11/02/2020](https://github.com/changhoonhahn/gqp_mc/blob/aa20b7223c8fab5a6ccd654a7c2e7257dd245739/nb/validate_trained_desi_complexdust_speculator_wavebins.ipynb)      | complexdust | 500     | 30, 30, 30 | 500 | (-7.5%, 7%), (-1.8%, -1.8%), (<-1%, 1%) | |
 |      |             |         |       |                          |              | |
 
 *likely not finished training; divided speculator into 3 wavelength bins

@@ -87,7 +87,7 @@ def deploy_trainspeculator_job(model, i_wave, n_pcas, Ntrain):
         "#SBATCH --ntasks-per-node=1",
         '#SBATCH --gres=gpu:1', 
         "#SBATCH --partition=general",
-        "#SBATCH --time=05:59:59", 
+        "#SBATCH --time=23:59:59", 
         "#SBATCH --export=ALL",
         "#SBATCH --output=ofiles/train_spec_%s_%i_%i_%i.o" % (model, i_wave, n_pcas, Ntrain), 
         "#SBATCH --mail-type=all",

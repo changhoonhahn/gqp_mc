@@ -64,9 +64,9 @@ speculator = Speculator(
 # train speculator
 
 # cooling schedule
-lr = [1e-3, 1e-4, 1e-5, 1e-6]
-batch_size = [5000, 10000, 50000, 100000]#int(training_theta.shape[0])]
-gradient_accumulation_steps = [1, 1, 1, 1] # split the largest batch size into 10 when computing gradients to avoid memory overflow
+lr = [1e-3, 5e-4, 1e-4, 1e-5, 1e-6]
+batch_size = [1000, 5000, 10000, 50000, int(training_theta.shape[0])]
+gradient_accumulation_steps = [1, 1, 1, 1, 10] # split the largest batch size into 10 when computing gradients to avoid memory overflow
 
 # early stopping set up
 patience = 20

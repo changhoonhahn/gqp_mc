@@ -69,7 +69,7 @@ batch_size = [1000, 5000, 10000, 50000, int(training_theta.shape[0])]
 gradient_accumulation_steps = [1, 1, 1, 1, 10] # split the largest batch size into 10 when computing gradients to avoid memory overflow
 
 # early stopping set up
-patience = 20
+patience = 40
 
 # train using cooling/heating schedule for lr/batch-size
 for i in range(len(lr)):
@@ -82,10 +82,15 @@ for i in range(len(lr)):
     training_data = tf.data.Dataset.from_tensor_slices((training_theta, training_pca)).shuffle(n_training).batch(batch_size[i])
 
     # set up training loss
-    training_loss   = [np.infty]
     validation_loss = [np.infty]
     best_loss       = np.infty
     early_stopping_counter = 0
+    
+    # writeout loss 
+    _floss = os.path.join(dat_dir, 
+            'DESI_%s_model.Ntrain%i.wave_bin%i.pca%i.loss.dat' % (model, Ntrain, i_wave, n_pcas))
+    floss = open(_floss, 'w')
+    floss.close()
 
     # loop over epochs
     while early_stopping_counter < patience:
@@ -100,7 +105,12 @@ for i in range(len(lr)):
                 loss = speculator.training_step_with_accumulated_gradients(theta, pca, accumulation_steps=gradient_accumulation_steps[i])
 
         # compute validation loss at the end of the epoch
-        validation_loss.append(speculator.compute_loss(training_theta, training_pca).numpy())
+        _loss = speculator.compute_loss(training_theta, training_pca).numpy()
+        validation_loss.append(_loss)
+    
+        floss = open(_floss, "a") # append
+        floss.write('%i \t %f \t %f \n' % (batch_size[i], lr[i], _loss))
+        floss.close()
 
         # early stopping condition
         if validation_loss[-1] < best_loss:

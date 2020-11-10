@@ -25,6 +25,7 @@ Fill out the `done` column in the table below with the date in which the trainin
 | [CHH 11/03/2020](https://github.com/changhoonhahn/gqp_mc/blob/acf8b79e0a7f82969e6df63604b660b2de9abf4e/nb/validate_trained_desi_complexdust_speculator_wavebins.ipynb)      | complexdust | 500     | 40, 50, 30 | 500 | (-8%, 7.5%), (-2.%, -2.%), (<-1%, 1%) | |
 | [CHH 11/05/2020](https://github.com/changhoonhahn/gqp_mc/blob/3e92fdaad20e2241f634d12987daa5e159b03ce9/nb/validate_trained_desi_complexdust_speculator_wavebins.ipynb)      | complexdust | 200, 200, 500     | 30, 30, 30 | 500 | (-5%, 4%), (-1.%, 1.%), (<-1%, 1%) | |
 | [CHH 11/05/2020](https://github.com/changhoonhahn/gqp_mc/blob/52b05191f5d90c9d2ce65ac96d4cba913dd97e62/nb/validate_trained_desi_complexdust_speculator_wavebins.ipynb)      | complexdust | 500 (tiger), 500 (tiger), 500     | 30, 30, 30 | 500 | worse than above | |
+| [CHH 11/10/2020](https://github.com/changhoonhahn/gqp_mc/blob/aa12381641014cfc9e239ad5f0a0017e3f750ac5/nb/validate_trained_desi_complexdust_speculator_wavebins.ipynb)      | complexdust | 200 (colab, longer patience),-,-     | 30, -, - | 500 | (-3%, 3%) | |
 |      |             |         |       |                          |              | |
 
 *likely not finished training; divided speculator into 3 wavelength bins

@@ -77,7 +77,7 @@ def deploy_trainpca_job(ibatch0, ibatch1, n_pcas, model='simpledust'):
     return None 
 
 
-def deploy_trainspeculator_job(model, i_wave, n_pcas, Ntrain):
+def deploy_trainspeculator_job(model, i_wave, n_pcas, Ntrain, Nlayer, Nunits):
     ''' create slurm script for training speculator and then submit 
     '''
     cntnt = '\n'.join(["#!/bin/bash", 
@@ -99,7 +99,7 @@ def deploy_trainspeculator_job(model, i_wave, n_pcas, Ntrain):
         "module load anaconda3", 
         "conda activate tf2-gpu", 
         "",
-        "python /home/chhahn/projects/gqp_mc/run/train_speculator.py %s %i %i %i" % (model, i_wave, n_pcas, Ntrain),
+        "python /home/chhahn/projects/gqp_mc/run/train_speculator.py %s %i %i %i %i %i" % (model, i_wave, n_pcas, Ntrain, Nlayer, Nunits),
         'now=$(date +"%T")', 
         'echo "end time ... $now"', 
         ""]) 
@@ -137,6 +137,8 @@ elif job_type == 'trainspeculator':
     i_wave = int(sys.argv[3]) 
     n_pcas = int(sys.argv[4]) 
     Ntrain = int(sys.argv[5]) 
-    deploy_trainspeculator_job(model, i_wave, n_pcas, Ntrain)
+    Nlayer = int(sys.argv[6]) 
+    Nunits = int(sys.argv[7]) 
+    deploy_trainspeculator_job(model, i_wave, n_pcas, Ntrain, Nlayer, Nunits)
 else: 
     raise ValueError

@@ -13,11 +13,15 @@ model = sys.argv[1]
 i_wave = int(sys.argv[2]) 
 n_pcas = int(sys.argv[3]) 
 Ntrain = int(sys.argv[4]) 
+Nlayer = int(sys.argv[5]) 
+Nunits = int(sys.argv[6]) 
 #-------------------------------------------------------
 dat_dir = os.path.join(os.environ['GQPMC_DIR'], 'speculator')
 wave = np.load(os.path.join(dat_dir, 'wave_fsps.npy')) 
 
 wave_bins = [(wave < 4500), ((wave >= 4500) & (wave < 6500)), (wave >= 6500)]
+
+n_hidden = [Nunits for i in Nlayer]
 #-------------------------------------------------------
 # load trained PCA basis object
 print('training PCA bases')
@@ -56,7 +60,7 @@ speculator = Speculator(
         pca_scale=PCABasis.pca_scale,
         spectrum_shift=PCABasis.spectrum_shift,
         spectrum_scale=PCABasis.spectrum_scale,
-        n_hidden=[256, 256, 256], # network architecture (list of hidden units per layer)
+        n_hidden=n_hidden, # network architecture (list of hidden units per layer)
         restore=False,
         optimizer=tf.keras.optimizers.Adam()) # optimizer for model training
 
@@ -64,12 +68,20 @@ speculator = Speculator(
 # train speculator
 
 # cooling schedule
-lr = [1e-3, 5e-4, 1e-4, 1e-5, 1e-6]
-batch_size = [1000, 5000, 10000, 50000, int(training_theta.shape[0])]
-gradient_accumulation_steps = [1, 1, 1, 1, 10] # split the largest batch size into 10 when computing gradients to avoid memory overflow
+lr = [1e-3, 5e-4, 1e-4, 5e-5, 1e-5, 5e-6]
+batch_size = [1000, 5000, 10000, 50000, 1000000, int(training_theta.shape[0])]
+gradient_accumulation_steps = [1, 1, 1, 1, 10, 10] # split the largest batch size into 10 when computing gradients to avoid memory overflow
 
 # early stopping set up
 patience = 40
+
+# writeout loss 
+_floss = os.path.join(dat_dir, 
+        'DESI_%s_model.Ntrain%i.wave_bin%i.pca%i.%ix%i.loss.dat' % 
+        (model, Ntrain, i_wave, n_pcas, Nlayer, Nunits))
+floss = open(_floss, 'w')
+floss.close()
+
 
 # train using cooling/heating schedule for lr/batch-size
 for i in range(len(lr)):
@@ -86,11 +98,6 @@ for i in range(len(lr)):
     best_loss       = np.infty
     early_stopping_counter = 0
     
-    # writeout loss 
-    _floss = os.path.join(dat_dir, 
-            'DESI_%s_model.Ntrain%i.wave_bin%i.pca%i.loss.dat' % (model, Ntrain, i_wave, n_pcas))
-    floss = open(_floss, 'w')
-    floss.close()
 
     # loop over epochs
     while early_stopping_counter < patience:
@@ -122,8 +129,8 @@ for i in range(len(lr)):
         if early_stopping_counter >= patience:
             speculator.update_emulator_parameters()
             speculator.save(os.path.join(dat_dir,
-                '_DESI_%s_model.Ntrain%i.wave_bin%i.pca%i.log' %
-                (model, Ntrain, i_wave, n_pcas)))
+                '_DESI_%s_model.Ntrain%i.wave_bin%i.pca%i.%ix%i.log' %
+                (model, Ntrain, i_wave, n_pcas, Nlayer, Nunits)))
 
             attributes = list([
                     list(speculator.W_),
@@ -141,8 +148,8 @@ for i in range(len(lr)):
 
             # save attributes to file
             f = open(os.path.join(dat_dir, 
-                'DESI_%s_model.Ntrain%i.wave_bin%i.pca%i.log.pkl' % 
-                (model, Ntrain, i_wave, n_pcas)), 'wb')
+                'DESI_%s_model.Ntrain%i.wave_bin%i.pca%i.%ix%i.log.pkl' % 
+                (model, Ntrain, i_wave, n_pcas, Nlayer, Nunits)), 'wb')
             pickle.dump(attributes, f)
             f.close()
             print('Validation loss = %s' % str(best_loss))

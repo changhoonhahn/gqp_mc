@@ -21,7 +21,7 @@ wave = np.load(os.path.join(dat_dir, 'wave_fsps.npy'))
 
 wave_bins = [(wave < 4500), ((wave >= 4500) & (wave < 6500)), (wave >= 6500)]
 
-n_hidden = [Nunits for i in Nlayer]
+n_hidden = [Nunits for i in range(Nlayer)]
 #-------------------------------------------------------
 # load trained PCA basis object
 print('training PCA bases')

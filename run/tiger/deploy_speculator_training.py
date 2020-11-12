@@ -6,11 +6,11 @@ python script to deploy slurm jobs for constructing training set for speculator
 import os, sys 
 
 
-def deploy_trainingset_job(ibatch, model='simpledust', ncpu=1): 
+def deploy_trainingset_job(test_or_train, ibatch, model='simpledust', ncpu=1): 
     ''' create slurm script and then submit 
     '''
     cntnt = '\n'.join(["#!/bin/bash", 
-        "#SBATCH -J train%i" % ibatch,
+        "#SBATCH -J %s%i" % (test_or_train, ibatch),
         "#SBATCH --exclusive",
         "#SBATCH --nodes=1",
         "#SBATCH --ntasks-per-node=40",
@@ -27,7 +27,7 @@ def deploy_trainingset_job(ibatch, model='simpledust', ncpu=1):
         "module load anaconda3", 
         "conda activate gqp", 
         "",
-        "python /home/chhahn/projects/gqp_mc/run/speculator_training.py train %s %i %i" % (model, ibatch, ncpu), 
+        "python /home/chhahn/projects/gqp_mc/run/speculator_training.py %s %s %i %i" % (test_or_train, model, ibatch, ncpu), 
         'now=$(date +"%T")', 
         'echo "end time ... $now"', 
         ""]) 
@@ -115,13 +115,20 @@ def deploy_trainspeculator_job(model, i_wave, n_pcas, Ntrain, Nlayer, Nunits):
 job_type = sys.argv[1]
 
 if job_type == 'trainingset': 
-    ibatch0 = int(sys.argv[2])
-    ibatch1 = int(sys.argv[3])
-    model = sys.argv[4]
-    ncpu = int(sys.argv[5]) 
-    for ibatch in range(ibatch0, ibatch1+1): 
-        print('submitting %s batch %i' % (model, ibatch))
-        deploy_trainingset_job(ibatch, model=model, ncpu=ncpu)
+    test_or_train=sys.argv[2]
+    if test_or_train == 'test':
+        model = sys.argv[3]
+        ncpu = int(sys.argv[4]) 
+        print('submitting %s test' % model)
+        deploy_trainingset_job(test_or_train, 0, model=model, ncpu=ncpu)
+    elif test_or_train == 'train': 
+        ibatch0 = int(sys.argv[3])
+        ibatch1 = int(sys.argv[4])
+        model = sys.argv[5]
+        ncpu = int(sys.argv[6]) 
+        for ibatch in range(ibatch0, ibatch1+1): 
+            print('submitting %s batch %i' % (model, ibatch))
+            deploy_trainingset_job(test_or_train, ibatch, model=model, ncpu=ncpu)
 elif job_type == 'trainpca': 
     ibatch0 = int(sys.argv[2])
     ibatch1 = int(sys.argv[3])

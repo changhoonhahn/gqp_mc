@@ -126,7 +126,7 @@ def test_desi_seds(model):
     # set random seed
     np.random.seed(1234)
 
-    nspec = 10000
+    nspec = 100000
     
     if model == 'simpledust': 
         speculate = Fitters.iSpeculator(model_name='fsps')

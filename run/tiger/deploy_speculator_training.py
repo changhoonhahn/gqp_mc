@@ -81,7 +81,7 @@ def deploy_trainspeculator_job(model, i_wave, n_pcas, Ntrain, Nlayer, Nunits):
     ''' create slurm script for training speculator and then submit 
     '''
     cntnt = '\n'.join(["#!/bin/bash", 
-        "#SBATCH -J train_spec_%s_%i_%i_%i" % (model, i_wave, n_pcas, Ntrain),  
+        "#SBATCH -J train_spec_%s_%i_%i_%i_%ix%i" % (model, i_wave, n_pcas, Ntrain, Nlayer, Nunits),  
         "#SBATCH --exclusive",
         "#SBATCH --nodes=1",
         "#SBATCH --ntasks-per-node=1",

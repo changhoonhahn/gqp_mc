@@ -119,7 +119,7 @@ def train_desi_seds(model, ibatch, seed=0, ncpu=1):
     return None 
 
 
-def test_desi_seds(model): 
+def test_desi_seds(model, ncpu=1): 
     ''' generate FSPS test set for DESI with either simple calzetti dust model
     or the more complex Noll+(2009) model
     '''
@@ -154,11 +154,20 @@ def test_desi_seds(model):
         return None 
     else: 
         print('--- test set ---')
+        if (ncpu == 1): 
+            logspectra_train = []
+            for _theta in theta_train:
+                _, _spectrum = speculate._fsps_model(_theta)
+                logspectra_train.append(np.log(_spectrum[wlim]))
+        else: 
+            from multiprocess import Pool
 
-        logspectra_train = []
-        for _theta in theta_train:
-            _, _spectrum = speculate._fsps_model(_theta)
-            logspectra_train.append(np.log(_spectrum[wlim]))
+            def _fsps_model_wrapper(theta):
+                _, _spectrum = speculate._fsps_model(theta)
+                return np.log(_spectrum[wlim]) 
+
+            pewl = Pool(ncpu) 
+            logspectra_train = pewl.map(_fsps_model_wrapper, theta_train) 
 
         np.save(ftheta, theta_train)
         np.save(fspectrum, np.array(logspectra_train))
@@ -181,6 +190,7 @@ if __name__=='__main__':
     
         train_desi_seds(model, ibatch, seed=0, ncpu=ncpu)
     elif train_or_test == 'test' :
-        test_desi_seds(model)
+        ncpu    = int(sys.argv[4]) 
+        test_desi_seds(model, ncpu=ncpu)
     else:
         raise ValueError 

@@ -82,6 +82,17 @@ def Spectra(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'):
             mock['spec_ivar_z_bgs'][...][iobs,:,:]], 
             axis=1)
 
+        specs['wave_b'] = mock['spec_wave_b_bgs'][...]
+        specs['wave_r'] = mock['spec_wave_r_bgs'][...]
+        specs['wave_z'] = mock['spec_wave_z_bgs'][...]
+
+        specs['flux_b'] = mock['spec_flux_b_bgs'][...][iobs,:,:]
+        specs['flux_r'] = mock['spec_flux_r_bgs'][...][iobs,:,:]
+        specs['flux_z'] = mock['spec_flux_z_bgs'][...][iobs,:,:]
+
+        specs['ivar_b'] = mock['spec_ivar_b_bgs'][...][iobs,:,:]
+        specs['ivar_r'] = mock['spec_ivar_r_bgs'][...][iobs,:,:]
+        specs['ivar_z'] = mock['spec_ivar_z_bgs'][...][iobs,:,:]
     return specs, meta 
 
 

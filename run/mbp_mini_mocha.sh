@@ -3,7 +3,7 @@
 
 sim='lgal'
 i0=0
-i1=0
+i1=1
 
 echo 'fitting galaxies # '$i0' to '$i1
 #python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py construct $sim
@@ -29,9 +29,13 @@ echo 'fitting galaxies # '$i0' to '$i1
 #python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
 #    specphoto $sim $i0 $i1 bgs0_legacy ispeculator emulator 1 40 200\
 #    adaptive 10000 overwrite False
-python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
-    specphoto $sim $i0 $i1 bgs0_legacy ispeculator emulator 1 40 200\
-    adaptive 10000 False True 10
+
+python -W ignore $HOME/projects/gqp_mc/run/mini_mocha.py \
+    spec $sim $i0 $i1 bgs0 1 30 1000 1000 10000 False True
+
+#python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \
+#    specphoto $sim $i0 $i1 bgs0_legacy ispeculator emulator 1 40 200\
+#    adaptive 10000 False True 10
 
 # --- iSpeculator fitting w/ fsps --- 
 #python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py \

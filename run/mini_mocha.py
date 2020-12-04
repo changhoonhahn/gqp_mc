@@ -11,24 +11,15 @@ script for the *mini* Mock Challenge (mini mocha)
 * arg5: noise model 
     * 'legacy' for `arg1 == photo`
     * 'bgs0_legacy' for `arg1 == specphoto`
-* arg6: fitter method ('ifsps' or 'ispeculator') 
-* arg7: SPS model 
-    * 'vanilla' for `arg6 == 'ifsps'`
-    * 'emulator', 'fsps', 'fsps_complexdust' for `arg6 == 'ispeculator'`
-* arg8: number of threads
-* arg9: number of emcee walkers 
-* arg10: number of iterations for burnin 
-* arg11: number of iterations for main chain. If `arg11 == 'adaptive'`, it will
+* arg6: number of threads
+* arg7: number of emcee walkers 
+* arg8: number of iterations for burnin 
+* arg9: number of iterations for main chain. If `arg11 == 'adaptive'`, it will
   adaptively determine the number of iterations until convergence 
-* arg12: maximum number of iterations for `arg11 == adaptive`. This is ignored
+* arg10: maximum number of iterations for `arg11 == adaptive`. This is ignored
   if the number of iteration is specified 
-* arg13: False, 'append', or 'overwrite'. If False, it just reads the mcmc
-  chain from file. If 'append', it continues running the chain from where it
-  left off and appends it to the file. If 'overwrite', it overwrites the entire
-  mcmc file. 
-* arg14: If True, post processes the MCMC chain.
-* arg15: If post processing, this specifies how much to thin the chain. 
-
+* arg11: IF True, overwrites the mcmc file. 
+* arg12: If True, post processes the MCMC chain.
 
 Here are some examples: 
 
@@ -60,9 +51,9 @@ from multiprocessing.pool import Pool
 # --- gqp_mc ---
 from gqp_mc import util as UT 
 from gqp_mc import data as Data 
-#from gqp_mc import fitters as Fitters
 # --- provabgs --- 
 from provabgs import infer as Infer
+from provabgs import flux_calib as FluxCalib
 # --- plotting --- 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -87,7 +78,7 @@ lbl_dict = {
         'z_metal': r'$\log Z$',
         'dust1': 'dust1', 
         'dust2': 'dust2', 
-        'dust_index': 'dust_index', 
+        'dust_index': 'dust index', 
         'tau': r'$\tau$', 
         'f_fiber': r'$f_{\rm fiber}$',
         'beta1_sfh': r'$\beta_1^{\rm SFH}$', 
@@ -207,6 +198,75 @@ def validate_sample(sim):
     fig.savefig(UT.fig_tex(ffig, pdf=True), bbox_inches='tight') 
     
     return None 
+
+
+def postprocess_mcmc(desi_mcmc, fmcmc): 
+    ''' 
+    '''
+    mcmc = desi_mcmc.read_chain(fmcmc)
+    flat_chain = desi_mcmc._flatten_chain(mcmc['mcmc_chain'][-1000:,:,:])
+    z = mcmc['redshift'] 
+    
+    # calculate average SFRs 
+    avg_sfr_100myr  = desi_mcmc.model.avgSFR(flat_chain, z, dt=0.1)
+    avg_sfr_1gyr    = desi_mcmc.model.avgSFR(flat_chain, z, dt=1.)
+
+    avg_logsfr_100myr   = np.log10(avg_sfr_100myr)        
+    avg_logsfr_1gyr     = np.log10(avg_sfr_1gyr)        
+    
+    # calculate mass-weighted metallicity
+    z_mw    = desi_mcmc.model.Z_MW(flat_chain, z)
+    logz_mw = np.log10(z_mw) 
+    
+    output = {} 
+    output['logsfr.100myr'] = avg_logsfr_100myr
+    output['logsfr.1gyr']   = avg_logsfr_1gyr
+    output['logz.mw']       = logz_mw 
+    
+    # prior range  
+    prior_min = np.concatenate([mcmc['prior_range'][0], 
+        [np.median(avg_logsfr_100myr) - 3 * np.std(avg_logsfr_100myr), 
+            np.median(avg_logsfr_1gyr) - 3 * np.std(avg_logsfr_1gyr), 
+            np.median(logz_mw) - 3 * np.std(logz_mw)]])
+
+    prior_max = np.concatenate([mcmc['prior_range'][1], 
+        [np.median(avg_logsfr_100myr) + 3 * np.std(avg_logsfr_100myr), 
+            np.median(avg_logsfr_1gyr) + 3 * np.std(avg_logsfr_1gyr), 
+            np.median(logz_mw) + 3 * np.std(logz_mw)]])
+    output['prior_range'] = (prior_min, prior_max) 
+
+    chain = np.concatenate([
+        flat_chain, 
+        np.atleast_2d(avg_logsfr_100myr).T,
+        np.atleast_2d(avg_logsfr_1gyr).T,
+        np.atleast_2d(logz_mw).T],
+        axis=1)
+
+    output['mcmc_chain'] = chain
+
+    lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
+    output['theta_med']        = med 
+    output['theta_1sig_plus']  = high
+    output['theta_2sig_plus']  = highhigh
+    output['theta_1sig_minus'] = low
+    output['theta_2sig_minus'] = lowlow
+    
+    for k in ['redshift', 
+            'wavelength_obs', 'flux_spec_obs', 'flux_ivar_spec_obs', 
+            'flux_photo_obs', 'flux_ivar_photo_obs',
+            'flux_spec_model', 'flux_photo_model']:
+        if k in mcmc.keys(): 
+            output[k] = mcmc[k] 
+
+    fpost = fmcmc.replace('.mcmc.hdf5', '.postproc.hdf5')
+    fh5  = h5py.File(fpost, 'w') 
+    for k in output.keys(): 
+        if output[k] is None: 
+            print(k) 
+            continue 
+        fh5.create_dataset(k, data=output[k]) 
+    fh5.close() 
+    return output  
 
 
 def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps',
@@ -343,171 +403,114 @@ def fit_photometry(igal, sim='lgal', noise='legacy', method='ifsps',
     return None 
 
 
-def fit_spectrum(igal, sim='lgal', noise='bgs0', method='ifsps', model='emulator',
-        nwalkers=100, burnin=100, niter='adaptive', maxiter=200000,
-        opt_maxiter=100, overwrite=False, postprocess=False, thin=1):    
-    ''' Fit Lgal spectra. `noise` specifies whether to fit spectra without noise or 
-    with BGS-like noise. Produces an MCMC chain and, if not on nersc, a corner plot of the posterior. 
+def fit_spectrum(igal, sim='lgal', noise='bgs0', nwalkers=30, burnin=1000,
+        niter=1000, maxiter=200000, opt_maxiter=100, overwrite=False,
+        postprocess=False):    
+    ''' Fit Lgal spectra. `noise` specifies whether to fit spectra without
+    noise or with BGS-like noise. Produces an MCMC chain and, if not on nersc,
+    a corner plot of the posterior. 
 
     :param igal: 
         index of Lgal galaxy within the spectral_challenge 
     :param noise: 
         If 'bgs1'...'bgs8', fit BGS-like spectra. (default: 'none') 
     '''
-    noise_spec = noise.split('_')[0]
-    noise_photo = noise.split('_')[1]
-    # read noiseless Lgal spectra of the spectral_challenge mocks 
-    specs, meta = Data.Spectra(sim=sim, noise=noise_spec, lib='bc03', sample='mini_mocha') 
-    # read Lgal photometry of the mini_mocha mocks 
-    photo, _ = Data.Photometry(sim=sim, noise=noise_photo, lib='bc03', sample='mini_mocha') 
-    
-    if meta['redshift'][igal] < 0.101: 
-        # current Speculator wavelength doesn't extend far enough
-        # current Speculator wavelength doesn't extend far enough
-        # current Speculator wavelength doesn't extend far enough
-        # current Speculator wavelength doesn't extend far enough
-        # current Speculator wavelength doesn't extend far enough
-        return None 
+    # read Lgal spectra of the spectral_challenge mocks 
+    specs, meta = Data.Spectra(sim=sim, noise=noise, lib='bc03', sample='mini_mocha') 
 
-    w_obs       = specs['wave']
-    flux_obs    = specs['flux'][igal]
-    ivar_obs    = specs['ivar'][igal]
-    if method == 'ispeculator': 
-        photo_obs       = photo['flux'][igal,:3]
-        photo_ivar_obs  = photo['ivar'][igal,:3]
-    else: 
-        photo_obs       = photo['flux'][igal,:5]
-        photo_ivar_obs  = photo['ivar'][igal,:5]
+    assert meta['redshift'][igal] < 0.5, "speculator does not support z > 0.5 yet" 
 
-    # get fiber flux factor prior range based on measured fiber flux 
-    f_fiber_true = (photo['fiberflux_r_true'][igal]/photo['flux_r_true'][igal]) 
-    prior_width = np.max([0.05, 5.*photo['fiberflux_r_ivar'][igal]**-0.5/photo['flux'][igal,1]])
-    f_fiber_min = (photo['fiberflux_r_meas'][igal])/photo['flux'][igal,1] - prior_width
-    f_fiber_max = (photo['fiberflux_r_meas'][igal])/photo['flux'][igal,1] + prior_width
-    f_fiber_prior = [f_fiber_min, f_fiber_max]
+    wave_obs        = specs['wave']
+    flux_obs        = specs['flux'][igal]
+    ivar_obs        = specs['ivar'][igal]
 
     print('--- input ---') 
-    print('z = %f' % meta['redshift'][igal])
-    print('log M* total = %f' % meta['logM_total'][igal])
-    print('log M* fiber = %f' % meta['logM_fiber'][igal])
-    print('f_fiber = %f' % f_fiber_true) 
-    print('log SFR 100myr = %f' % np.log10(meta['sfr_100myr'][igal]))
-    print('log Z_MW = %f' % np.log10(meta['Z_MW'][igal]))
+    print('  z = %f' % meta['redshift'][igal])
+    print('  log M* fiber = %f' % meta['logM_fiber'][igal])
+    print('  log SFR 100myr = %f' % np.log10(meta['sfr_100myr'][igal]))
+    print('  log Z_MW = %f' % np.log10(meta['Z_MW'][igal]))
+    # ------------------------------------------------------------------------------------
+    theta_names = ['logmstar', 'beta1_sfh', 'beta2_sfh', 'beta3_sfh', 'beta4_sfh',
+            'gamma1_zh', 'gamma2_zh', 'dust1', 'dust2', 'dust_index'] 
+    truths = [None for _ in theta_names] 
+    truths[0] = meta['logM_fiber'][igal]
 
-    f_mcmc = os.path.join(UT.dat_dir(), 'mini_mocha', method, 
-            '%s.specphoto.noise_%s.%s.%i.mcmc.hdf5' % (sim, noise, model, igal))
-    
-    if method == 'ifsps': 
-        ifitter = Fitters.iFSPS(model_name=model) 
-    elif method == 'ispeculator': 
-        ifitter = Fitters.iSpeculator(model_name=model) 
+    # set up prior object
+    priors = Infer.load_priors([
+            Infer.UniformPrior(8, 12, label='sed'),     # uniform priors on logM*
+            Infer.FlatDirichletPrior(4, label='sed'),   # flat dirichilet priors
+            Infer.UniformPrior(6.9e-5, 7.3e-3, label='sed'),# uniform priors on ZH coeff
+            Infer.UniformPrior(6.9e-5, 7.3e-3, label='sed'),# uniform priors on ZH coeff
+            Infer.UniformPrior(0., 3., label='sed'),        # uniform priors on dust1 
+            Infer.UniformPrior(0., 3., label='sed'),        # uniform priors on dust2
+            Infer.UniformPrior(-2.2, 0.4, label='sed')      # uniform priors on dust_index 
+            ])
 
-    print('--- mcmc ---') 
+    desi_mcmc = Infer.desiMCMC(
+            prior=priors, 
+            flux_calib=FluxCalib.no_flux_factor # no flux calibration necessary
+            )
+    f_mcmc = os.path.join(UT.dat_dir(), 'mini_mocha', 'provabgs', 
+            '%s.spec.noise_%s.%i.mcmc.hdf5' % (sim, noise, igal))
+
     if not overwrite and os.path.isfile(f_mcmc): 
-        print('     reading... %s' % os.path.basename(f_mcmc)) 
-        # read in mcmc chain
-        mcmc = ifitter.read_chain(f_mcmc, silent=False)
+        print('--- read mcmc ---') 
+        mcmc = desi_mcmc.read_chain(f_mcmc, debug=True)
     else: 
-        if os.path.isfile(f_mcmc) and not overwrite: 
-            print("** CAUTION: %s already exists **" % os.path.basename(f_mcmc)) 
-        print('     writing... %s' % os.path.basename(f_mcmc)) 
-        # initiating fit
-        prior = ifitter._default_prior(f_fiber_prior=f_fiber_prior)
-        if overwrite == 'overwrite': 
-            _overwrite = True
-        elif overwrite == 'append':
-            _overwrite = False
-
-        mcmc = ifitter.MCMC_spectrophoto(
-                w_obs, 
-                flux_obs, 
-                ivar_obs, 
-                photo_obs, 
-                photo_ivar_obs, 
-                meta['redshift'][igal], 
+        print('--- run mcmc ---') 
+        mcmc = desi_mcmc.run(
+                wave_obs=wave_obs, 
+                flux_obs=flux_obs, 
+                flux_ivar_obs=ivar_obs, 
+                zred=meta['redshift'][igal], 
                 mask='emline', 
-                prior=prior, 
-                dirichlet_transform=dirichlet_transform, 
+                sampler='zeus',
                 nwalkers=nwalkers, 
-                burnin=burnin, 
+                burnin=burnin,
+                opt_maxiter=opt_maxiter,
                 niter=niter, 
-                maxiter=maxiter, 
-                opt_maxiter=opt_maxiter, 
-                writeout=f_mcmc,
-                overwrite=_overwrite,
-                silent=False)
-    
+                writeout=f_mcmc, 
+                debug=True)
+
     if postprocess:
         print('--- postprocessing ---') 
-        f_post = f_mcmc.replace('.mcmc.hdf5', '.postproc.hdf5')
-        mcmc = ifitter.postprocess(mcmc=mcmc, writeout=None, thin=thin)
-        print('--- SSFR prior correction ---') 
-        mcmc = ifitter.prior_correction(mcmc=mcmc, writeout=f_post, thin=1,
-                dirichlet_transform=dirichlet_transform)
+        mcmc = postprocess_mcmc(desi_mcmc, f_mcmc)
 
-    i_fib = list(mcmc['theta_names'].astype(str)).index('f_fiber')  
+        theta_names += ['logsfr.100myr', 'logsfr.1gyr', 'logz.mw'] 
+        truths += [np.log10(meta['sfr_100myr'][igal]),
+            np.log10(meta['sfr_1gyr'][igal]), np.log10(meta['Z_MW'][igal])]
 
-    print('log M* total = %f' % mcmc['theta_med'][0])
-    print('log M* fiber = %f' % (mcmc['theta_med'][0] + np.log10(mcmc['theta_med'][i_fib])))
     print('---------------') 
-    try: 
-        # plotting on nersc never works.
-        if os.environ['NERSC_HOST'] == 'cori': return None 
-    except KeyError: 
+    labels = [lbl_dict[_t] for _t in theta_names]
 
-        labels          = [lbl_dict[_t] for _t in mcmc['theta_names'].astype(str)]
-        truths          = [None for _ in labels] 
-        truths[0]       = meta['logM_total'][igal] 
-        truths[i_fib]   = f_fiber_true
-        if postprocess: 
-            i_sfr = list(mcmc['theta_names'].astype(str)).index('logsfr.100myr')  
-            truths[i_sfr] = np.log10(meta['sfr_100myr'][igal])
-            i_zw = list(mcmc['theta_names'].astype(str)).index('logz.mw')
-            truths[i_zw] =  np.log10(meta['Z_MW'][igal])
-            print('log SFR 100myr = %f' % np.median(mcmc['mcmc_chain'][:,i_sfr]))
-            print('log Z_MW = %f' % np.median(mcmc['mcmc_chain'][:,i_zw]))
-
-        # corner plot of the posteriors 
-        flat_chain = ifitter._flatten_chain(mcmc['mcmc_chain'])
-
-        fig = DFM.corner(flat_chain, range=mcmc['prior_range'], quantiles=[0.16, 0.5, 0.84], 
-                levels=[0.68, 0.95], nbin=40, smooth=True, 
-                truths=truths, labels=labels, label_kwargs={'fontsize': 20}) 
-        if postprocess: 
-            fig.savefig(f_post.replace('.hdf5', '.png'), bbox_inches='tight') 
-        else: 
-            fig.savefig(f_mcmc.replace('.hdf5', '.png'), bbox_inches='tight') 
-        plt.close() 
-        
-        fig = plt.figure(figsize=(18,5))
-        gs = mpl.gridspec.GridSpec(1, 2, figure=fig, width_ratios=[1,3], wspace=0.2) 
-        sub = plt.subplot(gs[0]) 
-        #sub.errorbar(np.arange(len(photo_obs)), photo_obs,
-        #        yerr=photo_ivar_obs**-0.5, fmt='.k', label='data')
-        sub.errorbar(np.arange(len(photo_obs)), mcmc['flux_photo_data'],
-                yerr=mcmc['flux_photo_ivar_data']**-0.5, fmt='.k', label='data')
-        sub.scatter(np.arange(len(photo_obs)), mcmc['flux_photo_model'], c='C1',
-                label='model') 
-        sub.legend(loc='upper left', markerscale=3, handletextpad=0.2, fontsize=15) 
-        sub.set_xticks([0, 1, 2, 3, 4]) 
-        sub.set_xticklabels(['$g$', '$r$', '$z$', 'W1', 'W2']) 
-        sub.set_xlim(-0.5, len(photo_obs)-0.5)
-
-        sub = plt.subplot(gs[1]) 
-        #sub.plot(w_obs, flux_obs, c='k', lw=1, label='data')
-        sub.plot(mcmc['wavelength_data'], mcmc['flux_spec_data'], c='k', lw=1, label='data') 
-        sub.plot(mcmc['wavelength_model'], mcmc['flux_spec_model'], c='C1',
-                ls='--', lw=1, label=method) 
-        sub.legend(loc='upper right', fontsize=15) 
-        sub.set_xlabel('wavelength [$A$]', fontsize=20) 
-        sub.set_xlim(3600., 9800.)
-        sub.set_ylim(-1., 5.) 
-
-        if postprocess: 
-            fig.savefig(f_post.replace('.hdf5', '.bestfit.png'), bbox_inches='tight') 
-        else: 
-            fig.savefig(f_mcmc.replace('.hdf5', '.bestfit.png'), bbox_inches='tight') 
-        plt.close()
+    # corner plot of the posteriors 
+    flat_chain = desi_mcmc._flatten_chain(mcmc['mcmc_chain'])
+    fig = DFM.corner(
+        flat_chain, 
+        range=np.array(mcmc['prior_range']).T, 
+        quantiles=[0.16, 0.5, 0.84], 
+        levels=[0.68, 0.95], 
+        nbin=40,
+        smooth=True, 
+        truths=truths, 
+        labels=labels, 
+        label_kwargs={'fontsize': 20}) 
+    fig.savefig(f_mcmc.replace('.hdf5', '.png'), bbox_inches='tight') 
+    plt.close() 
+    
+    # best-fit observable 
+    fig = plt.figure(figsize=(15,5))
+    sub = fig.add_subplot(111) 
+    sub.plot(mcmc['wavelength_obs'], mcmc['flux_spec_obs'], 
+        c='C0', lw=1, label='obs.') 
+    sub.plot(mcmc['wavelength_obs'], mcmc['flux_spec_model'], 
+        c='k', ls='--', lw=1, label='median of posterior') 
+    sub.legend(loc='upper right', fontsize=15) 
+    sub.set_xlabel('wavelength [$A$]', fontsize=20) 
+    sub.set_xlim(3600., 9800.)
+    sub.set_ylim(-1., 5.) 
+    fig.savefig(f_mcmc.replace('.hdf5', '.bestfit.png'), bbox_inches='tight') 
+    plt.close()
     return None 
 
 
@@ -680,10 +683,9 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy',
     return None 
 
 
-def MP_sed_fit(spec_or_photo, igals, sim='lgal', noise='none', method='ifsps', 
-        model='emulator', dirichlet_transform=True, nthreads=1, nwalkers=100,
-        burnin=100, niter=1000, maxiter=200000, overwrite=False,
-        postprocess=False, thin=1): 
+def MP_sed_fit(spec_or_photo, igals, sim='lgal', noise='none', nthreads=1,
+        nwalkers=100, burnin=100, niter=1000, maxiter=200000, overwrite=False,
+        postprocess=False): 
     ''' multiprocessing wrapepr for fit_spectra and fit_photometry. This does *not* parallelize 
     the MCMC sampling of individual fits but rather runs multiple fits simultaneously. 
     
@@ -707,27 +709,19 @@ def MP_sed_fit(spec_or_photo, igals, sim='lgal', noise='none', method='ifsps',
     '''
     args = igals # galaxy indices 
 
-    _overwrite = overwrite
-    if overwrite == 'False': 
-        _overwrite = False
-
     kwargs = {
             'sim': sim, 
             'noise': noise, 
-            'method': method, 
-            'model': model,
-            'dirichlet_transform': dirichlet_transform,
             'nwalkers': nwalkers,
             'burnin': burnin,
             'niter': niter, 
             'maxiter': maxiter, 
-            'opt_maxiter': 1000, 
-            'overwrite': _overwrite, 
-            'postprocess': postprocess, 
-            'thin': thin
+            'opt_maxiter': 10000, 
+            'overwrite': overwrite, 
+            'postprocess': postprocess
             }
     if spec_or_photo == 'spec': 
-        fit_func = fit_spectra
+        fit_func = fit_spectrum
     elif spec_or_photo == 'photo': 
         fit_func = fit_photometry
     elif spec_or_photo == 'specphoto': 
@@ -744,71 +738,6 @@ def MP_sed_fit(spec_or_photo, igals, sim='lgal', noise='none', method='ifsps',
         for igal in args: fit_func(igal, **kwargs)
     return None 
 
-# --- pseudoFirefly --- 
-def fit_pFF_spectra(igal, noise='none', iter_max=10, overwrite=False): 
-    ''' Fit Lgal spectra. `noise` specifies whether to fit spectra without noise or 
-    with BGS-like noise.  
-
-    :param igal: 
-        index of Lgal galaxy within the spectral_challenge 
-
-    :param noise: 
-        If 'none', fit noiseless spectra. 
-        If 'bgs1'...'bgs8', fit BGS-like spectra. (default: 'none') 
-    '''
-    # read noiseless Lgal spectra of the spectral_challenge mocks 
-    specs, meta = Data.Spectra(sim='lgal', noise=noise, lib='bc03', sample='mini_mocha') 
-
-    model       = 'vanilla'
-    w_obs       = specs['wave']
-    flux_obs    = specs['flux'][igal]
-    if noise != 'none': ivar_obs = specs['ivar'][igal]
-    truths      = [meta['logM_fiber'][igal], np.log10(meta['Z_MW'][igal]), meta['t_age_MW'][igal]]
-    labels      = ['$\log M_*$', '$\log Z$', r'$t_{\rm age}$']
-
-    if noise == 'none': # no noise 
-        ivar_obs = np.ones(len(w_obs)) 
-    
-    print('--- input ---') 
-    print('z = %f' % meta['redshift'][igal])
-    print('log M* total = %f' % meta['logM_total'][igal])
-    print('log M* fiber = %f' % meta['logM_fiber'][igal])
-    print('MW Z = %f' % meta['Z_MW'][igal]) 
-    print('MW tage = %f' % meta['t_age_MW'][igal]) 
-
-    f_bf = os.path.join(UT.dat_dir(), 'mini_mocha', 'pff', 'lgal.spec.noise_%s.%s.%i.hdf5' % (noise, model, igal))
-    if os.path.isfile(f_bf): 
-        if not overwrite: 
-            print("** CAUTION: %s already exists **" % os.path.basename(f_bf)) 
-    # initiating fit
-    pff = Fitters.pseudoFirefly(model_name=model, prior=None) 
-    bestfit = pff.Fit_spec(
-            w_obs, 
-            flux_obs, 
-            ivar_obs, 
-            meta['redshift'][igal], 
-            mask='emline', 
-            fit_cap=1000, 
-            iter_max=10, 
-            writeout=f_bf,
-            silent=False)
-    print('--- bestfit ---') 
-    print('written to %s' % f_bf) 
-    print('log M* = %f' % bestfit['theta_med'][0])
-    print('log Z = %f' % bestfit['theta_med'][1]) 
-    print('---------------') 
-    
-    fig = plt.figure(figsize=(12,4))
-    sub = fig.add_subplot(111)
-    sub.plot(bestfit['wavelength_data'], bestfit['flux_data'], c='k', zorder=1, lw=0.5) 
-    sub.plot(bestfit['wavelength_model'] * (1. + bestfit['redshift']), bestfit['flux_model'], c='C1') 
-    sub.set_xlabel('Wavelength', fontsize=20) 
-    sub.set_xlim(3500, 1e4) 
-    sub.set_ylabel('Flux', fontsize=20) 
-    sub.set_ylim(0., None) 
-    fig.savefig(f_bf.replace('.hdf5', '.png'), bbox_inches='tight') 
-    return None 
-
 
 if __name__=="__main__": 
     # >>> python mini_mocha.py
@@ -823,36 +752,33 @@ if __name__=="__main__":
     igal0           = int(sys.argv[3]) 
     igal1           = int(sys.argv[4]) 
     noise           = sys.argv[5]
-    method          = sys.argv[6]
-    model           = sys.argv[7]
-    nthreads        = int(sys.argv[8]) 
-    nwalkers        = int(sys.argv[9]) 
-    burnin          = int(sys.argv[10]) 
-    niter           = sys.argv[11] 
-    maxiter         = int(sys.argv[12]) 
-    overwrite       = sys.argv[13]
-    postprocess     = sys.argv[14] == 'True'
-
-    # if specified, it assumes the chains already exist and just makes the 
-    # corner plots (implemented because I have difficult making plots on nersc)
-    try: 
-        thin = int(sys.argv[15]) 
-    except IndexError: 
-        thin = 1
+    nthreads        = int(sys.argv[6]) 
+    nwalkers        = int(sys.argv[7]) 
+    burnin          = int(sys.argv[8]) 
+    niter           = sys.argv[9] 
+    maxiter         = int(sys.argv[10]) 
+    overwrite       = sys.argv[11] == 'True'
+    postprocess     = sys.argv[12] == 'True'
 
     try: 
         niter = int(niter)
     except ValueError: 
         pass
 
-    if method not in ['ifsps', 'ispeculator']: 
-        raise NotImplementedError
     print('----------------------------------------') 
-    print('%s fitting %s of mini_mocha galaxies %i to %i' % (method, spec_or_photo, igal0, igal1))
+    print('fitting %s of mini_mocha galaxies %i to %i' % 
+            (spec_or_photo, igal0, igal1))
     print('using %i threads' % nthreads) 
     igals = range(igal0, igal1+1)
 
-    MP_sed_fit(spec_or_photo, igals, sim=sim, noise=noise, method=method,
-            model=model, dirichlet_transform=True, nthreads=nthreads,
-            nwalkers=nwalkers, burnin=burnin, niter=niter, maxiter=maxiter,
-            overwrite=overwrite, postprocess=postprocess, thin=thin)
+    MP_sed_fit(spec_or_photo, 
+            igals,
+            sim=sim,
+            noise=noise, 
+            nthreads=nthreads,
+            nwalkers=nwalkers, 
+            burnin=burnin,
+            niter=niter,
+            maxiter=maxiter,
+            overwrite=overwrite, 
+            postprocess=postprocess)

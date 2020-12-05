@@ -71,15 +71,15 @@ def Spectra(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'):
             mock['spec_wave_z_bgs'][...]])
         
         specs['flux'] = np.concatenate([
-            mock['spec_flux_b_bgs'][...][iobs,:,:], 
-            mock['spec_flux_r_bgs'][...][iobs,:,:], 
-            mock['spec_flux_z_bgs'][...][iobs,:,:]], 
+            mock['spec_flux_b_bgs'][...][iobs,...], 
+            mock['spec_flux_r_bgs'][...][iobs,...], 
+            mock['spec_flux_z_bgs'][...][iobs,...]], 
             axis=1)
 
         specs['ivar'] = np.concatenate([
-            mock['spec_ivar_b_bgs'][...][iobs,:,:], 
-            mock['spec_ivar_r_bgs'][...][iobs,:,:], 
-            mock['spec_ivar_z_bgs'][...][iobs,:,:]], 
+            mock['spec_ivar_b_bgs'][...][iobs,...], 
+            mock['spec_ivar_r_bgs'][...][iobs,...], 
+            mock['spec_ivar_z_bgs'][...][iobs,...]], 
             axis=1)
 
         specs['wave_b'] = mock['spec_wave_b_bgs'][...]
@@ -93,6 +93,10 @@ def Spectra(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'):
         specs['ivar_b'] = mock['spec_ivar_b_bgs'][...][iobs,:,:]
         specs['ivar_r'] = mock['spec_ivar_r_bgs'][...][iobs,:,:]
         specs['ivar_z'] = mock['spec_ivar_z_bgs'][...][iobs,:,:]
+        
+        specs['res_b'] = mock['spec_res_b_bgs'][...][iobs,...]
+        specs['res_r'] = mock['spec_res_r_bgs'][...][iobs,...]
+        specs['res_z'] = mock['spec_res_z_bgs'][...][iobs,...]
     return specs, meta 
 
 

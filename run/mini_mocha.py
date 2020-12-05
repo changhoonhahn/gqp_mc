@@ -398,6 +398,7 @@ def fit_spectrum(igal, sim='lgal', noise='bgs0', nwalkers=30, burnin=1000,
     wave_obs        = specs['wave']
     flux_obs        = specs['flux'][igal]
     ivar_obs        = specs['ivar'][igal]
+    resolution      = [specs['res_b'][igal], specs['res_r'][igal], specs['res_z'][igal]]
 
     print('--- input ---') 
     print('  z = %f' % meta['redshift'][igal])
@@ -438,7 +439,9 @@ def fit_spectrum(igal, sim='lgal', noise='bgs0', nwalkers=30, burnin=1000,
                 wave_obs=wave_obs, 
                 flux_obs=flux_obs, 
                 flux_ivar_obs=ivar_obs, 
+                resolution=resolution, 
                 zred=meta['redshift'][igal], 
+                vdisp=150., # km/s velocity dispersion 
                 mask='emline', 
                 sampler='zeus',
                 nwalkers=nwalkers, 
@@ -512,9 +515,10 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy', nwalkers=30,
     
     assert meta['redshift'][igal] < 0.5, "speculator does not support z > 0.5 yet" 
 
-    wave_obs       = specs['wave']
-    flux_obs    = specs['flux'][igal]
-    ivar_obs    = specs['ivar'][igal]
+    wave_obs        = specs['wave']
+    flux_obs        = specs['flux'][igal]
+    ivar_obs        = specs['ivar'][igal]
+    resolution      = [specs['res_b'][igal], specs['res_r'][igal], specs['res_z'][igal]]
     photo_obs       = photo['flux'][igal,:3]
     photo_ivar_obs  = photo['ivar'][igal,:3]
     
@@ -567,9 +571,11 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy', nwalkers=30,
                 wave_obs=wave_obs, 
                 flux_obs=flux_obs, 
                 flux_ivar_obs=ivar_obs, 
+                resolution=resolution, 
                 photo_obs=photo_obs, 
                 photo_ivar_obs=photo_ivar_obs, 
                 zred=meta['redshift'][igal], 
+                vdisp=150., 
                 mask='emline', 
                 bands='desi', 
                 sampler='zeus',

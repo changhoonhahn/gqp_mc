@@ -114,14 +114,18 @@ def fm_Lgal_mini_mocha(lib='bc03'):
 
         fbgs = os.path.join(UT.dat_dir(), 'mini_mocha',
                 'lgal.bgs_spec.%s.v%s.%iof%i.fits' % (lib, version, iexp+1, nexp)) 
-
-        bgs_spec = FM.Spec_BGS(
-                spectra_s['wave'],        # wavelength  
-                spectra_fiber,            # fiber spectra flux 
-                fsky['texp_total'][...][iexp],  # exp time
-                fsky['airmass'][...][iexp],     # airmass 
-                Isky, 
-                filename=fbgs) 
+    
+        if not os.path.isfile(fbgs): 
+            bgs_spec = FM.Spec_BGS(
+                    spectra_s['wave'],        # wavelength  
+                    spectra_fiber,            # fiber spectra flux 
+                    fsky['texp_total'][...][iexp],  # exp time
+                    fsky['airmass'][...][iexp],     # airmass 
+                    Isky, 
+                    filename=fbgs) 
+        else: 
+            from desispec.io import read_spectra 
+            bgs_spec = read_spectra(fbgs) 
 
         if iexp == 0: 
             spectra_bgs['wave_b'] = bgs_spec.wave['b']
@@ -133,6 +137,19 @@ def fm_Lgal_mini_mocha(lib='bc03'):
             spectra_bgs['ivar_b'] = np.zeros((nexp, bgs_spec.flux['b'].shape[0], bgs_spec.flux['b'].shape[1])) 
             spectra_bgs['ivar_r'] = np.zeros((nexp, bgs_spec.flux['r'].shape[0], bgs_spec.flux['r'].shape[1])) 
             spectra_bgs['ivar_z'] = np.zeros((nexp, bgs_spec.flux['z'].shape[0], bgs_spec.flux['z'].shape[1])) 
+            spectra_bgs['res_b'] = np.zeros((nexp,
+                bgs_spec.resolution_data['b'].shape[0],
+                bgs_spec.resolution_data['b'].shape[1], 
+                bgs_spec.resolution_data['b'].shape[2])) 
+            spectra_bgs['res_r'] = np.zeros((nexp,
+                bgs_spec.resolution_data['r'].shape[0],
+                bgs_spec.resolution_data['r'].shape[1], 
+                bgs_spec.resolution_data['r'].shape[2])) 
+            spectra_bgs['res_z'] = np.zeros((nexp,
+                bgs_spec.resolution_data['z'].shape[0],
+                bgs_spec.resolution_data['z'].shape[1], 
+                bgs_spec.resolution_data['z'].shape[2])) 
+
 
         spectra_bgs['flux_b'][iexp] = bgs_spec.flux['b']
         spectra_bgs['flux_r'][iexp] = bgs_spec.flux['r']
@@ -141,6 +158,10 @@ def fm_Lgal_mini_mocha(lib='bc03'):
         spectra_bgs['ivar_b'][iexp] = bgs_spec.ivar['b']
         spectra_bgs['ivar_r'][iexp] = bgs_spec.ivar['r']
         spectra_bgs['ivar_z'][iexp] = bgs_spec.ivar['z']
+
+        spectra_bgs['res_b'][iexp] = bgs_spec.resolution_data['b']
+        spectra_bgs['res_r'][iexp] = bgs_spec.resolution_data['r']
+        spectra_bgs['res_z'][iexp] = bgs_spec.resolution_data['z']
 
     # write out everything 
     fmeta = os.path.join(UT.dat_dir(), 'mini_mocha',
@@ -347,5 +368,5 @@ def QA_fm_Lgal_mini_mocha(lib='bc03'):
 
 
 if __name__=="__main__": 
-    #fm_Lgal_mini_mocha()
-    QA_fm_Lgal_mini_mocha()
+    fm_Lgal_mini_mocha()
+    #QA_fm_Lgal_mini_mocha()

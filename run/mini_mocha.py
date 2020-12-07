@@ -557,7 +557,7 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy', nwalkers=30,
 
     desi_mcmc = Infer.desiMCMC(
             prior=priors, 
-            flux_calib=FluxCalib.no_flux_factor # no flux calibration necessary
+            flux_calib=FluxCalib.constant_flux_factor # no flux calibration necessary
             )
     f_mcmc = os.path.join(UT.dat_dir(), 'mini_mocha', 'provabgs', 
             '%s.specphoto.noise_%s.%i.mcmc.hdf5' % (sim, noise, igal))
@@ -584,6 +584,7 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy', nwalkers=30,
                 opt_maxiter=opt_maxiter,
                 niter=niter, 
                 writeout=f_mcmc, 
+                overwrite=overwrite, 
                 debug=True)
 
     if postprocess:

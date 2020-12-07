@@ -2,8 +2,8 @@
 #source activate gqp
 
 sim='lgal'
-i0=2
-i1=2
+i0=59
+i1=59
 
 #python -W ignore /Users/ChangHoon/projects/gqp_mc/run/mini_mocha.py construct $sim
 
@@ -15,4 +15,4 @@ echo 'fitting galaxies # '$i0' to '$i1
 #    spec $sim $i0 $i1 bgs0 1 30 10 10 100 True True
 
 python -W ignore $HOME/projects/gqp_mc/run/mini_mocha.py \
-    specphoto $sim $i0 $i1 bgs0_legacy 1 30 10 10 100 False True
+    specphoto $sim $i0 $i1 bgs0_legacy 1 30 10 10 100 True True

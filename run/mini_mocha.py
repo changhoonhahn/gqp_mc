@@ -234,22 +234,27 @@ def postprocess_mcmc(desi_mcmc, fmcmc, dt_sfr=1., n_sample=50000):
     theta_prior = np.array([desi_mcmc.prior.sample() for i in range(n_sample)]) 
     
     # 2. compute the derived properties we want to impose flat priors on  
-    logm_prior      = theta_prior[:,0] 
-    sfr_prior       = desi_mcmc.model.avgSFR(theta_prior, z, dt=dt_sfr)
-    logsfr_prior    = np.log10(sfr_prior) 
-    zmw_prior       = desi_mcmc.model.Z_MW(theta_prior, z)
-    logzmw_prior    = np.log10(zmw_prior) 
+    logm_prior          = theta_prior[:,0] 
+    logsfr_1gyr_prior   = np.log10(desi_mcmc.model.avgSFR(theta_prior, z, dt=1.))
+    logsfr_100myr_prior = np.log10(desi_mcmc.model.avgSFR(theta_prior, z, dt=0.1))
+    logzmw_prior    = np.log10(desi_mcmc.model.Z_MW(theta_prior, z))
     
     # 3. fit a joint distirbution of the derived properties 
-    kde_fit = gkde(np.array([logm_prior, logsfr_prior, logzmw_prior])) 
+    kde_fit_1gyr    = gkde(np.array([logm_prior, logsfr_1gyr_prior, logzmw_prior])) 
+    kde_fit_100myr  = gkde(np.array([logm_prior, logsfr_100myr_prior, logzmw_prior])) 
 
-    # 4. function for the weights
-    if dt_sfr == 1.: 
-        output['w_prior.1gyr'] = 1./kde_fit.pdf(np.array([logmstar,
-            avg_logsfr_1gyr, logz_mw])) 
-    elif dt_sfr == 0.1: 
-        output['w_prior.100myr'] = 1./kde_fit.pdf(np.array([logmstar,
-            avg_logsfr_100myr, logz_mw])) 
+    # 4. calculate the max entropy weights
+    p_prop_1gyr = kde_fit_1gyr.pdf(np.array([logmstar, avg_logsfr_1gyr, logz_mw]))
+    p_prop_100myr = kde_fit_100myr.pdf(np.array([logmstar, avg_logsfr_100myr, logz_mw]))
+
+    w_prior_1gyr = 1./p_prop_1gyr
+    w_prior_100myr = 1./p_prop_100myr
+
+    w_prior_1gyr[p_prop_1gyr < 1e-4] = 0. 
+    w_prior_100myr[p_prop_100myr < 1e-4] = 0. 
+
+    output['w_prior.100myr'] = w_prior_100myr
+    output['w_prior.1gyr'] = w_prior_1gyr
     # ------------------------------------------------------------
 
     for k in ['redshift', 

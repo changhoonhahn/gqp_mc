@@ -48,6 +48,7 @@ import numpy as np
 import corner as DFM 
 from functools import partial
 from multiprocessing.pool import Pool 
+from scipy.stats import gaussian_kde as gkde
 # --- gqp_mc ---
 from gqp_mc import util as UT 
 from gqp_mc import data as Data 
@@ -200,12 +201,15 @@ def validate_sample(sim):
     return None 
 
 
-def postprocess_mcmc(desi_mcmc, fmcmc): 
-    ''' 
+def postprocess_mcmc(desi_mcmc, fmcmc, dt_sfr=1., n_sample=50000): 
+    '''  calculate derived properties log M*, log SFR, log Z_MW and prior
+    correction weights to impose uniform priors on [log M*, log SFR, log Z_MW]
     '''
     mcmc = desi_mcmc.read_chain(fmcmc)
     flat_chain = desi_mcmc._flatten_chain(mcmc['mcmc_chain'][-1000:,:,:])
     z = mcmc['redshift'] 
+
+    logmstar = flat_chain[:,0] 
     
     # calculate average SFRs 
     avg_sfr_100myr  = desi_mcmc.model.avgSFR(flat_chain, z, dt=0.1)
@@ -219,38 +223,35 @@ def postprocess_mcmc(desi_mcmc, fmcmc):
     logz_mw = np.log10(z_mw) 
     
     output = {} 
+    output['logmstar']      = logmstar
     output['logsfr.100myr'] = avg_logsfr_100myr
     output['logsfr.1gyr']   = avg_logsfr_1gyr
     output['logz.mw']       = logz_mw 
     
-    # prior range  
-    prior_min = np.concatenate([mcmc['prior_range'][0], 
-        [np.median(avg_logsfr_100myr) - 3 * np.std(avg_logsfr_100myr), 
-            np.median(avg_logsfr_1gyr) - 3 * np.std(avg_logsfr_1gyr), 
-            np.median(logz_mw) - 3 * np.std(logz_mw)]])
-
-    prior_max = np.concatenate([mcmc['prior_range'][1], 
-        [np.median(avg_logsfr_100myr) + 3 * np.std(avg_logsfr_100myr), 
-            np.median(avg_logsfr_1gyr) + 3 * np.std(avg_logsfr_1gyr), 
-            np.median(logz_mw) + 3 * np.std(logz_mw)]])
-    output['prior_range'] = (prior_min, prior_max) 
-
-    chain = np.concatenate([
-        flat_chain, 
-        np.atleast_2d(avg_logsfr_100myr).T,
-        np.atleast_2d(avg_logsfr_1gyr).T,
-        np.atleast_2d(logz_mw).T],
-        axis=1)
-
-    output['mcmc_chain'] = chain
-
-    lowlow, low, med, high, highhigh = np.percentile(chain, [2.5, 16, 50, 84, 97.5], axis=0)
-    output['theta_med']        = med 
-    output['theta_1sig_plus']  = high
-    output['theta_2sig_plus']  = highhigh
-    output['theta_1sig_minus'] = low
-    output['theta_2sig_minus'] = lowlow
+    # ------------------------------------------------------------
+    # get prior correction 
+    # 1. sample prior 
+    theta_prior = np.array([desi_mcmc.prior.sample() for i in range(n_sample)]) 
     
+    # 2. compute the derived properties we want to impose flat priors on  
+    logm_prior      = theta_prior[:,0] 
+    sfr_prior       = desi_mcmc.model.avgSFR(theta_prior, z, dt=dt_sfr)
+    logsfr_prior    = np.log10(sfr_prior) 
+    zmw_prior       = desi_mcmc.model.Z_MW(theta_prior, z)
+    logzmw_prior    = np.log10(zmw_prior) 
+    
+    # 3. fit a joint distirbution of the derived properties 
+    kde_fit = gkde(np.array([logm_prior, logsfr_prior, logzmw_prior])) 
+
+    # 4. function for the weights
+    if dt_sfr == 1.: 
+        output['w_prior.1gyr'] = 1./kde_fit.pdf(np.array([logmstar,
+            avg_logsfr_1gyr, logz_mw])) 
+    elif dt_sfr == 0.1: 
+        output['w_prior.100myr'] = 1./kde_fit.pdf(np.array([logmstar,
+            avg_logsfr_100myr, logz_mw])) 
+    # ------------------------------------------------------------
+
     for k in ['redshift', 
             'wavelength_obs', 'flux_spec_obs', 'flux_ivar_spec_obs', 
             'flux_photo_obs', 'flux_ivar_photo_obs',
@@ -334,15 +335,12 @@ def fit_photometry(igal, sim='lgal', noise='legacy', nwalkers=30, burnin=1000,
                 opt_maxiter=opt_maxiter,
                 niter=niter, 
                 writeout=f_mcmc, 
+                overwrite=overwrite, 
                 debug=True)
 
     if postprocess:
         print('--- postprocessing ---') 
-        mcmc = postprocess_mcmc(desi_mcmc, f_mcmc)
-
-        theta_names += ['logsfr.100myr', 'logsfr.1gyr', 'logz.mw'] 
-        truths += [np.log10(meta['sfr_100myr'][igal]),
-            np.log10(meta['sfr_1gyr'][igal]), np.log10(meta['Z_MW'][igal])]
+        post = postprocess_mcmc(desi_mcmc, f_mcmc)
 
     print('---------------') 
     labels = [lbl_dict[_t] for _t in theta_names]
@@ -361,14 +359,39 @@ def fit_photometry(igal, sim='lgal', noise='legacy', nwalkers=30, burnin=1000,
         label_kwargs={'fontsize': 20}) 
     fig.savefig(f_mcmc.replace('.hdf5', '.png'), bbox_inches='tight') 
     plt.close() 
-   
+
+    # corner plot of the posteriors for derive prop
+    fig = DFM.corner(
+            np.vstack([post['logmstar'], post['logsfr.1gyr'], post['logz.mw']]).T,
+            quantiles=[0.16, 0.5, 0.84], 
+            levels=[0.68, 0.95], 
+            nbin=40,
+            smooth=True,
+            hist_kwargs={'density': True}) 
+    _ = DFM.corner(
+            np.vstack([post['logmstar'], post['logsfr.1gyr'], post['logz.mw']]).T,
+            weights=post['w_prior.1gyr'],
+            quantiles=[0.16, 0.5, 0.84], 
+            levels=[0.68, 0.95], 
+            nbin=40,
+            smooth=True, 
+            color='C1', 
+            truths=[meta['logM_total'][igal], np.log10(meta['sfr_1gyr'][igal]),
+                np.log10(meta['Z_MW'][igal])], 
+            labels=[lbl_dict['logmstar'], lbl_dict['logsfr.1gyr'], lbl_dict['logz.mw']], 
+            label_kwargs={'fontsize': 20}, 
+            fig=fig, 
+            hist_kwargs={'density': True}) 
+    fig.savefig(f_mcmc.replace('.hdf5', '.prop.png'), bbox_inches='tight') 
+    plt.close() 
+
     # best-fit observable 
     fig = plt.figure(figsize=(5,3))
     sub = fig.add_subplot(111)
     sub.errorbar(np.arange(len(photo_obs)), photo_obs,
             yerr=ivar_obs**-0.5, fmt='.k', label='data')
     sub.scatter(np.arange(len(photo_obs)), mcmc['flux_photo_model'], c='C1',
-            label='model') 
+            label='best-fit') 
     sub.legend(loc='upper left', markerscale=3, handletextpad=0.2, fontsize=15) 
     sub.set_xticks([0, 1, 2]) 
     sub.set_xticklabels(['$g$', '$r$', '$z$']) 
@@ -454,11 +477,7 @@ def fit_spectrum(igal, sim='lgal', noise='bgs0', nwalkers=30, burnin=1000,
 
     if postprocess:
         print('--- postprocessing ---') 
-        mcmc = postprocess_mcmc(desi_mcmc, f_mcmc)
-
-        theta_names += ['logsfr.100myr', 'logsfr.1gyr', 'logz.mw'] 
-        truths += [np.log10(meta['sfr_100myr'][igal]),
-            np.log10(meta['sfr_1gyr'][igal]), np.log10(meta['Z_MW'][igal])]
+        post = postprocess_mcmc(desi_mcmc, f_mcmc)
 
     print('---------------') 
     labels = [lbl_dict[_t] for _t in theta_names]
@@ -466,7 +485,7 @@ def fit_spectrum(igal, sim='lgal', noise='bgs0', nwalkers=30, burnin=1000,
     # corner plot of the posteriors 
     flat_chain = desi_mcmc._flatten_chain(mcmc['mcmc_chain'])
     fig = DFM.corner(
-        flat_chain, 
+            flat_chain[:-3], 
         range=np.array(mcmc['prior_range']).T, 
         quantiles=[0.16, 0.5, 0.84], 
         levels=[0.68, 0.95], 
@@ -478,13 +497,38 @@ def fit_spectrum(igal, sim='lgal', noise='bgs0', nwalkers=30, burnin=1000,
     fig.savefig(f_mcmc.replace('.hdf5', '.png'), bbox_inches='tight') 
     plt.close() 
     
+    # corner plot of the posteriors for derive prop
+    fig = DFM.corner(
+            np.vstack([post['logmstar'], post['logsfr.1gyr'], post['logz.mw']]).T,
+            quantiles=[0.16, 0.5, 0.84], 
+            levels=[0.68, 0.95], 
+            nbin=40,
+            smooth=True,
+            hist_kwargs={'density': True}) 
+    _ = DFM.corner(
+            np.vstack([post['logmstar'], post['logsfr.1gyr'], post['logz.mw']]).T,
+            weights=post['w_prior.1gyr'],
+            quantiles=[0.16, 0.5, 0.84], 
+            levels=[0.68, 0.95], 
+            nbin=40,
+            smooth=True, 
+            color='C1', 
+            truths=[meta['logM_fiber'][igal], np.log10(meta['sfr_1gyr'][igal]),
+                np.log10(meta['Z_MW'][igal])], 
+            labels=[lbl_dict['logmstar'], lbl_dict['logsfr.1gyr'], lbl_dict['logz.mw']], 
+            label_kwargs={'fontsize': 20}, 
+            fig=fig, 
+            hist_kwargs={'density': True}) 
+    fig.savefig(f_mcmc.replace('.hdf5', '.prop.png'), bbox_inches='tight') 
+    plt.close() 
+
     # best-fit observable 
     fig = plt.figure(figsize=(15,5))
     sub = fig.add_subplot(111) 
     sub.plot(mcmc['wavelength_obs'], mcmc['flux_spec_obs'], 
         c='C0', lw=1, label='obs.') 
     sub.plot(mcmc['wavelength_obs'], mcmc['flux_spec_model'], 
-        c='k', ls='--', lw=1, label='median of posterior') 
+        c='k', ls='--', lw=1, label='best-fit') 
     sub.legend(loc='upper right', fontsize=15) 
     sub.set_xlabel('wavelength [$A$]', fontsize=20) 
     sub.set_xlim(3600., 9800.)
@@ -536,6 +580,7 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy', nwalkers=30,
     print('  log SFR 1Gyr = %f' % np.log10(meta['sfr_1gyr'][igal]))
     print('  log Z_MW = %f' % np.log10(meta['Z_MW'][igal]))
     print('  f_fiber = %f' % f_fiber_true) 
+    print('  f_fiber range = [%f, %f]' % (f_fiber_min, f_fiber_max))
     # ------------------------------------------------------------------------------------
     theta_names = ['logmstar', 'beta1_sfh', 'beta2_sfh', 'beta3_sfh', 'beta4_sfh',
             'gamma1_zh', 'gamma2_zh', 'dust1', 'dust2', 'dust_index', 'f_fiber'] 
@@ -589,14 +634,9 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy', nwalkers=30,
 
     if postprocess:
         print('--- postprocessing ---') 
-        mcmc = postprocess_mcmc(desi_mcmc, f_mcmc)
-
-        theta_names += ['logsfr.100myr', 'logsfr.1gyr', 'logz.mw'] 
-        truths += [np.log10(meta['sfr_100myr'][igal]),
-            np.log10(meta['sfr_1gyr'][igal]), np.log10(meta['Z_MW'][igal])]
+        post = postprocess_mcmc(desi_mcmc, f_mcmc)
 
     print('---------------') 
-    labels = [lbl_dict[_t] for _t in theta_names]
 
     # corner plot of the posteriors 
     flat_chain = desi_mcmc._flatten_chain(mcmc['mcmc_chain'])
@@ -608,11 +648,36 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy', nwalkers=30,
         nbin=40,
         smooth=True, 
         truths=truths, 
-        labels=labels, 
+        labels=[lbl_dict[_t] for _t in theta_names],
         label_kwargs={'fontsize': 20}) 
     fig.savefig(f_mcmc.replace('.hdf5', '.png'), bbox_inches='tight') 
     plt.close() 
     
+    # corner plot of the posteriors for derive prop
+    fig = DFM.corner(
+            np.vstack([post['logmstar'], post['logsfr.1gyr'], post['logz.mw']]).T,
+            quantiles=[0.16, 0.5, 0.84], 
+            levels=[0.68, 0.95], 
+            nbin=40,
+            smooth=True,
+            hist_kwargs={'density': True}) 
+    _ = DFM.corner(
+            np.vstack([post['logmstar'], post['logsfr.1gyr'], post['logz.mw']]).T,
+            weights=post['w_prior.1gyr'],
+            quantiles=[0.16, 0.5, 0.84], 
+            levels=[0.68, 0.95], 
+            nbin=40,
+            smooth=True, 
+            color='C1', 
+            truths=[meta['logM_total'][igal], np.log10(meta['sfr_1gyr'][igal]),
+                np.log10(meta['Z_MW'][igal])], 
+            labels=[lbl_dict['logmstar'], lbl_dict['logsfr.1gyr'], lbl_dict['logz.mw']], 
+            label_kwargs={'fontsize': 20}, 
+            fig=fig, 
+            hist_kwargs={'density': True}) 
+    fig.savefig(f_mcmc.replace('.hdf5', '.prop.png'), bbox_inches='tight') 
+    plt.close() 
+
     # best-fit observable 
     fig = plt.figure(figsize=(18,5))
     gs = mpl.gridspec.GridSpec(1, 2, figure=fig, width_ratios=[1,3], wspace=0.2) 
@@ -622,15 +687,15 @@ def fit_spectrophotometry(igal, sim='lgal', noise='bgs0_legacy', nwalkers=30,
     sub.scatter(np.arange(len(photo_obs)), mcmc['flux_photo_model'], c='C1',
             label='model') 
     sub.legend(loc='upper left', markerscale=3, handletextpad=0.2, fontsize=15) 
-    sub.set_xticks([0, 1, 2, 3, 4]) 
-    sub.set_xticklabels(['$g$', '$r$', '$z$', 'W1', 'W2']) 
+    sub.set_xticks([0, 1, 2]) 
+    sub.set_xticklabels(['$g$', '$r$', '$z$'], fontsize=25) 
     sub.set_xlim(-0.5, len(photo_obs)-0.5)
 
     sub = plt.subplot(gs[1]) 
     sub.plot(mcmc['wavelength_obs'], mcmc['flux_spec_obs'], 
         c='C0', lw=1, label='obs.') 
     sub.plot(mcmc['wavelength_obs'], mcmc['flux_spec_model'], 
-        c='k', ls='--', lw=1, label='median of posterior') 
+        c='k', ls='--', lw=1, label='best-fit') 
     sub.legend(loc='upper right', fontsize=15) 
     sub.set_xlabel('wavelength [$A$]', fontsize=20) 
     sub.set_xlim(3600., 9800.)

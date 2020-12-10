@@ -56,7 +56,6 @@ def fm_FSPS_mini_mocha(lib='bc03'):
     # generate noiseless spectra using emulator 
     emu = Models.DESIspeculator()
     wave = 3e3 + 0.8 * np.arange(int((1.15e4 - 3e3)/0.8))
-    print(wave) 
     _, flux = emu.sed(theta, redshifts, wavelength=wave) 
 
     # get meta data 
@@ -139,17 +138,17 @@ def fm_FSPS_mini_mocha(lib='bc03'):
         fbgs = os.path.join(UT.dat_dir(), 'mini_mocha',
                 'fsps.bgs_spec.%s.v%s.%iof%i.fits' % (lib, version, iexp+1, nexp)) 
     
-        if not os.path.isfile(fbgs): 
-            bgs_spec = FM.Spec_BGS(
-                    wave,        # wavelength  
-                    spectra_fiber,            # fiber spectra flux 
-                    fsky['texp_total'][...][iexp],  # exp time
-                    fsky['airmass'][...][iexp],     # airmass 
-                    Isky, 
-                    filename=fbgs) 
-        else: 
-            from desispec.io import read_spectra 
-            bgs_spec = read_spectra(fbgs) 
+        #if not os.path.isfile(fbgs): 
+        bgs_spec = FM.Spec_BGS(
+                wave,        # wavelength  
+                spectra_fiber,            # fiber spectra flux 
+                fsky['texp_total'][...][iexp],  # exp time
+                fsky['airmass'][...][iexp],     # airmass 
+                Isky, 
+                filename=fbgs) 
+        #else: 
+        #    from desispec.io import read_spectra 
+        #    bgs_spec = read_spectra(fbgs) 
 
         if iexp == 0: 
             spectra_bgs['wave_b'] = bgs_spec.wave['b']

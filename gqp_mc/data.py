@@ -149,7 +149,7 @@ def read_data(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'):
     -----
     * 4/30/2020: tng not supported to focus on lgal.  
     '''
-    if sim not in ['lgal']: raise NotImplementedError 
+    if sim not in ['lgal', 'fsps']: raise NotImplementedError 
     if lib != 'bc03': raise NotImplementedError 
     
     dir_sample = os.path.join(UT.dat_dir(), sample) 

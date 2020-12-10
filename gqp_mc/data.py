@@ -158,14 +158,13 @@ def read_data(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'):
     dat_descrip = '%s.%s.v%s' % (sample, lib, version) 
 
     # read in meta data 
-    if sim == 'lgal': 
-        meta = pickle.load(open(os.path.join(dir_sample,
-            "lgal.%s.meta.p" % dat_descrip), 'rb')) 
-        meta = _lgal_avg_sfr(meta)
-    
-        # read in mock data 
-        mock = h5py.File(os.path.join(dir_sample, 
-            'lgal.%s.hdf5' % dat_descrip), 'r') 
+    meta = pickle.load(open(os.path.join(dir_sample,
+        "%s.%s.meta.p" % (sim, dat_descrip)), 'rb')) 
+    if sim == 'lgal': meta = _lgal_avg_sfr(meta)
+
+    # read in mock data 
+    mock = h5py.File(os.path.join(dir_sample, 
+        '%s.%s.hdf5' % (sim, dat_descrip)), 'r') 
     '''
     elif sim == 'tng': 
         meta = pickle.load(open(os.path.join(dir_sample, 

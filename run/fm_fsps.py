@@ -36,6 +36,7 @@ def fm_FSPS_mini_mocha(lib='bc03'):
     * "BGS" spectra
     '''
     from scipy.spatial import cKDTree as KDTree
+    np.random.seed(0) 
 
     # generate some random parameter values and redshifts
     priors = Infer.load_priors([
@@ -50,11 +51,13 @@ def fm_FSPS_mini_mocha(lib='bc03'):
     _theta = np.array([priors.sample() for i in range(1000)])
     theta = priors.transform(_theta) 
 
-    redshifts = np.random.uniform(0.4, size=1000) 
+    redshifts = np.random.uniform(0.05, 0.3, size=1000) 
     
     # generate noiseless spectra using emulator 
     emu = Models.DESIspeculator()
-    wave, flux = emu.sed(theta, redshifts) 
+    wave = 3e3 + 0.8 * np.arange(int((1.15e4 - 3e3)/0.8))
+    print(wave) 
+    _, flux = emu.sed(theta, redshifts, wavelength=wave) 
 
     # get meta data 
     meta = {} 
@@ -66,7 +69,7 @@ def fm_FSPS_mini_mocha(lib='bc03'):
         emu.avgSFR(tt, zred, dt=1.) for tt, zred in zip(theta, redshifts)])
     meta['sfr_100myr']  = np.array([
         emu.avgSFR(tt, zred, dt=0.1) for tt, zred in zip(theta, redshifts)])
-    meta['Z_MW']        = Z_MW
+    meta['Z_MW']        = np.array([emu.Z_MW(tt, zred) for tt, zred in zip(theta, redshifts)])
     meta['redshift']    = redshifts 
 
     # 1. generate 'true' photometry from noiseless spectra 
@@ -76,7 +79,7 @@ def fm_FSPS_mini_mocha(lib='bc03'):
     bgs_targets = h5py.File(os.path.join(UT.dat_dir(), 'bgs.1400deg2.rlim21.0.hdf5'), 'r')
     n_targets = len(bgs_targets['ra'][...]) 
     
-    bands = ['g', 'r', 'z', 'w1', 'w2', 'w3', 'w4']
+    bands = ['g', 'r', 'z']#, 'w1', 'w2']#, 'w3', 'w4']
 
     bgs_photo       = np.zeros((n_targets, len(bands))) 
     bgs_photo_ivar  = np.zeros((n_targets, len(bands)))
@@ -100,8 +103,7 @@ def fm_FSPS_mini_mocha(lib='bc03'):
     # 3.a. apply the uncertainty to the photometry to get "measured" photometry. 
     photo_meas = photo_true + photo_ivars**-0.5 * np.random.randn(photo_true.shape[0], photo_true.shape[1]) 
 
-    f_fiber = photo_fiber_true/photo_true[:,1] # (r fiber flux) / (r total flux) 
-    assert f_fiber.max() <= 1.
+    f_fiber = np.clip(photo_fiber_true/photo_true[:,1], None, 1.) # (r fiber flux) / (r total flux) 
     meta['logM_fiber'] = np.log10(f_fiber) + meta['logM_total']
 
     # apply uncertainty to fiber flux as well 
@@ -139,7 +141,7 @@ def fm_FSPS_mini_mocha(lib='bc03'):
     
         if not os.path.isfile(fbgs): 
             bgs_spec = FM.Spec_BGS(
-                    spectra_s['wave'],        # wavelength  
+                    wave,        # wavelength  
                     spectra_fiber,            # fiber spectra flux 
                     fsky['texp_total'][...][iexp],  # exp time
                     fsky['airmass'][...][iexp],     # airmass 
@@ -209,11 +211,10 @@ def fm_FSPS_mini_mocha(lib='bc03'):
     
     # spectroscopy 
     # noiseless source spectra 
-    wlim = (spectra_s['wave'] < 2e5) & (spectra_s['wave'] > 1e3) # truncating the spectra  
-    fout.create_dataset('spec_wave_source', data=spectra_s['wave'][wlim]) 
-    fout.create_dataset('spec_flux_source', data=spectra_s['flux_dust'][:,wlim]) 
+    fout.create_dataset('spec_wave_source', data=wave) 
+    fout.create_dataset('spec_flux_source', data=flux) 
     # noiseless source spectra in fiber 
-    fout.create_dataset('spec_fiber_flux_source', data=spectra_fiber[:,wlim])
+    fout.create_dataset('spec_fiber_flux_source', data=spectra_fiber)
     
     # BGS source spectra 
     for k in spectra_bgs.keys(): 

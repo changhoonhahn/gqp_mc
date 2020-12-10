@@ -9,7 +9,7 @@ import numpy as np
 from speclite import filters as specFilter
 
 
-def Photo_DESI(wave, spectra): 
+def Photo_DESI(wave, spectra, bands=['g', 'r', 'z']): 
     ''' generate photometry by convolving the input spectrum with DECAM and WISE 
     bandpasses: g, r, z, W1, W2, W3, W4 filters. 
 
@@ -27,14 +27,17 @@ def Photo_DESI(wave, spectra):
     if wave.shape[0] == 1: wave = np.tile(wave, (n_spec, 1))
 
     from astropy import units as U
+
+    filter_dict = {'g': 'decam2014-g', 'r': 'decam2014-r', 'z': 'decam2014-z',
+            'w1': 'wise2010-W1', 'w2': 'wise2010-W2', 'w3': 'wise2010-W3',
+            'w4': 'wise2010-W4'}
     
     # load DECAM g, r, z and WISE W1-4
     filter_response = specFilter.load_filters(
-            'decam2014-g', 'decam2014-r', 'decam2014-z',
-            'wise2010-W1', 'wise2010-W2', 'wise2010-W3', 'wise2010-W4')
+            *tuple([filter_dict[b] for b in bands]))
    
     # apply filters
-    fluxes = np.zeros((n_spec, 7)) # photometric flux in nanomaggies 
+    fluxes = np.zeros((n_spec, len(bands))) # photometric flux in nanomaggies 
     for i in range(n_spec): 
         spectrum = spectra[i] 
 
@@ -43,7 +46,7 @@ def Photo_DESI(wave, spectra):
                 np.atleast_2d(spectrum) * 1e-17 * U.erg/U.s/U.cm**2/U.Angstrom, 
                 wave[i,:]*U.Angstrom))
         # convert to nanomaggies 
-        fluxes[i,:] = 1e9 * np.array([flux[0][0], flux[0][1], flux[0][2], flux[0][3], flux[0][4], flux[0][5], flux[0][6]]) 
+        fluxes[i,:] = 1e9 * np.array([flux[0][i] for i in range(len(bands))])
     
     # calculate magnitudes (not advised due to NaNs) 
     mags = 22.5 - 2.5 * np.log10(fluxes) 

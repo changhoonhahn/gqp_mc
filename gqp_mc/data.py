@@ -129,10 +129,16 @@ def Photometry(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'):
     if noise == 'legacy': 
         photo['ivar'] = np.zeros((mock['photo_flux_r_true'][...].shape[0], 7)) 
         for icol, band in enumerate(bands): 
-            photo['flux'][:,icol] = mock['photo_flux_%s_meas' % band][...] # 'measured'
-            photo['ivar'][:,icol] = mock['photo_ivar_%s_true' % band][...]
+            try: 
+                photo['flux'][:,icol] = mock['photo_flux_%s_meas' % band][...] # 'measured'
+                photo['ivar'][:,icol] = mock['photo_ivar_%s_true' % band][...]
+            except KeyError: 
+                pass 
     for band in bands: 
-        photo['flux_%s_true' % band] = mock['photo_flux_%s_true' % band][...]
+        try: 
+            photo['flux_%s_true' % band] = mock['photo_flux_%s_true' % band][...]
+        except KeyError: 
+            pass 
     photo['fiberflux_r_true'] = mock['photo_fiberflux_r_true'][...]
     photo['fiberflux_r_meas'] = mock['photo_fiberflux_r_meas'][...]
     photo['fiberflux_r_ivar'] = mock['photo_fiberflux_r_ivar'][...]

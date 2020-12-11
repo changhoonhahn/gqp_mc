@@ -406,7 +406,7 @@ def fit_photometry(igal, sim='lgal', noise='legacy', nwalkers=30, burnin=1000,
     return None 
 
 
-def fit_spectrum(igal, sim='lgal', noise='bgs0', nwalkers=30, burnin=1000,
+def fit_spectrum(igal, sim='lgal', noise='bgs', nwalkers=30, burnin=1000,
         niter=1000, maxiter=200000, opt_maxiter=100, overwrite=False,
         postprocess=False):    
     ''' Fit Lgal spectra. `noise` specifies whether to fit spectra without
@@ -424,9 +424,14 @@ def fit_spectrum(igal, sim='lgal', noise='bgs0', nwalkers=30, burnin=1000,
     assert meta['redshift'][igal] < 0.5, "speculator does not support z > 0.5 yet" 
 
     wave_obs        = specs['wave']
+    print(wave_obs.shape)
     flux_obs        = specs['flux'][igal]
-    ivar_obs        = specs['ivar'][igal]
-    resolution      = [specs['res_b'][igal], specs['res_r'][igal], specs['res_z'][igal]]
+    if noise != 'none': 
+        ivar_obs    = specs['ivar'][igal]
+        resolution  = [specs['res_b'][igal], specs['res_r'][igal], specs['res_z'][igal]]
+    else: 
+        ivar_obs    = np.ones(len(specs['wave']))
+        resolution  = None 
 
     print('--- input ---') 
     print('  z = %f' % meta['redshift'][igal])

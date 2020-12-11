@@ -23,7 +23,7 @@ import gqp_mc.fm as FM
 import gqp_mc.util as UT 
 
 
-version = '1.0' # 04/30/2020 
+version = '1.1' # 12/10/2020 
 
 
 def fm_FSPS_mini_mocha(lib='bc03'): 
@@ -113,78 +113,39 @@ def fm_FSPS_mini_mocha(lib='bc03'):
     spectra_fiber = flux * f_fiber[:,None] # 10e-17 erg/s/cm2/A
 
     # 4. generate BGS like spectra
-    # read in sampled observing conditions, sky brightness, and exposure time 
-    _fsky = os.path.join(UT.dat_dir(), 'mini_mocha', 
-            'bgs.exposure.surveysim.150s.v0p4.sample.hdf5') 
-    fsky = h5py.File(_fsky, 'r') 
-
-    nexp = len(fsky['airmass'][...]) # number of exposures 
-    wave_sky    = fsky['wave'][...] # sky wavelength 
-    sbright_sky = fsky['sky'][...]
-
-    # store to meta-data 
-    for k in ['airmass', 'moon_alt', 'moon_ill', 'moon_sep', 'seeing', 'sun_alt', 'sun_sep', 'texp_total', 'transp']: 
-        meta[k] = fsky[k][...]
-    meta['wave_sky']    = wave_sky 
-    meta['sbright_sky'] = sbright_sky 
-    
     # generate BGS spectra for the exposures 
+    from feasibgs import spectral_sims as BGS_spec_sim
+    from feasibgs import forwardmodel as BGS_fm
+
+    Idark = BGS_spec_sim.nominal_dark_sky()
+    fdesi = BGS_fm.fakeDESIspec()
+
     spectra_bgs = {} 
-    for iexp in range(nexp): 
 
-        # sky brightness of exposure 
-        Isky = [wave_sky * u.Angstrom, sbright_sky[iexp]]
+    fbgs = os.path.join(UT.dat_dir(), 'mini_mocha', 'fsps.bgs_spec.%s.v%s.fits' % (lib, version))
+    bgs_spec = fdesi.simExposure(
+            wave,        # wavelength  
+            spectra_fiber,            # fiber spectra flux 
+            exptime=180.,
+            airmass=1.1,
+            Isky=[Idark[0].value, Idark[1].value],
+            filename=fbgs
+        )
 
-        fbgs = os.path.join(UT.dat_dir(), 'mini_mocha',
-                'fsps.bgs_spec.%s.v%s.%iof%i.fits' % (lib, version, iexp+1, nexp)) 
+    spectra_bgs['wave_b'] = bgs_spec.wave['b']
+    spectra_bgs['wave_r'] = bgs_spec.wave['r']
+    spectra_bgs['wave_z'] = bgs_spec.wave['z']
+    spectra_bgs['flux_b'] = bgs_spec.flux['b']
+    spectra_bgs['flux_r'] = bgs_spec.flux['r']
+    spectra_bgs['flux_z'] = bgs_spec.flux['z']
     
-        #if not os.path.isfile(fbgs): 
-        bgs_spec = FM.Spec_BGS(
-                wave,        # wavelength  
-                spectra_fiber,            # fiber spectra flux 
-                fsky['texp_total'][...][iexp],  # exp time
-                fsky['airmass'][...][iexp],     # airmass 
-                Isky, 
-                filename=fbgs) 
-        #else: 
-        #    from desispec.io import read_spectra 
-        #    bgs_spec = read_spectra(fbgs) 
+    spectra_bgs['ivar_b'] = bgs_spec.ivar['b']
+    spectra_bgs['ivar_r'] = bgs_spec.ivar['r']
+    spectra_bgs['ivar_z'] = bgs_spec.ivar['z']
 
-        if iexp == 0: 
-            spectra_bgs['wave_b'] = bgs_spec.wave['b']
-            spectra_bgs['wave_r'] = bgs_spec.wave['r']
-            spectra_bgs['wave_z'] = bgs_spec.wave['z']
-            spectra_bgs['flux_b'] = np.zeros((nexp, bgs_spec.flux['b'].shape[0], bgs_spec.flux['b'].shape[1])) 
-            spectra_bgs['flux_r'] = np.zeros((nexp, bgs_spec.flux['r'].shape[0], bgs_spec.flux['r'].shape[1])) 
-            spectra_bgs['flux_z'] = np.zeros((nexp, bgs_spec.flux['z'].shape[0], bgs_spec.flux['z'].shape[1])) 
-            spectra_bgs['ivar_b'] = np.zeros((nexp, bgs_spec.flux['b'].shape[0], bgs_spec.flux['b'].shape[1])) 
-            spectra_bgs['ivar_r'] = np.zeros((nexp, bgs_spec.flux['r'].shape[0], bgs_spec.flux['r'].shape[1])) 
-            spectra_bgs['ivar_z'] = np.zeros((nexp, bgs_spec.flux['z'].shape[0], bgs_spec.flux['z'].shape[1])) 
-            spectra_bgs['res_b'] = np.zeros((nexp,
-                bgs_spec.resolution_data['b'].shape[0],
-                bgs_spec.resolution_data['b'].shape[1], 
-                bgs_spec.resolution_data['b'].shape[2])) 
-            spectra_bgs['res_r'] = np.zeros((nexp,
-                bgs_spec.resolution_data['r'].shape[0],
-                bgs_spec.resolution_data['r'].shape[1], 
-                bgs_spec.resolution_data['r'].shape[2])) 
-            spectra_bgs['res_z'] = np.zeros((nexp,
-                bgs_spec.resolution_data['z'].shape[0],
-                bgs_spec.resolution_data['z'].shape[1], 
-                bgs_spec.resolution_data['z'].shape[2])) 
-
-
-        spectra_bgs['flux_b'][iexp] = bgs_spec.flux['b']
-        spectra_bgs['flux_r'][iexp] = bgs_spec.flux['r']
-        spectra_bgs['flux_z'][iexp] = bgs_spec.flux['z']
-        
-        spectra_bgs['ivar_b'][iexp] = bgs_spec.ivar['b']
-        spectra_bgs['ivar_r'][iexp] = bgs_spec.ivar['r']
-        spectra_bgs['ivar_z'][iexp] = bgs_spec.ivar['z']
-
-        spectra_bgs['res_b'][iexp] = bgs_spec.resolution_data['b']
-        spectra_bgs['res_r'][iexp] = bgs_spec.resolution_data['r']
-        spectra_bgs['res_z'][iexp] = bgs_spec.resolution_data['z']
+    spectra_bgs['res_b'] = bgs_spec.resolution_data['b']
+    spectra_bgs['res_r'] = bgs_spec.resolution_data['r']
+    spectra_bgs['res_z'] = bgs_spec.resolution_data['z']
 
     # write out everything 
     fmeta = os.path.join(UT.dat_dir(), 'mini_mocha',

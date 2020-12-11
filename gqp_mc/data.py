@@ -20,7 +20,7 @@ from . import fm as FM
 from . import util as UT 
 
 
-version = '1.0' # updated 04/30/2020 
+version = '1.1' # updated 12/10/2020 
 
 
 def Spectra(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'): 
@@ -53,17 +53,14 @@ def Spectra(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'):
     '''
     meta, mock = read_data(sim=sim, noise=noise, lib=lib, sample=sample)
         
-    if 'bgs' in noise: iobs = int(noise.strip('bgs')) 
-
     specs = {} 
     specs['frac_fiber'] = mock ['frac_fiber'][...] # fiber flux scaling factor 
 
     if noise == 'none': 
-        specs['wave']            = np.atleast_2d(mock['spec_wave_source'][...])
+        specs['wave']            = mock['spec_wave_source'][...]
         specs['flux']            = mock['spec_fiber_flux_source'][...]
         specs['flux_unscaled']   = mock['spec_flux_source'][...]
-
-    elif 'bgs' in noise: 
+    elif noise == 'bgs': 
         # concatenate the 3 spectrograph outputs for convenience. 
         specs['wave'] = np.concatenate([
             mock['spec_wave_b_bgs'][...], 
@@ -71,32 +68,32 @@ def Spectra(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'):
             mock['spec_wave_z_bgs'][...]])
         
         specs['flux'] = np.concatenate([
-            mock['spec_flux_b_bgs'][...][iobs,...], 
-            mock['spec_flux_r_bgs'][...][iobs,...], 
-            mock['spec_flux_z_bgs'][...][iobs,...]], 
+            mock['spec_flux_b_bgs'][...], 
+            mock['spec_flux_r_bgs'][...], 
+            mock['spec_flux_z_bgs'][...]], 
             axis=1)
 
         specs['ivar'] = np.concatenate([
-            mock['spec_ivar_b_bgs'][...][iobs,...], 
-            mock['spec_ivar_r_bgs'][...][iobs,...], 
-            mock['spec_ivar_z_bgs'][...][iobs,...]], 
+            mock['spec_ivar_b_bgs'][...], 
+            mock['spec_ivar_r_bgs'][...], 
+            mock['spec_ivar_z_bgs'][...]], 
             axis=1)
 
         specs['wave_b'] = mock['spec_wave_b_bgs'][...]
         specs['wave_r'] = mock['spec_wave_r_bgs'][...]
         specs['wave_z'] = mock['spec_wave_z_bgs'][...]
 
-        specs['flux_b'] = mock['spec_flux_b_bgs'][...][iobs,:,:]
-        specs['flux_r'] = mock['spec_flux_r_bgs'][...][iobs,:,:]
-        specs['flux_z'] = mock['spec_flux_z_bgs'][...][iobs,:,:]
+        specs['flux_b'] = mock['spec_flux_b_bgs'][...]
+        specs['flux_r'] = mock['spec_flux_r_bgs'][...]
+        specs['flux_z'] = mock['spec_flux_z_bgs'][...]
 
-        specs['ivar_b'] = mock['spec_ivar_b_bgs'][...][iobs,:,:]
-        specs['ivar_r'] = mock['spec_ivar_r_bgs'][...][iobs,:,:]
-        specs['ivar_z'] = mock['spec_ivar_z_bgs'][...][iobs,:,:]
+        specs['ivar_b'] = mock['spec_ivar_b_bgs'][...]
+        specs['ivar_r'] = mock['spec_ivar_r_bgs'][...]
+        specs['ivar_z'] = mock['spec_ivar_z_bgs'][...]
         
-        specs['res_b'] = mock['spec_res_b_bgs'][...][iobs,...]
-        specs['res_r'] = mock['spec_res_r_bgs'][...][iobs,...]
-        specs['res_z'] = mock['spec_res_z_bgs'][...][iobs,...]
+        specs['res_b'] = mock['spec_res_b_bgs'][...]
+        specs['res_r'] = mock['spec_res_r_bgs'][...]
+        specs['res_z'] = mock['spec_res_z_bgs'][...]
     return specs, meta 
 
 
@@ -165,15 +162,6 @@ def read_data(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'):
     # read in mock data 
     mock = h5py.File(os.path.join(dir_sample, 
         '%s.%s.hdf5' % (sim, dat_descrip)), 'r') 
-    '''
-    elif sim == 'tng': 
-        meta = pickle.load(open(os.path.join(dir_sample, 
-            "tng.%s.meta.p" % dat_descrip), 'rb')) 
-
-        # read in mock data 
-        mock = h5py.File(os.path.join(dir_sample, 
-            'tng.%s.hdf5' % dat_descrip), 'r') 
-    '''
     return meta, mock  
 
 

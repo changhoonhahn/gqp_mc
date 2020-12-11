@@ -344,35 +344,36 @@ def speculator():
     return None 
 
 
-def mcmc_posterior(dt_sfr='100myr'): 
+def mcmc_posterior(sim='lgal', obs='spec', noise='bgs', dt_sfr='100myr'): 
     ''' plot that includes a corner plot and also demonstrates how the best-fit
     reproduces the data 
     '''
-    igal = 48 
+    igal = 20 
     ########################################################################
     # read meta data 
     ########################################################################
-    photo, meta = Data.Photometry(sim='lgal', noise='legacy', lib='bc03', sample='mini_mocha') 
+    _, meta = Data.Photometry(sim=sim, noise='legacy', lib='bc03', sample='mini_mocha') 
+    print('z=%f' % meta['redshift'][igal])
     ########################################################################
     # read markov chain 
     ########################################################################
     f_mcmc = os.path.join(dir_mm, 'provabgs',
-            'lgal.specphoto.noise_bgs0_legacy.%i.mcmc.hdf5' % igal)
-    #        'lgal.spec.noise_bgs0.%i.mcmc.hdf5' % igal)
+            '%s.%s.noise_%s.%i.mcmc.hdf5' % (sim, obs, noise, igal))
     mcmc = h5py.File(f_mcmc, 'r')
     f_post = os.path.join(dir_mm, 'provabgs',
-            'lgal.specphoto.noise_bgs0_legacy.%i.postproc.hdf5' % igal)
-    #        'lgal.spec.noise_bgs0.%i.postproc.hdf5' % igal)
+            '%s.%s.noise_%s.%i.postproc.hdf5' % (sim, obs, noise, igal))
     post = h5py.File(f_post, 'r')
     ########################################################################
     # compile labels and truths
     ########################################################################
     theta_names = ['logmstar', 'beta1_sfh', 'beta2_sfh', 'beta3_sfh', 'beta4_sfh',
-            'gamma1_zh', 'gamma2_zh', 'dust1', 'dust2', 'dust_index', 'f_fiber']
+            'gamma1_zh', 'gamma2_zh', 'dust1', 'dust2', 'dust_index']
     lbls = [lbl_dict[_theta] for _theta in theta_names]
     truths = [None for _ in theta_names]
-    truths[0] = meta['logM_fiber'][igal]
-    truths[-4] = (photo['fiberflux_r_true'][igal]/photo['flux_r_true'][igal]) 
+    truths[0] = meta['logM_%s' % ['total', 'fiber'][obs=='spec']][igal]
+    if obs == 'specphoto': 
+        theta_names += ['f_fiber']
+        truths[-1] = (photo['fiberflux_r_true'][igal]/photo['flux_r_true'][igal]) 
     ########################################################################
     # figure 
     ########################################################################
@@ -388,20 +389,25 @@ def mcmc_posterior(dt_sfr='100myr'):
             truths=truths, 
             labels=lbls, 
             label_kwargs={'fontsize': 15})
-    _ffig = os.path.join(dir_doc, 'mcmc_posterior.png')
+    _ffig = os.path.join(dir_doc, 'mcmc_posterior.%s.%s.%s.png' % (sim, obs, noise))
     fig.savefig(_ffig, bbox_inches='tight') 
-    fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
+    #fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
     plt.close()
     ########################################################################
     prop_names = ['logmstar', 'logsfr.%s' % dt_sfr, 'logz.mw']
-    props = np.array([post[k] for k in prop_names]).T
-    lbls = [lbl_dict[k] for k in prop_names]
-    truths = [meta['logM_fiber'][igal], np.log10(meta['sfr_%s' % dt_sfr][igal]), np.log10(meta['Z_MW'][igal])]
+    props = np.array([
+        post['logmstar'][...],
+        post['logsfr.%s' % dt_sfr][...] - post['logmstar'][...], 
+        post['logz.mw'][...]]).T
+    lbls = [lbl_dict['logmstar'], r'$\log~{\rm SSFR}_{%s}$' % dt_sfr, lbl_dict['logz.mw']]
+    truths = [meta['logM_%s' % ['total', 'fiber'][obs=='spec']][igal], 
+            np.log10(meta['sfr_%s' % dt_sfr][igal]) - meta['logM_%s' % ['total', 'fiber'][obs=='spec']][igal], 
+            np.log10(meta['Z_MW'][igal])]
     plot_range = [(np.median(props[:,i]) - 0.5, np.median(props[:,i]) + 0.5) for i in range(len(truths))]
 
     fig = DFM.corner(
             props,
-            weights=post['w_prior.%s' % dt_sfr], 
+            #weights=post['w_prior.%s' % dt_sfr], 
             range=plot_range, 
             quantiles=[0.16, 0.5, 0.84], 
             levels=[0.68, 0.95],
@@ -410,37 +416,47 @@ def mcmc_posterior(dt_sfr='100myr'):
             truths=truths, 
             labels=lbls, 
             label_kwargs={'fontsize': 20})
-    _ffig = os.path.join(dir_doc, 'mcmc_posterior.props.%s.png' % dt_sfr) 
+    _ffig = os.path.join(dir_doc, 'mcmc_posterior.%s.%s.%s.props.sfr%s.png' %
+            (sim, obs, noise, dt_sfr))
     fig.savefig(_ffig, bbox_inches='tight') 
-    fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
+    #fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
     plt.close()
-
-    fig = plt.figure(figsize=(20,5))
-    gs2 = fig.add_gridspec(nrows=1, ncols=2, width_ratios=[1,3])#, top=0.17, bottom=0.05)
-    ax1 = fig.add_subplot(gs2[0,0]) 
-    n_photo = len(mcmc['flux_photo_obs'][...])
-    ax1.errorbar(np.arange(n_photo), mcmc['flux_photo_obs'][...], 
-            yerr=mcmc['flux_ivar_photo_obs'][...]**-0.5, fmt='.k',
-            label='observations')
-    ax1.scatter(np.arange(n_photo), mcmc['flux_photo_model'][...], 
-            c='C1', label=r'best-fit') 
-    ax1.legend(loc='upper left', markerscale=3, handletextpad=0.2, fontsize=15) 
-    ax1.set_xticks([0, 1, 2])#, 3, 4]) 
-    ax1.set_xticklabels(['$g$', '$r$', '$z$'], fontsize=25) 
-    ax1.set_xlim(-0.5, n_photo-0.5)
-
-    ax2 = fig.add_subplot(gs2[0,1]) 
-    ax2.plot(mcmc['wavelength_obs'][...], mcmc['flux_spec_obs'][...], c='k',
-            lw=1) 
-    ax2.plot(mcmc['wavelength_obs'][...], mcmc['flux_spec_model'][...], c='C1',
-            ls='--', lw=1) 
-    ax2.set_xlabel('wavelength [$\AA$]', fontsize=20) 
-    ax2.set_xlim(3600., 9800.)
-    ax2.set_ylim(-1., 5.) 
     
-    _ffig = os.path.join(dir_doc, 'mcmc_posterior.bestfit.png')
+    if obs == 'specphoto': 
+        fig = plt.figure(figsize=(20,5))
+        gs2 = fig.add_gridspec(nrows=1, ncols=2, width_ratios=[1,3])#, top=0.17, bottom=0.05)
+        ax1 = fig.add_subplot(gs2[0,0]) 
+        ax2 = fig.add_subplot(gs2[0,1]) 
+    elif obs == 'spec': 
+        fig = plt.figure(figsize=(15,5))
+        ax2 = fig.add_subplot(111)
+    elif obs == 'photo': 
+        fig = plt.figure(figsize=(5,5))
+        ax1 = fig.add_subplot(111)
+
+    if 'photo' in obs: 
+        n_photo = len(mcmc['flux_photo_obs'][...])
+        ax1.errorbar(np.arange(n_photo), mcmc['flux_photo_obs'][...], 
+                yerr=mcmc['flux_ivar_photo_obs'][...]**-0.5, fmt='.k',
+                label='observations')
+        ax1.scatter(np.arange(n_photo), mcmc['flux_photo_model'][...], 
+                c='C1', label=r'best-fit') 
+        ax1.legend(loc='upper left', markerscale=3, handletextpad=0.2, fontsize=15) 
+        ax1.set_xticks([0, 1, 2])#, 3, 4]) 
+        ax1.set_xticklabels(['$g$', '$r$', '$z$'], fontsize=25) 
+        ax1.set_xlim(-0.5, n_photo-0.5)
+    if 'spec' in obs: 
+        ax2.plot(mcmc['wavelength_obs'][...], mcmc['flux_spec_obs'][...], c='k',
+                lw=1) 
+        ax2.plot(mcmc['wavelength_obs'][...], mcmc['flux_spec_model'][...], c='C1',
+                ls='--', lw=1) 
+        ax2.set_xlabel('wavelength [$\AA$]', fontsize=20) 
+        ax2.set_xlim(3600., 9800.)
+        ax2.set_ylim(-1., 5.) 
+        
+    _ffig = os.path.join(dir_doc, 'mcmc_posterior.%s.%s.%s.bestfit.png' % (sim, obs, noise))
     fig.savefig(_ffig, bbox_inches='tight') 
-    fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
+    #fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
     plt.close()
     return None 
 
@@ -1107,8 +1123,8 @@ if __name__=="__main__":
     #speculator()
     #_NMF_bases() 
     
-    #mcmc_posterior(dt_sfr='100myr')
-    #mcmc_posterior(dt_sfr='1gyr')
+    mcmc_posterior(sim='fsps', obs='spec', noise='bgs', dt_sfr='100myr')
+    mcmc_posterior(sim='fsps', obs='spec', noise='bgs', dt_sfr='1gyr')
     
     #inferred_props(sim='fsps', obs='spec', noise='none', dt_sfr='100myr')
     #inferred_props(sim='fsps', obs='spec', noise='none', dt_sfr='1gyr')
@@ -1137,8 +1153,8 @@ if __name__=="__main__":
     #photo_vs_specphoto(sim='tng', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
     #        method='ispeculator', model='emulator')
 
-    eta_Delta(sim='fsps', obs='spec', noise='none', dt_sfr='100myr')
-    eta_Delta(sim='fsps', obs='spec', noise='none', dt_sfr='1gyr')
+    #eta_Delta(sim='fsps', obs='spec', noise='none', dt_sfr='100myr')
+    #eta_Delta(sim='fsps', obs='spec', noise='none', dt_sfr='1gyr')
     #eta_Delta(sim='lgal', obs='spec', noise='bgs0', dt_sfr='100myr')
     #eta_Delta(sim='lgal', obs='spec', noise='bgs0', dt_sfr='1gyr')
 

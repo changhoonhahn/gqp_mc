@@ -23,8 +23,6 @@ mpl.rcParams['legend.frameon'] = False
 
 n_sample = 50000
 
-# redshift
-z = 0.1
 
 
 def bestfit_gmm(x, max_comp=10): 
@@ -57,81 +55,94 @@ desi_mcmc = Infer.desiMCMC(
         prior=priors, 
         flux_calib=FluxCalib.no_flux_factor # no flux calibration necessary
         )
-
 # ------------------------------------------------------------
 # get prior correction 
 # 1. sample prior 
-theta_prior = np.array([desi_mcmc.prior.sample() for i in range(n_sample)]) 
+theta_prior         = priors.transform(np.array([priors.sample() for i in range(n_sample)]))
+theta_prior_test    = priors.transform(np.array([priors.sample() for i in range(n_sample)]))
 
-# 2. compute the derived properties we want to impose flat priors on  
-logm_prior      = theta_prior[:,0] 
-logsfr_prior    = np.log10(desi_mcmc.model.avgSFR(theta_prior, z, dt=1.))
-logzmw_prior    = np.log10(desi_mcmc.model.Z_MW(theta_prior, z))
-prop_prior      = np.array([logm_prior, logsfr_prior, logzmw_prior])
+# redshift
+for z in [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35]: 
+    # 2. compute the derived properties we want to impose flat priors on  
+    logm_prior      = theta_prior[:,0] 
+    logsfr_prior    = np.log10(
+            desi_mcmc.model.avgSFR(np.concatenate([np.zeros((theta_prior.shape[0],1)),
+                theta_prior[:,1:]], axis=1), z, dt=1.))
+    logzmw_prior    = np.log10(desi_mcmc.model.Z_MW(theta_prior, z))
+    prop_prior      = np.array([logm_prior, logsfr_prior, logzmw_prior])
 
-# 3. fit a joint distirbution of the derived properties 
-kde_fit = gkde(prop_prior) 
-gmm_fit = GMix(n_components=20)  
-gmm_fit.fit(prop_prior.T)
+    # 3. fit a joint distirbution of the derived properties 
+    kde_fit = gkde(prop_prior) 
+    gmm_fit = GMix(n_components=20)  
+    gmm_fit.fit(prop_prior.T)
 
-kde_samples = kde_fit.resample(10000)
-_gmm_samples, _ = gmm_fit.sample(10000)
-gmm_samples = _gmm_samples.T
+    kde_samples = kde_fit.resample(10000)
+    _gmm_samples, _ = gmm_fit.sample(10000)
+    gmm_samples = _gmm_samples.T
+    
+    _range = [(8., 12.), (-13., -9.), (-4., 2.)]
+    fig = DFM.corner(
+        prop_prior.T,
+        quantiles=[0.16, 0.5, 0.84], 
+        range=_range,
+        hist_kwargs={'density': True}
+        ) 
+    _ = DFM.corner(
+        gmm_samples.T, 
+        range=_range,
+        color='C0',
+        hist_kwargs={'density': True},
+        fig=fig
+        )
+    _ = DFM.corner(
+        kde_samples.T, 
+        range=_range,
+        color='C1',
+        hist_kwargs={'density': True},
+        fig=fig
+        )
+    fig.savefig('test_prior_correction.z%.2f.fits.png' % z, bbox_inches='tight') 
+    plt.close()
 
-fig = DFM.corner(
-    prop_prior.T,
-    hist_kwargs={'density': True}
-    ) 
-_ = DFM.corner(
-    gmm_samples.T, 
-    color='C0',
-    hist_kwargs={'density': True},
-    fig=fig
-    )
-_ = DFM.corner(
-    kde_samples.T, 
-    color='C1',
-    hist_kwargs={'density': True},
-    fig=fig
-    )
-fig.savefig('test_prior_correction.fits.png', bbox_inches='tight') 
-plt.close()
+    # test thetas
+    logm_prior_test     = theta_prior_test[:,0] 
+    logsfr_prior_test   = np.log10(
+            desi_mcmc.model.avgSFR(np.concatenate([np.zeros((theta_prior.shape[0],1)), 
+                theta_prior_test[:,1:]], axis=1), z, dt=1.)) 
+    logzmw_prior_test   = np.log10(desi_mcmc.model.Z_MW(theta_prior_test, z))
 
+    # 4. calculate weights
+    prop_prior_test = np.array([logm_prior_test, logsfr_prior_test, logzmw_prior_test])
 
-# test thetas
-theta_prior_test = np.array([desi_mcmc.prior.sample() for i in range(n_sample)]) 
-logm_prior_test     = theta_prior_test[:,0] 
-logsfr_prior_test   = np.log10(desi_mcmc.model.avgSFR(theta_prior_test, z, dt=1.))
-logzmw_prior_test   = np.log10(desi_mcmc.model.Z_MW(theta_prior_test, z))
-
-# 4. calculate weights
-prop_prior_test = np.array([logm_prior_test, logsfr_prior_test, logzmw_prior_test])
-
-p_prop_kde = kde_fit.pdf(prop_prior_test)
-p_prop_gmm = np.exp(gmm_fit.score_samples(prop_prior_test.T)) 
-w_prior_corr_kde = 1./p_prop_kde
-w_prior_corr_kde[p_prop_kde < 1e-4] = 0. 
-w_prior_corr_gmm = 1./p_prop_gmm
-w_prior_corr_gmm[p_prop_gmm < 1e-4] = 0. 
-
-fig = DFM.corner(
-    prop_prior_test.T,
-    hist_kwargs={'density': True}
-    ) 
-_ = DFM.corner(
-    prop_prior_test.T, 
-    weights=w_prior_corr_gmm, 
-    color='C0',
-    hist_kwargs={'density': True},
-    fig=fig
-    )
-_ = DFM.corner(
-    prop_prior_test.T, 
-    weights=w_prior_corr_kde, 
-    color='C1',
-    hist_kwargs={'density': True},
-    fig=fig
-    )
-fig.savefig('test_prior_correction.png', bbox_inches='tight') 
-plt.close()
+    p_prop_kde = kde_fit.pdf(prop_prior_test)
+    p_prop_gmm = np.exp(gmm_fit.score_samples(prop_prior_test.T)) 
+    w_prior_corr_kde = 1./p_prop_kde
+    w_prior_corr_kde[p_prop_kde < 1e-4] = 0. 
+    w_prior_corr_gmm = 1./p_prop_gmm
+    w_prior_corr_gmm[p_prop_gmm < 1e-4] = 0. 
+    
+    fig = DFM.corner(
+        prop_prior_test.T,
+        quantiles=[0.16, 0.5, 0.84], 
+        range=_range,
+        hist_kwargs={'density': True}
+        ) 
+    _ = DFM.corner(
+        prop_prior_test.T, 
+        weights=w_prior_corr_gmm, 
+        range=_range,
+        color='C0',
+        hist_kwargs={'density': True},
+        fig=fig
+        )
+    _ = DFM.corner(
+        prop_prior_test.T, 
+        weights=w_prior_corr_kde, 
+        range=_range,
+        color='C1',
+        hist_kwargs={'density': True},
+        fig=fig
+        )
+    fig.savefig('test_prior_correction.z%.2f.png' % z, bbox_inches='tight') 
+    plt.close()
 

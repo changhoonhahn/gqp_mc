@@ -28,11 +28,10 @@ n_cpu = int(sys.argv[4])
 #####################################################################
 
 # read mock wavelength, flux, inverse variance, and theta 
-dat_dir = os.path.join(UT.dat_dir(), 'mini_mocha', 'provabgs_mocks')
-wave_obs    = np.load(os.path.join(dat_dir, 'provabgs_mock.wave_obs.npy')) 
-flux_obs    = np.load(os.path.join(dat_dir, 'provabgs_mock.flux.noisy.npy')) 
-ivar_obs    = np.load(os.path.join(dat_dir, 'provabgs_mock.ivar.npy'))  
-theta_obs   = np.load(os.path.join(dat_dir, 'provabgs_mock.theta.npy')) 
+dat_dir = os.path.join(UT.dat_dir(), 'mini_mocha')
+wave_obs    = np.load(os.path.join(dat_dir, 'mocha_s1.wave.npy')) 
+flux_obs    = np.load(os.path.join(dat_dir, 'mocha_s1.flux.npy'))
+ivar_obs    = np.load(os.path.join(dat_dir, 'mocha_s1.ivar.npy'))  
 
 # all flux at z = 0.2 
 z_obs = 0.2
@@ -54,8 +53,8 @@ prior = Infer.load_priors([
 
 
 def run_mcmc(i_obs): 
-    fchain_npy  = os.path.join(dat_dir, 'S1.tau_model.%i.chain.npy' % i_obs)
-    fchain_p    = os.path.join(dat_dir, 'S1.tau_model.%i.chain.p' % i_obs)
+    fchain_npy  = os.path.join(dat_dir, 'S1', 'S1.tau_model.%i.chain.npy' % i_obs)
+    fchain_p    = os.path.join(dat_dir, 'S1', 'S1.tau_model.%i.chain.p' % i_obs)
 
     if os.path.isfile(fchain_npy) and os.path.isfile(fchain_p): 
         return None 

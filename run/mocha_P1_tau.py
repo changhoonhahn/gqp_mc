@@ -28,9 +28,9 @@ n_cpu = int(sys.argv[4])
 
 # read mock wavelength, flux, inverse variance, and theta 
 dat_dir = os.path.join(UT.dat_dir(), 'mini_mocha')
-wave_obs    = np.load(os.path.join(dat_dir, 'mocha_s1.wave.npy')) 
-flux_obs    = np.load(os.path.join(dat_dir, 'mocha_s1.flux.npy'))
-ivar_obs    = np.load(os.path.join(dat_dir, 'mocha_s1.ivar.npy'))  
+flux_obs    = np.load(os.path.join(dat_dir, 'mocha_p1.flux.npy'))[:,:3]
+ivar_obs    = np.load(os.path.join(dat_dir, 'mocha_p1.ivar.npy'))[:,:3]
+theta_obs   = np.load(os.path.join(dat_dir, 'provabgs_mocks', 'provabgs_mock.theta.npy')) 
 
 # all flux at z = 0.2 
 z_obs = 0.2
@@ -52,29 +52,29 @@ prior = Infer.load_priors([
 
 
 def run_mcmc(i_obs): 
-    fchain_npy  = os.path.join(dat_dir, 'provabgs_mocks', 'S1.tau_model.%i.chain.npy' % i_obs)
-    fchain_p    = os.path.join(dat_dir, 'provabgs_mocks', 'S1.tau_model.%i.chain.p' % i_obs)
+    fchain_npy  = os.path.join(dat_dir, 'provabgs_mocks', 'P1.tau_model.%i.chain.npy' % i_obs)
+    fchain_p    = os.path.join(dat_dir, 'provabgs_mocks', 'P1.tau_model.%i.chain.p' % i_obs)
 
-    if os.path.isfile(fchain_npy) and os.path.isfile(fchain_p): 
-        return None 
+    #if os.path.isfile(fchain_npy) and os.path.isfile(fchain_p): 
+    #    return None 
     
     # desi MCMC object
     desi_mcmc = Infer.desiMCMC(model=m_tau, prior=prior)
 
     # run MCMC
     zeus_chain = desi_mcmc.run(
-        wave_obs=wave_obs,
-        flux_obs=flux_obs[i_obs],
-        flux_ivar_obs=ivar_obs,
-        zred=z_obs,
-        vdisp=0.,
-        sampler='zeus',
-        nwalkers=30,
-        burnin=0,
-        opt_maxiter=2000,
-        niter=niter,
-        progress=False,
-        debug=True)
+            bands='desi', # g, r, z
+            photo_obs=flux_obs[i_obs], 
+            photo_ivar_obs=ivar_obs[i_obs], 
+            zred=z_obs,
+            vdisp=0.,
+            sampler='zeus',
+            nwalkers=30,
+            burnin=0,
+            opt_maxiter=2000,
+            niter=niter,
+            progress=False,
+            debug=True)
     chain = zeus_chain['mcmc_chain']
 
     # save chain 

@@ -1,6 +1,6 @@
 '''
 
-S1 test (PROVABGS mocks) using tau model 
+SP1 test (PROVABGS mocks) using tau model 
 
 The PROVABGS mocks are generated using provabgs. All at redshift z=0.2. They have a
 somewhat toned down BGS-like noise 
@@ -28,9 +28,12 @@ n_cpu = int(sys.argv[4])
 
 # read mock wavelength, flux, inverse variance, and theta 
 dat_dir = os.path.join(UT.dat_dir(), 'mini_mocha')
-wave_obs    = np.load(os.path.join(dat_dir, 'mocha_s1.wave.npy')) 
-flux_obs    = np.load(os.path.join(dat_dir, 'mocha_s1.flux.npy'))
-ivar_obs    = np.load(os.path.join(dat_dir, 'mocha_s1.ivar.npy'))  
+theta_obs       = np.load(os.path.join(dat_dir, 'provabgs_mocks', 'provabgs_mock.theta.npy')) 
+wave_obs        = np.load(os.path.join(dat_dir, 'mocha_s1.wave.npy')) 
+flux_obs        = np.load(os.path.join(dat_dir, 'mocha_s1.flux.npy'))
+ivar_obs        = np.load(os.path.join(dat_dir, 'mocha_s1.ivar.npy'))  
+photo_obs       = np.load(os.path.join(dat_dir, 'mocha_p1.flux.npy'))[:,:3]
+ivar_photo_obs  = np.load(os.path.join(dat_dir, 'mocha_p1.ivar.npy'))[:,:3]
 
 # all flux at z = 0.2 
 z_obs = 0.2
@@ -52,8 +55,8 @@ prior = Infer.load_priors([
 
 
 def run_mcmc(i_obs): 
-    fchain_npy  = os.path.join(dat_dir, 'provabgs_mocks', 'S1.tau_model.%i.chain.npy' % i_obs)
-    fchain_p    = os.path.join(dat_dir, 'provabgs_mocks', 'S1.tau_model.%i.chain.p' % i_obs)
+    fchain_npy  = os.path.join(dat_dir, 'provabgs_mocks', 'SP1.tau_model.%i.chain.npy' % i_obs)
+    fchain_p    = os.path.join(dat_dir, 'provabgs_mocks', 'SP1.tau_model.%i.chain.p' % i_obs)
 
     if os.path.isfile(fchain_npy) and os.path.isfile(fchain_p): 
         return None 
@@ -66,6 +69,9 @@ def run_mcmc(i_obs):
         wave_obs=wave_obs,
         flux_obs=flux_obs[i_obs],
         flux_ivar_obs=ivar_obs,
+        bands='desi', # g, r, z
+        photo_obs=photo_obs[i_obs], 
+        photo_ivar_obs=ivar_photo_obs[i_obs], 
         zred=z_obs,
         vdisp=0.,
         sampler='zeus',

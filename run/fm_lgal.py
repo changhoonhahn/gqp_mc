@@ -234,6 +234,8 @@ def _lgal_noiseless_spectra(galids, lib='bc03'):
     n_id = len(galids) 
 
     if lib == 'bc03': str_lib = 'BC03_Stelib'
+    elif lib == 'fsps': str_lib = 'FSPS_uvmiles'
+    else: raise ValueError
 
     # noiseless source spectra
     _Fsource = lambda galid: os.path.join(UT.lgal_dir(), 'templates', 
@@ -368,5 +370,5 @@ def QA_fm_Lgal_mini_mocha(lib='bc03'):
 
 
 if __name__=="__main__": 
-    fm_Lgal_mini_mocha()
+    fm_Lgal_mini_mocha(lib='fsps')
     #QA_fm_Lgal_mini_mocha()

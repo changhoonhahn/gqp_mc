@@ -19,7 +19,181 @@ import gqp_mc.fm as FM
 import gqp_mc.util as UT 
 
 
-version = '1.1' # 12/10/2020 
+#version = '1.1' # 12/10/2020 
+version = '1.2' # 05/24/2021 
+
+
+def fm_Lgal_fsps(): 
+    ''' construct mock spectra and photometry using L-Galaxies SED constructed
+    using FSPS MILES stellar library and MIST isochrones
+    '''
+    # read in LGal SED
+    flgal = os.path.join('/global/cfs/cdirs/desi/mocks/LGal_spectra',
+            'Lgal_fsps_mocha.p')
+    lgal_dict = pickle.load(open(flgal, 'rb'))
+    ################################################################################
+    # 0. compile meta-data
+    meta = {} 
+    meta['t_lookback']  = lgal_dict['t_sfh']
+    meta['dt']          = lgal_dict['dt']
+    meta['sfh_disk']    = lgal_dict['sfh_disk']
+    meta['sfh_bulge']   = lgal_dict['sfh_bulge']
+    meta['Z_disk']      = lgal_dict['Z_disk']
+    meta['Z_bulge']     = lgal_dict['Z_bulge']
+    meta['logM_disk']   = [np.log10(np.sum(sfh)) for sfh in lgal_dict['sfh_disk']]
+    meta['logM_bulge']  = [np.log10(np.sum(sfh)) for sfh in lgal_dict['sfh_bulge']]
+    meta['logM_total']  = [np.log10(np.sum(sfh0) + np.sum(sfh1)) for sfh0, sfh1
+            in zip(lgal_dict['sfh_disk'], lgal_dict['sfh_bulge'])]
+
+    # mass weighted age and metallicity 
+    t_age_mw, z_mw = [], [] 
+    for i in range(len(lgal_dict['dt'])): 
+        t_age_mw.append(
+                np.sum(lgal_dict['t_sfh'][i] * (lgal_dict['sfh_disk'][i] + lgal_dict['sfh_bulge'][i])) /
+                np.sum(lgal_dict['sfh_disk'][i] + lgal_dict['sfh_bulge'][i])
+                )
+        z_mw.append(
+                np.sum(lgal_dict['Z_disk'][i] * lgal_dict['sfh_disk'][i] +
+                    lgal_dict['Z_bulge'][i] * lgal_dict['sfh_bulge'][i]) / 
+                np.sum(lgal_dict['sfh_disk'][i] + lgal_dict['sfh_bulge'][i])
+                )
+    meta['t_age_MW']    = t_age_mw 
+    meta['Z_MW']        = z_mw
+    meta['redshift']    = lgal_dict['redshift'] 
+    meta['cosi']        = lgal_dict['cosi']
+    meta['tau_ism']     = lgal_dict['tauISM']
+    meta['tau_bc']      = lgal_dict['tauBC']
+    meta['vd_disk']     = lgal_dict['vd_disk']
+    meta['vd_bulge']    = lgal_dict['vd_bulge']
+    print('%.2f < z < %.2f' % (np.min(meta['redshift']), np.max(meta['redshift'])))
+
+    ################################################################################
+    # 1. generate 'true' photometry from noiseless spectra 
+    wave = np.array(lgal_dict['wave_obs'])
+    # convert from Lsun/A/m2 --> 1e-17 erg/s/A/cm2
+    flux_dust = np.array(lgal_dict['flux_dust']) * 3.846e33 * 1e-4 * 1e17
+    # interpoalte to save wavelength grid
+    wave_lin = np.arange(1e3, 3e5, 0.2)
+    flux_dust_interp = np.zeros((flux_dust.shape[0], len(wave_lin)))
+    for i in range(flux_dust.shape[0]): 
+        interp_flux_dust        = sp.interpolate.interp1d(wave[i], flux_dust[i], fill_value='extrapolate') 
+        flux_dust_interp[i,:]   = interp_flux_dust(wave_lin) 
+
+    bands = ['g', 'r', 'z', 'w1', 'w2', 'w3', 'w4']
+    photo_true, mag_true = FM.Photo_DESI(wave, flux_dust, bands=bands) 
+    ################################################################################
+    # 2. assign uncertainties to the photometry and fiberfrac using BGS targets from the Legacy survey 
+    bgs_targets = h5py.File(os.path.join(UT.dat_dir(), 'bgs.1400deg2.rlim21.0.hdf5'), 'r')
+    n_targets = len(bgs_targets['ra'][...]) 
+
+    bgs_photo       = np.zeros((n_targets, len(bands))) 
+    bgs_photo_ivar  = np.zeros((n_targets, len(bands)))
+    bgs_fiberflux   = np.zeros(n_targets) # r-band fiber flux
+    for ib, band in enumerate(bands): 
+        bgs_photo[:,ib]         = bgs_targets['flux_%s' % band][...] 
+        bgs_photo_ivar[:,ib]    = bgs_targets['flux_ivar_%s' % band][...] 
+    bgs_fiberflux = bgs_targets['fiberflux_r'][...]
+        
+    from scipy.spatial import cKDTree as KDTree
+    # construct KD tree from BGS targets (currently downsampled) 
+    #bgs_features = np.array([bgs_photo[:,0], bgs_photo[:,1], bgs_photo[:,2], 
+    #    bgs_photo[:,0] - bgs_photo[:,1], bgs_photo[:,1] - bgs_photo[:,2]]).T
+    bgs_features = np.array([bgs_photo[:,1], bgs_photo[:,0] - bgs_photo[:,1], bgs_photo[:,1] - bgs_photo[:,2]]).T
+    tree = KDTree(bgs_features) 
+    # match ivars and fiberflux 
+    lgal_features = np.array([photo_true[:,1], photo_true[:,0] - photo_true[:,1], photo_true[:,1] - photo_true[:,2]]).T
+    dist, indx = tree.query(lgal_features)
+
+    photo_ivars = bgs_photo_ivar[indx,:] 
+    photo_fiber_true = bgs_fiberflux[indx] 
+    ################################################################################
+    # 3. apply noise model to photometry
+    # 3.a. apply the uncertainty to the photometry to get "measured" photometry. 
+    photo_meas = photo_true + photo_ivars**-0.5 * np.random.randn(photo_true.shape[0], photo_true.shape[1]) 
+
+    f_fiber = photo_fiber_true/photo_true[:,1] # (r fiber flux) / (r total flux) 
+    assert f_fiber.max() <= 1.
+    meta['logM_fiber'] = np.log10(f_fiber) + meta['logM_total']
+
+    # apply uncertainty to fiber flux as well 
+    photo_fiber_meas = photo_fiber_true + f_fiber * photo_ivars[:,1]**-0.5 * np.random.randn(photo_true.shape[0]) 
+    photo_ivar_fiber = f_fiber**-2 * photo_ivars[:,1] 
+
+    # 3.b. get fiber spectra by scaling down noiseless Lgal source spectra
+    spectra_fiber = flux_dust_interp * f_fiber[:,None] # 10e-17 erg/s/cm2/A
+
+    ################################################################################
+    # 4. generate BGS like spectra
+    from feasibgs import spectral_sims as BGS_spec_sim
+    from feasibgs import forwardmodel as BGS_fm
+
+    Idark = BGS_spec_sim.nominal_dark_sky()
+    fdesi = BGS_fm.fakeDESIspec()
+
+    spectra_bgs = {} 
+
+    fbgs = os.path.join(UT.dat_dir(), 'mini_mocha', 'fsps.bgs_spec.fsps.v%s.fits' % version)
+    print(fbgs)
+    bgs_spec = fdesi.simExposure(
+            wave_lin,        # wavelength  
+            spectra_fiber,            # fiber spectra flux 
+            exptime=180.,
+            airmass=1.1,
+            Isky=[Idark[0].value, Idark[1].value],
+            filename=fbgs
+        )
+
+    spectra_bgs['wave_b'] = bgs_spec.wave['b']
+    spectra_bgs['wave_r'] = bgs_spec.wave['r']
+    spectra_bgs['wave_z'] = bgs_spec.wave['z']
+    spectra_bgs['flux_b'] = bgs_spec.flux['b']
+    spectra_bgs['flux_r'] = bgs_spec.flux['r']
+    spectra_bgs['flux_z'] = bgs_spec.flux['z']
+    
+    spectra_bgs['ivar_b'] = bgs_spec.ivar['b']
+    spectra_bgs['ivar_r'] = bgs_spec.ivar['r']
+    spectra_bgs['ivar_z'] = bgs_spec.ivar['z']
+
+    spectra_bgs['res_b'] = bgs_spec.resolution_data['b']
+    spectra_bgs['res_r'] = bgs_spec.resolution_data['r']
+    spectra_bgs['res_z'] = bgs_spec.resolution_data['z']
+    ################################################################################
+    # 5. write out everything 
+    # meta-data to pickle file
+    fmeta = os.path.join(UT.dat_dir(), 'mini_mocha',
+            'lgal.mini_mocha.fsps.v%s.meta.p' % (version))
+    pickle.dump(meta, open(fmeta, 'wb')) # meta-data
+    
+    # the rest 
+    fout = h5py.File(os.path.join(UT.dat_dir(), 'mini_mocha', 
+        'lgal.mini_mocha.fsps.v%s.hdf5' % (version)), 'w')
+    # photometry  
+    for i, b in enumerate(bands): 
+        # 'true' 
+        fout.create_dataset('photo_flux_%s_true' % b, data=photo_true[:,i]) 
+        fout.create_dataset('photo_ivar_%s_true' % b, data=photo_ivars[:,i]) 
+        # 'measured'
+        fout.create_dataset('photo_flux_%s_meas' % b, data=photo_meas[:,i]) 
+
+    # fiber flux 
+    fout.create_dataset('photo_fiberflux_r_true', data=photo_fiber_true) 
+    fout.create_dataset('photo_fiberflux_r_meas', data=photo_fiber_meas) 
+    fout.create_dataset('photo_fiberflux_r_ivar', data=photo_ivar_fiber) 
+    fout.create_dataset('frac_fiber', data=f_fiber) # fraction of flux in fiber
+    
+    # spectroscopy 
+    # noiseless source spectra 
+    wlim = (wave_lin < 2e5) & (wave_lin > 1e3) # truncating the spectra  
+    fout.create_dataset('spec_wave_source', data=wave_lin[wlim]) 
+    fout.create_dataset('spec_flux_source', data=flux_dust_interp[:,wlim]) 
+    # noiseless source spectra in fiber 
+    fout.create_dataset('spec_fiber_flux_source', data=spectra_fiber[:,wlim])
+    
+    # BGS source spectra 
+    for k in spectra_bgs.keys(): 
+        fout.create_dataset('spec_%s_bgs' % k, data=spectra_bgs[k]) 
+    fout.close() 
+    return None 
 
 
 def fm_Lgal_mini_mocha(lib='bc03'): 
@@ -331,5 +505,7 @@ def QA_fm_Lgal_mini_mocha(lib='bc03'):
 
 
 if __name__=="__main__": 
-    fm_Lgal_mini_mocha(lib='fsps')
+    fm_Lgal_fsps()
+    #_mini_mocha_galid(lib='fsps')
+    #fm_Lgal_mini_mocha(lib='fsps')
     #QA_fm_Lgal_mini_mocha()

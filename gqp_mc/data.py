@@ -20,10 +20,11 @@ from . import fm as FM
 from . import util as UT 
 
 
-version = '1.1' # updated 12/10/2020 
+#version = '1.1' # updated 12/10/2020 
+version = '1.2' # updated 05/27/2021
 
 
-def Spectra(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'): 
+def Spectra(sim='lgal', noise='none', lib='fsps', sample='mini_mocha'): 
     ''' read forward modeled spectra generated for simulations
 
     parameters
@@ -37,7 +38,7 @@ def Spectra(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'):
         'none' == noiseless source spectra. 
         'bgs1' == DESI-BGS like noise 
     lib : str 
-        (default: 'bc03') 
+        (default: 'fsps') 
         stellar library used to generate the spectra 
     sample : str
         (default: 'spectral_challenge') 
@@ -97,7 +98,7 @@ def Spectra(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'):
     return specs, meta 
 
 
-def Photometry(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'): 
+def Photometry(sim='lgal', noise='none', lib='fsps', sample='mini_mocha'): 
     ''' read forward modeled photometry generated for simulations
 
     :param sim: 
@@ -107,7 +108,8 @@ def Photometry(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'):
         specify the noise of the photometry. Options are 'none' or 'legacy'. (default: none) 
     
     :param lib:
-        stellar library used to generate the spectra. lib == 'bc03' only supported. (default: 'bc03') 
+        stellar library used to generate the spectra. lib == 'fsps' only
+        supported. (default: 'fsps') 
 
     :param sample:         
         specify sample from the simulations. default is spectral_challenge, which
@@ -145,7 +147,7 @@ def Photometry(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'):
     return photo, meta
 
 
-def read_data(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'): 
+def read_data(sim='lgal', noise='none', lib='fsps', sample='mini_mocha'): 
     ''' read compiled data 
 
     notes
@@ -153,7 +155,6 @@ def read_data(sim='lgal', noise='none', lib='bc03', sample='mini_mocha'):
     * 4/30/2020: tng not supported to focus on lgal.  
     '''
     if sim not in ['lgal', 'fsps']: raise NotImplementedError 
-    if lib != 'bc03': raise NotImplementedError 
     
     dir_sample = os.path.join(UT.dat_dir(), sample) 
     

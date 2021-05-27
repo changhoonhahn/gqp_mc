@@ -23,6 +23,51 @@ import gqp_mc.util as UT
 version = '1.2' # 05/24/2021 
 
 
+def fm_Lgal_fsps_mini(): 
+    ''' take just the first 100 galaxies 
+    '''
+    n_mini = 100 
+
+    # read in meta-data
+    fmeta = os.path.join(UT.dat_dir(), 'mini_mocha',
+            'lgal.mocha.fsps.v%s.meta.p' % (version))
+    meta = pickle.load(open(fmeta, 'rb'))
+
+    meta_mini = {}
+    for k in meta.keys(): 
+        if isinstance(meta[k], list): 
+            meta_mini[k] = meta[k][:n_mini]
+        elif isinstance(meta[k], np.ndarray): 
+            meta_mini[k] = meta[k][:n_mini]
+        elif isinstance(meta[k], np.float): 
+            meta_mini[k] = meta[k]
+        else: 
+            print(type(meta[k]))
+            raise ValueError
+
+    fmeta = os.path.join(UT.dat_dir(), 'mini_mocha',
+            'lgal.mini_mocha.fsps.v%s.meta.p' % (version))
+    pickle.dump(meta_mini, open(fmeta, 'wb')) # meta-data
+
+    # the rest 
+    fmocha = h5py.File(os.path.join(UT.dat_dir(), 'mini_mocha',
+        'lgal.mocha.fsps.v%s.hdf5' % (version)), 'r')
+    mini_mocha = {} 
+    for k in fmocha.keys(): 
+        if 'wave' in k: 
+            mini_mocha[k] = fmocha[k][...]
+        else: 
+            mini_mocha[k] = fmocha[k][...][:n_mini]
+    fmocha.close() 
+
+    fmini = h5py.File(os.path.join(UT.dat_dir(), 'mini_mocha',
+        'lgal.mini_mocha.fsps.v%s.hdf5' % (version)), 'w')
+    for k in mini_mocha.keys(): 
+        fmini.create_dataset(k, data=mini_mocha[k])
+    fmini.close() 
+    return None 
+
+
 def fm_Lgal_fsps(): 
     ''' construct mock spectra and photometry using L-Galaxies SED constructed
     using FSPS MILES stellar library and MIST isochrones
@@ -161,12 +206,12 @@ def fm_Lgal_fsps():
     # 5. write out everything 
     # meta-data to pickle file
     fmeta = os.path.join(UT.dat_dir(), 'mini_mocha',
-            'lgal.mini_mocha.fsps.v%s.meta.p' % (version))
+            'lgal.mocha.fsps.v%s.meta.p' % (version))
     pickle.dump(meta, open(fmeta, 'wb')) # meta-data
     
     # the rest 
     fout = h5py.File(os.path.join(UT.dat_dir(), 'mini_mocha', 
-        'lgal.mini_mocha.fsps.v%s.hdf5' % (version)), 'w')
+        'lgal.mocha.fsps.v%s.hdf5' % (version)), 'w')
     # photometry  
     for i, b in enumerate(bands): 
         # 'true' 
@@ -505,7 +550,8 @@ def QA_fm_Lgal_mini_mocha(lib='bc03'):
 
 
 if __name__=="__main__": 
-    fm_Lgal_fsps()
+    fm_Lgal_fsps_mini()
+    #fm_Lgal_fsps()
     #_mini_mocha_galid(lib='fsps')
     #fm_Lgal_mini_mocha(lib='fsps')
     #QA_fm_Lgal_mini_mocha()

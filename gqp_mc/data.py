@@ -21,7 +21,8 @@ from . import util as UT
 
 
 #version = '1.1' # updated 12/10/2020 
-version = '1.2' # updated 05/27/2021
+#version = '1.2' # updated 05/27/2021
+version = '1.3' # updated 06/24/2021
 
 
 def Spectra(sim='lgal', noise='none', lib='fsps', sample='mini_mocha'): 
@@ -159,16 +160,16 @@ def read_data(sim='lgal', noise='none', lib='fsps', sample='mini_mocha'):
     dir_sample = os.path.join(UT.dat_dir(), sample) 
     
     # description of data (sample, library used, and version number) 
-    dat_descrip = '%s.%s.v%s' % (sample, lib, version) 
+    dat_descrip = '%s.%s.v%s' % (lib, sample, version) 
 
     # read in meta data 
     meta = pickle.load(open(os.path.join(dir_sample,
-        "%s.%s.meta.p" % (sim, dat_descrip)), 'rb')) 
+        "%s_%s.meta.p" % (sim, dat_descrip)), 'rb')) 
     if sim == 'lgal': meta = _lgal_avg_sfr(meta)
 
     # read in mock data 
     mock = h5py.File(os.path.join(dir_sample, 
-        '%s.%s.hdf5' % (sim, dat_descrip)), 'r') 
+        '%s_%s.hdf5' % (sim, dat_descrip)), 'r') 
     return meta, mock  
 
 

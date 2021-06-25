@@ -17,6 +17,7 @@ from gqp_mc import data as Data
 from provabgs import infer as Infer
 # --- astro ---
 from astropy.io import fits
+import astropy.table as aTable 
 # --- plotting --- 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -60,7 +61,6 @@ lbl_dict = {
         'logsfr.1gyr': r'$\log {\rm SFR}_{\rm 1 Gyr}$',
         'logz.mw': r'$\log Z_{\rm MW}$',
         }
-
 
 
 def BGS(): 
@@ -209,7 +209,7 @@ def FM_photo():
     from speclite import filters as specFilter
 
     # read forward modeled Lgal photometry
-    photo, meta = Data.Photometry(sim='lgal', noise='legacy', lib='bc03', sample='mini_mocha')
+    photo, meta = Data.Photometry(sim='lgal', noise='legacy', lib='fsps', sample='mini_mocha')
     flux_g = photo['flux'][:,0] * 1e-9 * 1e17 * UT.c_light() / 4750.**2 * (3631. * UT.jansky_cgs())
     flux_r = photo['flux'][:,1] * 1e-9 * 1e17 * UT.c_light() / 6350.**2 * (3631. * UT.jansky_cgs())
     flux_z = photo['flux'][:,2] * 1e-9 * 1e17 * UT.c_light() / 9250.**2 * (3631. * UT.jansky_cgs()) # convert to 10^-17 ergs/s/cm^2/Ang
@@ -218,17 +218,16 @@ def FM_photo():
     ivar_z = photo['ivar'][:,2] * (1e-9 * 1e17 * UT.c_light() / 9250.**2 * (3631. * UT.jansky_cgs()))**-2. # convert to 10^-17 ergs/s/cm^2/Ang
 
     # read noiseless Lgal spectroscopy 
-    specs, _ = Data.Spectra(sim='lgal', noise='none', lib='bc03', sample='mini_mocha') 
+    specs, _ = Data.Spectra(sim='lgal', noise='none', lib='fsps', sample='mini_mocha') 
     # read in photometric bandpass filters 
-    filter_response = specFilter.load_filters(
-            'decam2014-g', 'decam2014-r', 'decam2014-z',
-            'wise2010-W1', 'wise2010-W2', 'wise2010-W3', 'wise2010-W4')
+    filter_response = specFilter.load_filters('decam2014-g', 'decam2014-r', 'decam2014-z', 'wise2010-W1', 'wise2010-W2')
     wave_eff = [filter_response[i].effective_wavelength.value for i in range(len(filter_response))]
 
     fig = plt.figure(figsize=(14,4))
     gs1 = mpl.gridspec.GridSpec(1,1, figure=fig) 
     gs1.update(left=0.02, right=0.7)
     sub = plt.subplot(gs1[0])
+    
     _plt_sed, = sub.plot(specs['wave'], specs['flux_unscaled'][0], c='k', lw=0.5, ls=':', 
             label='LGal Spectral Energy Distribution')
     _plt_photo = sub.errorbar(wave_eff[:3], [flux_g[0], flux_r[0], flux_z[0]], 
@@ -236,21 +235,22 @@ def FM_photo():
             label='forward modeled DESI photometry') 
     _plt_filter, = sub.plot([0., 0.], [0., 0.], c='k', ls='--', label='Broadband Filter Response') 
     for i in range(3): # len(filter_response)): 
-        sub.plot(filter_response[i].wavelength, filter_response[i].response, ls='--') 
-        sub.text(filter_response[i].effective_wavelength.value, 0.9, ['g', 'r', 'z'][i], fontsize=20, color='C%i' % i)
+        sub.plot(filter_response[i].wavelength, specs['flux_unscaled'][0].max() * filter_response[i].response, ls='--') 
+        sub.text(filter_response[i].effective_wavelength.value, 0.6 * specs['flux_unscaled'][0].max(), ['g', 'r', 'z'][i], fontsize=20, color='C%i' % i)
     sub.set_xlabel('wavelength [$A$]', fontsize=20) 
     sub.set_xlim(3500, 1e4)
     sub.set_ylabel('flux [$10^{-17} erg/s/cm^2/A$]', fontsize=20) 
-    sub.set_ylim(0., 6.) 
+    sub.set_ylim(0., 1.4*(specs['flux_unscaled'][0].max()))
     sub.legend([_plt_sed, _plt_photo, _plt_filter], 
             ['LGal Spectral Energy Distribution', 'forward modeled DESI photometry', 'Broadband Filter Response'], 
             loc='upper right', handletextpad=0.2, fontsize=15) 
     
     # Legacy imaging target photometry DR8
-    bgs_true = h5py.File(os.path.join(UT.dat_dir(), 'bgs.1400deg2.rlim21.0.hdf5'), 'r')
-    bgs_gmag = 22.5 - 2.5 * np.log10(bgs_true['flux_g'][...])
-    bgs_rmag = 22.5 - 2.5 * np.log10(bgs_true['flux_r'][...]) 
-    bgs_zmag = 22.5 - 2.5 * np.log10(bgs_true['flux_z'][...])
+    bgs_true = aTable.Table.read(os.path.join(UT.dat_dir(), 'provabgs.sv3.empty.fits'))
+    #bgs_true = h5py.File(os.path.join(UT.dat_dir(), 'bgs.1400deg2.rlim21.0.hdf5'), 'r')
+    bgs_gmag = 22.5 - 2.5 * np.log10(bgs_true['FLUX_G'])
+    bgs_rmag = 22.5 - 2.5 * np.log10(bgs_true['FLUX_R']) 
+    bgs_zmag = 22.5 - 2.5 * np.log10(bgs_true['FLUX_Z'])
     rlim = (bgs_rmag < 20.) 
     
     photo_g = 22.5 - 2.5 * np.log10(photo['flux'][:,0])
@@ -263,8 +263,8 @@ def FM_photo():
     DFM.hist2d(bgs_gmag[rlim] - bgs_rmag[rlim], bgs_rmag[rlim] - bgs_zmag[rlim], color='k', levels=[0.68, 0.95], 
             range=[[-1., 3.], [-1., 3.]], bins=40, smooth=0.5, 
             plot_datapoints=False, fill_contours=False, plot_density=False, linewidth=0.5, ax=sub)
-    sub.fill_between([0],[0],[0], fc='none', ec='k', label='Legacy Surveys Imaging') 
-    sub.scatter(photo_g - photo_r, photo_r - photo_z, c='C3', s=1)#, label='forward modeled DESI photometry') 
+    sub.fill_between([0],[0],[0], fc='none', ec='k', label='BGS Legacy Surveys') 
+    sub.scatter(photo_g - photo_r, photo_r - photo_z, c='C3', s=2)#, label='forward modeled DESI photometry') 
     sub.set_xlabel('$g-r$', fontsize=20) 
     sub.set_xlim(0., 2.) 
     sub.set_xticks([0., 1., 2.]) 
@@ -273,9 +273,8 @@ def FM_photo():
     sub.set_yticks([0., 1.]) 
     sub.legend(loc='upper left', fontsize=15) 
 
-    ffig = os.path.join(dir_fig, 'fm_photo.png')
-    fig.savefig(ffig, bbox_inches='tight')
-    fig.savefig(UT.fig_tex(ffig, pdf=True), bbox_inches='tight') 
+    ffig = os.path.join(dir_doc, 'fm_photo.pdf')
+    fig.savefig(ffig, bbox_inches='tight') 
     return None 
 
 
@@ -283,17 +282,18 @@ def FM_spec():
     ''' plot illustrating the forward model for spectroscopy 
     '''
     # read noiseless Lgal spectroscopy 
-    spec_s, meta = Data.Spectra(sim='lgal', noise='none', lib='bc03', sample='mini_mocha') 
-    spec_bgs, _ = Data.Spectra(sim='lgal', noise='bgs0', lib='bc03', sample='mini_mocha') 
+    spec_s, meta    = Data.Spectra(sim='lgal', noise='none', lib='fsps', sample='mini_mocha') 
+    spec_bgs, _     = Data.Spectra(sim='lgal', noise='bgs', lib='fsps', sample='mini_mocha') 
     
     fig = plt.figure(figsize=(10,4))
     sub = fig.add_subplot(111) 
 
     wsort = np.argsort(spec_bgs['wave']) 
-    _plt, = sub.plot(spec_bgs['wave'][wsort], spec_bgs['flux'][0,wsort], c='C0', lw=0.5) 
+    _plt, = sub.plot(spec_bgs['wave'][wsort], spec_bgs['flux'][0,wsort],
+            c='C0', lw=0.25) 
     
     _plt_lgal, = sub.plot(spec_s['wave'], spec_s['flux'][0,:], c='k', ls='-', lw=1) 
-    _plt_lgal0, = sub.plot(spec_s['wave'], spec_s['flux_unscaled'][0,:], c='k', ls=':', lw=0.5) 
+    _plt_lgal0, = sub.plot(spec_s['wave'], spec_s['flux_unscaled'][0,:], c='k', ls=':', lw=1) 
     
     leg = sub.legend([_plt_lgal0, _plt_lgal, _plt], 
             ['LGal Spectral Energy Distribution', 'fiber aperture SED', 'forward modeled BGS spectrum'],
@@ -301,11 +301,10 @@ def FM_spec():
     sub.set_xlabel('wavelength [$A$]', fontsize=20) 
     sub.set_xlim(3500, 1e4)
     sub.set_ylabel('flux [$10^{-17} erg/s/cm^2/A$]', fontsize=20) 
-    sub.set_ylim(0., 6.) 
+    sub.set_ylim(0., 2.*(spec_s['flux_unscaled'][0].max()))
 
-    ffig = os.path.join(dir_fig, 'fm_spec.png')
-    fig.savefig(ffig, bbox_inches='tight')
-    fig.savefig(UT.fig_tex(ffig, pdf=True), bbox_inches='tight') 
+    ffig = os.path.join(dir_doc, 'fm_spec.pdf')
+    fig.savefig(ffig, bbox_inches='tight') 
     return None 
 
 
@@ -452,7 +451,7 @@ def mcmc_posterior(sim='lgal', obs='spec', noise='bgs', dt_sfr='100myr'):
                 ls='--', lw=1) 
         ax2.set_xlabel('wavelength [$\AA$]', fontsize=20) 
         ax2.set_xlim(3600., 9800.)
-        ax2.set_ylim(-1., 5.) 
+        ax2.set_ylim(-1., 10.) 
         
     _ffig = os.path.join(dir_doc, 'mcmc_posterior.%s.%s.%s.bestfit.png' % (sim, obs, noise))
     fig.savefig(_ffig, bbox_inches='tight') 
@@ -469,32 +468,38 @@ def inferred_props(sim='lgal', obs='photo', noise='legacy', dt_sfr='100myr'):
     
     # read noiseless Lgal spectra of the spectral_challenge mocks
     _, meta = Data.Spectra(sim=sim, noise='bgs', lib='bc03', sample='mini_mocha') 
+
+    desi_mcmc = Infer.desiMCMC()
     
     igals, theta_inf = [], [] 
     for igal in range(ngal):  
-        _fbf = os.path.join(UT.dat_dir(), 'mini_mocha', 'provabgs', 
-                '%s.%s.noise_%s.%i.postproc.hdf5' % (sim, obs, noise, igal))
+        fmcmc = os.path.join(UT.dat_dir(), 'mini_mocha', 'provabgs', 
+                '%s.%s.noise_%s.%i.mcmc.hdf5' % (sim, obs, noise, igal))
 
-        if not os.path.isfile(_fbf): 
-            print('     %s does not exist' % _fbf)
+        if not os.path.isfile(fmcmc): 
+            print('     %s does not exist' % fmcmc)
             continue 
-        fbf = h5py.File(_fbf, 'r')  
+        mcmc = desi_mcmc.read_chain(fmcmc)
+        chain = desi_mcmc._flatten_chain(mcmc['mcmc_chain'])
 
-        chain_logm      = fbf['logmstar'][...]
-        chain_logsfr    = fbf['logsfr.%s' % dt_sfr][...]
-        chain_logzmw    = fbf['logz.mw'][...]
-        try: 
-            chain_w         = fbf['w_prior.%s' % dt_sfr][...]
-            print(_fbf)
-        except KeyError: 
-            pass
+        chain_logm      = chain[:,0]
+        chain_logssfr    = np.log10(
+                desi_mcmc.model.avgSFR(chain, meta['redshift'][igal],
+                    dt={'100myr': 0.1, '1gyr': 1}[dt_sfr])) - chain_logm
+        chain_logzmw    = np.log10(
+                desi_mcmc.model.Z_MW(chain, meta['redshift'][igal]))
+        #try: 
+        #    chain_w         = fbf['w_prior.%s' % dt_sfr][...]
+        #    print(_fbf)
+        #except KeyError: 
+        #    pass
 
-        fbf.close() 
+        #fbf.close() 
 
         igals.append(igal)
         theta_inf.append(np.array([ 
             np.percentile(chain_logm, [2.5, 16, 50, 84, 97.5]), 
-            np.percentile(chain_logsfr, [2.5, 16, 50, 84, 97.5]), 
+            np.percentile(chain_logssfr, [2.5, 16, 50, 84, 97.5]), 
             np.percentile(chain_logzmw, [2.5, 16, 50, 84, 97.5])
             ]))
     
@@ -502,8 +507,8 @@ def inferred_props(sim='lgal', obs='photo', noise='legacy', dt_sfr='100myr'):
     logm_true   = np.array([meta['logM_%s' % ['total', 'fiber'][obs == 'spec']][i] for i in igals])
     logm_infer  = np.array(theta_inf)[:,0,:]
 
-    logSFR_true     = np.log10([meta['sfr_%s' % dt_sfr][i] for i in igals])
-    logSFR_infer    = np.array(theta_inf)[:,1,:]
+    logSSFR_true     = np.log10(np.concatenate([meta['sfr_%s' % dt_sfr][i] for i in igals])) - logm_true
+    logSSFR_infer    = np.array(theta_inf)[:,1,:]
 
     logZ_MW_true    = np.log10([meta['Z_MW'][i] for i in igals])
     logZ_MW_infer   = np.array(theta_inf)[:,2,:]
@@ -527,18 +532,21 @@ def inferred_props(sim='lgal', obs='photo', noise='legacy', dt_sfr='100myr'):
     # compare SFR 
     sub = fig.add_subplot(1,3,2) 
     sub.errorbar(
-            logSFR_true, 
-            logSFR_infer[:,2], 
-            yerr=[logSFR_infer[:,2]-logSFR_infer[:,1],
-                logSFR_infer[:,3]-logSFR_infer[:,2]], 
+            logSSFR_true, 
+            logSSFR_infer[:,2], 
+            yerr=[logSSFR_infer[:,2]-logSSFR_infer[:,1],
+                logSSFR_infer[:,3]-logSSFR_infer[:,2]], 
             fmt='.C0')
-    sub.plot([-3., 1.], [-3., 1.], c='k', ls='--') 
-    sub.set_xlim(-3., 1.) 
-    sub.set_ylim(-3., 1.) 
+    sub.plot([-12., -8.], [-12., -8.], c='k', ls='--') 
+    sub.set_xlim(-12., -8.) 
+    sub.set_ylim(-12., -8.) 
+    #sub.plot([-3., 1.], [-3., 1.], c='k', ls='--') 
+    #sub.set_xlim(-3., 1.) 
+    #sub.set_ylim(-3., 1.) 
     if dt_sfr == '100myr': 
-        sub.set_title(r'$\log {\rm SFR}$ 100 Myr', fontsize=25)
+        sub.set_title(r'$\log {\rm SSFR}$ 100 Myr', fontsize=25)
     elif dt_sfr == '1gyr': 
-        sub.set_title(r'$\log {\rm SFR}$ 1 Gyr', fontsize=25)
+        sub.set_title(r'$\log {\rm SSFR}$ 1 Gyr', fontsize=25)
     
     # compare Z 
     sub = fig.add_subplot(1,3,3) 
@@ -561,6 +569,155 @@ def inferred_props(sim='lgal', obs='photo', noise='legacy', dt_sfr='100myr'):
     bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
     fig.subplots_adjust(wspace=0.225, hspace=0.1)
     _ffig = os.path.join(dir_doc, 'inferred_prop.%s.%s.%s.%s.comparison.png' % (sim, obs, noise, dt_sfr)) 
+    fig.savefig(_ffig, bbox_inches='tight') 
+    #fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
+    return None 
+
+
+def inferred_props_wprior(sim='lgal', obs='photo', noise='legacy', dt_sfr='100myr'):
+    ''' compare inferred physical galaxy properties of each galaxy to its
+    corresponding intrinsic values 
+    '''
+    ngal = 96
+    
+    # read noiseless Lgal spectra of the spectral_challenge mocks
+    _, meta = Data.Spectra(sim=sim, noise='bgs', lib='bc03', sample='mini_mocha') 
+
+
+    # set up prior object
+    priors = Infer.load_priors([
+            Infer.UniformPrior(8, 12, label='sed'),     # uniform priors on logM*
+            Infer.FlatDirichletPrior(4, label='sed'),   # flat dirichilet priors
+            Infer.UniformPrior(6.9e-5, 7.3e-3, label='sed'),# uniform priors on ZH coeff
+            Infer.UniformPrior(6.9e-5, 7.3e-3, label='sed'),# uniform priors on ZH coeff
+            Infer.UniformPrior(0., 3., label='sed'),        # uniform priors on dust1 
+            Infer.UniformPrior(0., 3., label='sed'),        # uniform priors on dust2
+            Infer.UniformPrior(-2.2, 0.4, label='sed')      # uniform priors on dust_index 
+            ])
+
+    desi_mcmc = Infer.desiMCMC(prior=priors)
+    theta_prior = priors.transform(np.array([priors.sample() for i in range(50000)]))
+    
+    igals, theta_inf, theta_priors = [], [], [] 
+    for igal in range(ngal):  
+        fmcmc = os.path.join(UT.dat_dir(), 'mini_mocha', 'provabgs', 
+                '%s.%s.noise_%s.%i.mcmc.hdf5' % (sim, obs, noise, igal))
+
+        if not os.path.isfile(fmcmc): 
+            print('     %s does not exist' % fmcmc)
+            continue 
+        mcmc = desi_mcmc.read_chain(fmcmc)
+        chain = desi_mcmc._flatten_chain(mcmc['mcmc_chain'])
+
+        chain_logm      = chain[:,0]
+        chain_logssfr    = np.log10(
+                desi_mcmc.model.avgSFR(chain, meta['redshift'][igal],
+                    dt={'100myr': 0.1, '1gyr': 1}[dt_sfr])) - chain_logm
+        chain_logzmw    = np.log10(
+                desi_mcmc.model.Z_MW(chain, meta['redshift'][igal]))
+
+        # calculate max entropy prior weights 
+        logm_prior      = theta_prior[:,0] 
+        logssfr_prior   = np.log10(desi_mcmc.model.avgSFR(theta_prior, meta['redshift'][igal], dt=1.)) - logm_prior
+        logzmw_prior    = np.log10(desi_mcmc.model.Z_MW(theta_prior, meta['redshift'][igal]))
+        prop_prior      = np.array([logm_prior, logssfr_prior, logzmw_prior])
+
+        #from scipy.stats import gaussian_kde as gkde
+        #kde_fit = gkde(prop_prior) 
+        #p_prop_kde = kde_fit.pdf(prop_prior_test)
+        #w_prior_corr = 1./p_prop_kde
+
+        igals.append(igal)
+        theta_inf.append(np.array([ 
+            np.percentile(chain_logm, [2.5, 16, 50, 84, 97.5]), 
+            np.percentile(chain_logssfr, [2.5, 16, 50, 84, 97.5]), 
+            np.percentile(chain_logzmw, [2.5, 16, 50, 84, 97.5])
+            ]))
+        theta_priors.append(np.array([ 
+            np.percentile(logm_prior, [2.5, 16, 50, 84, 97.5]), 
+            np.percentile(logssfr_prior, [2.5, 16, 50, 84, 97.5]), 
+            np.percentile(logzmw_prior, [2.5, 16, 50, 84, 97.5])
+            ]))
+        #w_priors.apppend(w_prior_corr)
+    
+    # input Mstar, logSSFR 100 Myr/1 Gyr, log Z_MW 
+    logm_true   = np.array([meta['logM_%s' % ['total', 'fiber'][obs == 'spec']][i] for i in igals])
+    logm_infer  = np.array(theta_inf)[:,0,:]
+    logm_prior  = np.array(theta_priors)[:,0,:]
+
+    logSSFR_true     = np.log10(np.concatenate([meta['sfr_%s' % dt_sfr][i] for i in igals])) - logm_true
+    logSSFR_infer    = np.array(theta_inf)[:,1,:]
+    logSSFR_prior    = np.array(theta_priors)[:,1,:]
+
+    logZ_MW_true    = np.log10([meta['Z_MW'][i] for i in igals])
+    logZ_MW_infer   = np.array(theta_inf)[:,2,:]
+    logZ_MW_prior   = np.array(theta_priors)[:,2,:]
+    
+    fig = plt.figure(figsize=(16,4))
+    # compare total stellar mass 
+    sub = fig.add_subplot(1,3,1) 
+    sub.errorbar(
+            logm_true,
+            logm_infer[:,2], 
+            yerr=[logm_infer[:,2] - logm_infer[:,1], logm_infer[:,3]-logm_infer[:,2]],
+            fmt='.C0')
+    sub.plot([9., 12.], [9., 12.], c='k', ls='--') 
+    sub.text(0.05, 0.95, sim.upper(), ha='left', va='top', transform=sub.transAxes, fontsize=25)
+
+    sub.set_xlim(9., 12.) 
+    sub.set_ylim(9., 12.) 
+    sub.set_yticks([9., 10., 11., 12.]) 
+    sub.set_title(r'$\log M_*$', fontsize=25)
+
+    # compare SFR 
+    sub = fig.add_subplot(1,3,2) 
+    sub.errorbar(
+            logSSFR_true, 
+            logSSFR_infer[:,2], 
+            yerr=[logSSFR_infer[:,2]-logSSFR_infer[:,1],
+                logSSFR_infer[:,3]-logSSFR_infer[:,2]], 
+            fmt='.C0')
+    sub.errorbar(
+            logSSFR_true+0.01, 
+            logSSFR_prior[:,2], 
+            yerr=[logSSFR_prior[:,2]-logSSFR_prior[:,1],
+                logSSFR_prior[:,3]-logSSFR_prior[:,2]], 
+            fmt='.C1')
+    sub.plot([-12., -8.], [-12., -8.], c='k', ls='--') 
+    sub.set_xlim(-12., -8.) 
+    sub.set_ylim(-12., -8.) 
+    if dt_sfr == '100myr': 
+        sub.set_title(r'$\log {\rm SSFR}$ 100 Myr', fontsize=25)
+    elif dt_sfr == '1gyr': 
+        sub.set_title(r'$\log {\rm SSFR}$ 1 Gyr', fontsize=25)
+    
+    # compare Z 
+    sub = fig.add_subplot(1,3,3) 
+    sub.errorbar(
+            logZ_MW_true, 
+            logZ_MW_infer[:,2], 
+            yerr=[logZ_MW_infer[:,2]-logZ_MW_infer[:,1],
+                logZ_MW_infer[:,3]-logZ_MW_infer[:,2]], 
+            fmt='.C0')
+    sub.errorbar(
+            logZ_MW_true+0.01, 
+            logZ_MW_prior[:,2], 
+            yerr=[logZ_MW_prior[:,2]-logZ_MW_prior[:,1],
+                logZ_MW_prior[:,3]-logZ_MW_prior[:,2]], 
+            fmt='.C1')
+    sub.plot([-3., -1.], [-3., -1.], c='k', ls='--') 
+    sub.set_xlim(-3., -1.) 
+    sub.set_xticks([-3., -2., -1.]) 
+    sub.set_ylim(-3., -1.) 
+    sub.set_yticks([-3., -2., -1.]) 
+    sub.set_title(r'$\log$ MW $Z$', fontsize=25)
+
+    bkgd = fig.add_subplot(111, frameon=False)
+    bkgd.set_xlabel(r'$\theta_{\rm true}$', fontsize=25) 
+    bkgd.set_ylabel(r'$\widehat{\theta}$', labelpad=10, fontsize=25) 
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+    fig.subplots_adjust(wspace=0.225, hspace=0.1)
+    _ffig = os.path.join(dir_doc, 'inferred_prop_prior.%s.%s.%s.%s.comparison.png' % (sim, obs, noise, dt_sfr)) 
     fig.savefig(_ffig, bbox_inches='tight') 
     #fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
     return None 
@@ -786,8 +943,10 @@ def eta_Delta(sim='lgal', noise='legacy', obs='photo', dt_sfr='100myr', sample='
     # --------------------------------------------------------------------------------
     igal_m, dlogm_chain = _read_dprop_mcmc('logmstar', sim=sim, obs=obs,
             noise=noise, sample=sample)
-    igal_s, dlogsfr_chain = _read_dprop_mcmc('logsfr.%s' % dt_sfr, sim=sim,
+    igal_s, dlogssfr_chain = _read_dprop_mcmc('logssfr.%s' % dt_sfr, sim=sim,
             obs=obs, noise=noise, sample=sample)
+    #igal_z, dlogzmw_chain = _read_dprop_mcmc('logz.mw', sim=sim,
+    #        obs=obs, noise=noise, sample=sample)
     # --------------------------------------------------------------------------------
     # get MAP for the population hyperparameters
     # --------------------------------------------------------------------------------
@@ -795,15 +954,17 @@ def eta_Delta(sim='lgal', noise='legacy', obs='photo', dt_sfr='100myr', sample='
     prop_lbl    = ['$r$ magnitude', '$g - r$ color', '$r - z$ color']
     prop_lim    = [(19, 20), (0., 2.), (0., 1.)]
     
-    hyper_logm, hyper_logsfr = [], [] 
+    hyper_logm, hyper_logssfr, hyper_logzmw = [], [], [] 
     for i, prop in enumerate(props) : 
         bins_prop = np.linspace(prop_lim[i][0], prop_lim[i][1], 11) 
 
         mid_prop_m, eta_logm    = _get_etaMAP(prop[igal_m], dlogm_chain, bins_prop)
-        mid_prop_s, eta_logsfr  = _get_etaMAP(prop[igal_s], dlogsfr_chain, bins_prop)
+        mid_prop_s, eta_logssfr = _get_etaMAP(prop[igal_s], dlogssfr_chain, bins_prop)
+        #mid_prop_z, eta_logzmw  = _get_etaMAP(prop[igal_z], dlogzmw_chain, bins_prop)
 
         hyper_logm.append([mid_prop_m, eta_logm[:,0], eta_logm[:,1]]) 
-        hyper_logsfr.append([mid_prop_s, eta_logsfr[:,0], eta_logsfr[:,1]]) 
+        hyper_logssfr.append([mid_prop_s, eta_logssfr[:,0], eta_logssfr[:,1]]) 
+        #hyper_logzmw.append([mid_prop_z, eta_logzmw[:,0], eta_logzmw[:,1]]) 
     # --------------------------------------------------------------------------------
     # plot the MAP hyperparameters
     # --------------------------------------------------------------------------------
@@ -811,7 +972,8 @@ def eta_Delta(sim='lgal', noise='legacy', obs='photo', dt_sfr='100myr', sample='
     for i in range(len(props)): 
 
         prop_mid_m, mu_dmstar, sig_dmstar = hyper_logm[i]
-        prop_mid_s, mu_dsfr, sig_dsfr = hyper_logsfr[i]
+        prop_mid_s, mu_dssfr, sig_dssfr = hyper_logssfr[i]
+        #prop_mid_z, mu_dzmw, sig_dzmw = hyper_logzmw[i]
 
         # M* hyperparametrs
         sub = fig.add_subplot(2,len(props),i+1) 
@@ -827,18 +989,31 @@ def eta_Delta(sim='lgal', noise='legacy', obs='photo', dt_sfr='100myr', sample='
         sub.set_ylim(-1., 1.) 
         #sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
     
-        # SFR hyperparametrs
+        # SSFR hyperparametrs
         sub = fig.add_subplot(2,len(props),len(props)+i+1) 
         sub.plot([prop_lim[i][0], prop_lim[i][1]], [0., 0.], c='k', ls='--')
-        sub.fill_between(prop_mid_s, mu_dsfr - sig_dsfr, mu_dsfr + sig_dsfr, 
+        sub.fill_between(prop_mid_s, mu_dssfr - sig_dssfr, mu_dssfr + sig_dssfr, 
                 fc='C0', ec='none', alpha=0.5) 
-        sub.scatter(prop_mid_s, mu_dsfr, c='C0', s=2) 
-        sub.plot(prop_mid_s, mu_dsfr, c='C0') 
+        sub.scatter(prop_mid_s, mu_dssfr, c='C0', s=2) 
+        sub.plot(prop_mid_s, mu_dssfr, c='C0') 
         
         sub.set_xlabel(prop_lbl[i], fontsize=25)
         sub.set_xlim(prop_lim[i][0], prop_lim[i][1]) 
-        if i == 0: sub.set_ylabel(r'$\Delta_{\log{\rm SFR}_{100Myr}}$', fontsize=25)
+        if i == 0: sub.set_ylabel(r'$\Delta_{\log{\rm SSFR}_{100Myr}}$', fontsize=25)
         sub.set_ylim(-3., 3.) 
+        
+        ## SFR hyperparametrs
+        #sub = fig.add_subplot(3,len(props),2*len(props)+i+1) 
+        #sub.plot([prop_lim[i][0], prop_lim[i][1]], [0., 0.], c='k', ls='--')
+        #sub.fill_between(prop_mid_z, mu_dzmw - sig_dzmw, mu_dzmw + sig_dzmw, 
+        #        fc='C0', ec='none', alpha=0.5) 
+        #sub.scatter(prop_mid_z, mu_dzmw, c='C0', s=2) 
+        #sub.plot(prop_mid_z, mu_dzmw, c='C0') 
+        #
+        #sub.set_xlabel(prop_lbl[i], fontsize=25)
+        #sub.set_xlim(prop_lim[i][0], prop_lim[i][1]) 
+        #if i == 0: sub.set_ylabel(r'$\Delta_{\log{\rm Z}_{MW}}$', fontsize=25)
+        #sub.set_ylim(-3., 3.) 
     
     fig.subplots_adjust(wspace=0.3)
     _ffig = os.path.join(dir_doc, 'eta_Delta.%s.%s.noise_%s.sfr%s.png' % (sim,
@@ -922,26 +1097,47 @@ def _read_dprop_mcmc(prop, sim='lgal', obs='specphoto', noise='bgs0_legacy', sam
     '''
     # get true galaxy properties  
     _, meta = Data.Spectra(sim=sim, noise='bgs0', lib='bc03', sample=sample) 
+    if obs == 'spec': 
+        logm = np.array(meta['logM_fiber']) # fiber mass 
+    else: 
+        logm = np.array(meta['logM_total']) # total mass 
+    
     if prop == 'logmstar': 
-        if obs == 'spec': 
-            prop_sim = np.array(meta['logM_fiber']) # fiber mass 
-        else: 
-            prop_sim = np.array(meta['logM_total']) # total mass 
-    elif prop == 'logsfr.100myr': 
-        prop_sim = np.log10(np.array(meta['sfr_100myr'])) 
-    elif prop == 'logsfr.1gyr': 
-        prop_sim = np.log10(np.array(meta['sfr_1gyr'])) 
+        prop_sim = logm 
+    elif prop == 'logssfr.100myr': 
+        prop_sim = np.log10(np.concatenate(meta['sfr_100myr'])) - logm 
+    elif prop == 'logssfr.1gyr': 
+        prop_sim = np.log10(np.concatenate(meta['sfr_1gyr'])) - logm 
+    elif prop == 'logz.mw': 
+        prop_sim = np.log10(np.concatenate(meta['Z_MW']))
 
     # --------------------------------------------------------------------------------
     # assemble all markov chains 
+    desi_mcmc = Infer.desiMCMC()
     igals, dprop = [], [] 
     for igal in range(97): 
         # read best-fit file and get inferred parameters from photometry
         f_mcmc = file_name_mcmc_postproc(igal, sim=sim, noise=noise, obs=obs)
         if not os.path.isfile(f_mcmc): continue 
+        
+        mcmc = desi_mcmc.read_chain(f_mcmc)
+        chain = desi_mcmc._flatten_chain(mcmc['mcmc_chain'])
 
-        mcmc    = h5py.File(f_mcmc, 'r')  
-        dprop_i = mcmc[prop]- prop_sim[igal]
+        if prop == 'logmstar': 
+            chain_prop = chain[:,0]
+        elif prop == 'logssfr.100myr': 
+            chain_prop = np.log10(
+                    desi_mcmc.model.avgSFR(chain, meta['redshift'][igal],
+                        dt=0.1)) - chain[:,0]
+        elif prop == 'logssfr.1gyr': 
+            chain_prop = np.log10(
+                    desi_mcmc.model.avgSFR(chain, meta['redshift'][igal],
+                        dt=1.0)) - chain[:,0]
+        elif prop == 'logz.mw': 
+            chain_prop = np.log10(
+                    desi_mcmc.model.Z_MW(chain, meta['redshift'][igal]))
+    
+        dprop_i = chain_prop - prop_sim[igal]
         
         assert np.all(~np.isnan(dprop_i))
 
@@ -958,7 +1154,7 @@ def file_name_mcmc_postproc(igal, sim='lgal', noise='none', obs='spec'):
         index of spectral_challenge galaxy 
     '''
     return os.path.join(UT.dat_dir(), 'mini_mocha', 'provabgs',
-            '%s.%s.noise_%s.%i.postproc.hdf5' % (sim, obs, noise, igal))
+            '%s.%s.noise_%s.%i.mcmc.hdf5' % (sim, obs, noise, igal))
 
 
 def dust_comparison(sim='lgal', noise='bgs0_legacy', method='ifsps'): 
@@ -1118,15 +1314,16 @@ if __name__=="__main__":
     #BGS()
 
     #FM_photo()
-    #FM_spec()
+    FM_spec()
     
     #speculator()
     #_NMF_bases() 
     
-    mcmc_posterior(sim='fsps', obs='spec', noise='bgs', dt_sfr='100myr')
-    mcmc_posterior(sim='fsps', obs='spec', noise='bgs', dt_sfr='1gyr')
+    #mcmc_posterior(sim='fsps', obs='spec', noise='bgs', dt_sfr='100myr')
+    #mcmc_posterior(sim='fsps', obs='spec', noise='bgs', dt_sfr='1gyr')
     
     #inferred_props(sim='fsps', obs='spec', noise='none', dt_sfr='100myr')
+    #inferred_props_wprior(sim='fsps', obs='spec', noise='none', dt_sfr='100myr')
     #inferred_props(sim='fsps', obs='spec', noise='none', dt_sfr='1gyr')
     
     #inferred_props(sim='fsps', obs='spec', noise='bgs', dt_sfr='100myr')

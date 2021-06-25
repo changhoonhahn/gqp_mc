@@ -96,6 +96,8 @@ def Spectra(sim='lgal', noise='none', lib='fsps', sample='mini_mocha'):
         specs['res_b'] = mock['spec_res_b_bgs'][...]
         specs['res_r'] = mock['spec_res_r_bgs'][...]
         specs['res_z'] = mock['spec_res_z_bgs'][...]
+    else:
+        raise ValueError
     return specs, meta 
 
 

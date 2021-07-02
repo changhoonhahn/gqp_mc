@@ -21,111 +21,175 @@ from state-of-the-art simulations.
 \begin{figure}
 \begin{center}
 \includegraphics[width=\textwidth]{figs/fm_photo.pdf}
-\caption{{\em Left}: We forward model DESI photometry (red) for our simulated
-    galaxies (Section~\ref{sec:lgal}) by convolving their SEDs with the
-    broadband filters (dashed).  We construct the SEDs \ch{using the star
-    formation and metallicity histories} (Section~\ref{sec:sed}).  We assign
-    uncertainties to the forward modeled photometry by \ch{matching the
-    colors to the Legacy Survey imaging for BGS} (Section~\ref{sec:photo}).
+\caption{{\em Left}: We forward model DESI $g$, $r$, and $z$ photometry (red)
+    for our simulated galaxies (Section~\ref{sec:lgal}) by convolving their
+    SEDs (dotted) with thei broadband filters (dashed) and then applying an 
+    empirical noise model based on BGS objects in LS (Section~\ref{sec:photo}).
     {\em Right}: The $g-r$ and $r-z$ color distribution of the forward modeled
-    {\sc LGal} photometry is consistent with the color distribution of BGS
-    targets from Legacy Survey imaging (black contours).} \label{fig:photo}
+    \lgal~photometry is in good agreement with the color distribution of LS BGS
+    objects (black contours).} \label{fig:photo}
 \end{center}
 \end{figure}
 
-\subsection{LGal} \label{sec:lgal}
-@rita
-
-overview of Lgal. small volume semi-analytic and cosmo-hydro simulations
-
-\todo{describe what galaxy properties (SFH, ZH, etc) are available} 
+\subsection{L-Galaxies} \label{sec:lgal}
+brief overview of {\sc L-Galaxies}~\citep[hereafter \lgal;][]{henriques2015}
 
 \subsection{Spectral Energy Distributions} \label{sec:sed}
-\todo{describe how the SED is generated using the SFH and ZHs} 
-In Fig.~\ref{fig:photo}, 
-
-\subsection{Forward Modeled DESI Photometry} \label{sec:photo} 
-We generate realistic Legacy Survey-like photometry for the galaxies in our
-simulations using their noiseless source spectra or SEDs
-(Section~\ref{sec:lgal}). We first generate {\em noiseless} photometry by
-convolving the SEDs with the broadband filters of the Legacy Survey: 
+For each simulated galaxy, \lgal~provides the star formation histories (SFHs)
+and chemical enrichment histories (ZH) for its bulge and disk components
+separately, in approximately log-spaced lookback time bins. %15 lookback time bins approximately log-spaced between $t=0$ and $13.8$ Gyrs. 
+We treat each lookback time bin, $i$, as a single stellar population (SSP) of
+age $t_i$.
+Then, we derive the luminosities of the bulge and disk components by summing up
+the luminosities of all of their SSPs:
 \begin{equation}
-     f_X = \int f(\lambda) R_X(\lambda) {\rm d}\lambda
+    L^{\rm comp.}(\lambda) = \sum \limits_i {\rm SFH}^{\rm comp.}_i \Delta t_i L_{\rm
+    SSP}(\lambda; t_i, Z^{\rm comp.}_i). 
 \end{equation}
-where $f(\lambda)$ is the galaxy SED and $R_X$ is the transmission for filter
-$X$. We generate photometry for the $g$, $r$, and $z$ optical bands as well as
-the $W1$ and $W2$ WISE infrared bands.
+${\rm SFH}^{\rm comp.}_i$ and $Z^{\rm comp.}_i$ are the star formation rate and
+metallicity of the bulge or disk component in lookback time bin $i$. 
+$\Delta t_i$ is the width of the bin. 
+$L_{\rm SSP}$ corresponds to the luminosity of the SSP, which we calculate
+using the Flexible Stellar Population Synthesis~\citep[\fsps][]{conroy2009,
+conroy2010c} model.
+% do we want to describe SPS models? 
+For \fsps, we use the MIST ischrones~\citep{paxton2011, paxton2013, paxton2015,
+choi2016, dotter2016}, the MILES spectral library~\citep{sanchez_blazquez2006},
+and the \cite{chabrier2003} initial mass function. 
 
-Next, to assign photometric uncertainties, we match each simulated galaxy
-to a Legacy Survey DR8 galaxy 
-(\todo{specify how I'm defining galaxies here})
-with the nearest $g$, $r$, and $z$ magnitudes as well as $g - r$ and $r - z$
-colors. These uncertainties are then used to generate Gaussian noise and added
-to $f_X$ to assign ``measured'' photometry to the simulated galaxy. 
+% applying velocity dispersion to bulge and disk components separately 
+Next, we apply velocity dispersions to $L^{\rm comp.}(\lambda)$.
+For the disk, we apply a fixed $50 km/s$ velocity dispersion; for the bulge, we
+derive its velocity dispersion using the~\cite{zahid2016} empirical relation
+that depends on the total bulge mass.
+Then, we apply dust attenuation to stellar emission in the disk component
+($L^{\rm disk}$) based on the cold gas content and orientation of the disk. 
+We derive the attenuation curve using a mixed-screen model with the
+\cite{mathis1983} dust extinction curve. 
+Stellar emission from stars younger than $30{\rm Myr}$ are further attenuated
+with a uniform dust screen and a wavelength dependent optical depth.
+\todo{@rita further details and citations for the mixed-screen model}
+No dust attenuation is applied to the bulge component.
+\todo{@rita how come?}
 
-Finally, we impose the target selection criteria of BGS: $r < 20$. 
-This leaves us with \todo{X} \lgal galaxies. 
-In the left panel of Fig.~\ref{fig:photo}, we plot the forward
-modeled photometry (red error bars) and the SED (black) for a \lgal galaxy. 
-For reference, we also plot $R_X$ for the three optical bands of the Legacy
-Survey. On the right panel, we compare the $g - r$ and $r - z$ color
-distribution for the forward modeled \lgal galaxies (red) to the color
-distribution of Legacy Survey galaxies (black contour). The two distributions
-show good agreement.  
+Finally, we combine the attenuated disk component and the bulge component to
+construct the total luminosity of the simulated galaxy and then convert this
+luminosity to SED flux using its redshift, $z$.
+\begin{equation}\label{eq:sed} 
+    f_{\rm SED}(\lambda) = \frac{A(\lambda)L^{\rm disk}(\lambda) + L^{\rm bulge}(\lambda)}{4 \pi d_L(z)^2 (1+z)}.
+\end{equation}
+$A(\lambda)$ is the dust attenuation for the disk component described above 
+and $d_L(z)$ is the luminosity distance.
+In the left panel of Figure~\ref{fig:photo}, we present an example of the SED
+flux constructed for an arbitrary \lgal galaxy (black).
 
-\subsection{Forward Modeled DESI Spectroscopy} \label{sec:spec}
-We're interested in exploiting the detailed information in DESI spectra in
-addition to the photometry to improve constraints on the inferred physical parameters. 
-We therefore also construct forward model DESI-like spectra for our simulated
-galaxies. DESI fibers have 1'' radii, which means only the light within this
-aperture is collected by the fiber. To simulate this fiber aperture, we apply
-an aperture correction to the SEDs. 
-
-Legacy Survey provides fluxes of objects within a 1'' radius aperture,
-$f_X^{\rm fiber}$. This serves as an estimate the flux that passed through to
-the fibers. Similar to how we assigned photometric uncertainties above, for
-each simulated galaxy we identify a Legacy Survey galaxy with the nearest
-$g$, $r$, and $z$ magnitudes and $g - r$ and $r - z$ colors. Then, we assign 
-it the ratio of the $r$-band fiber flux to the total $r$-band flux 
-($f_r^{\rm fiber}/f_r$) of this LS galaxy. We use the assigned
-$f_r^{\rm fiber}/f_r$ as the aperture correction for the SED: 
+\subsection{Forward Modeling DESI Photometry} \label{sec:photo} 
+In this section, we describe how we construct realistic LS-like photometry
+from the SEDs of simulated galaxies described in the last section.
+First, we convolve the SEDs with the broadband filters of the Legacy Survey to
+generate broadband photometric fluxes: 
 \begin{equation}
-    f^{\rm spec}(\lambda) = \left(\frac{f_r^{\rm fiber}}{f_r}\right)f(\lambda).
+    f_X = \int f_{\rm SED}(\lambda) R_X(\lambda) {\rm d}\lambda
 \end{equation}
-This correction assumes there is no significant color dependence, we confirm
-that this is the case for LS galaxies. We assume that there are no significant
-biases in the LS $f_X^{\rm fiber}$ measurements from miscentering 
-of objects. \todo{Do we want to say more about this assumption?}  
-
-Besides the aperture correction, we also assign to each simulated galaxy a
-``measured'' $\hat{f}_r^{\rm fiber}$ with the LS $f_r^{\rm fiber}$ plus a 
-Gaussian noise based on the measured LS uncertainty for $f_r^{\rm fiber}$.
-$\hat{f}_r^{\rm fiber}$ will later be used to set the prior for when we
-marginalize over the aperture correction later in Section~\ref{sec:methods}.
-
-Next, we generated realistic DESI-like spectra from the aperture corrected SEDs
-using a forward model that simulates the DESI instrument response and realistic
-observing conditions. \todo{details on desi instrument model}. \todo{details on
-bgs observing conditions}. \todo{table of bgs observing conditions?}  
-\footnote{\href{https://specsim.readthedocs.io/en/stable/guide.html}{https://specsim.readthedocs.io}}
-
-In Figure~\ref{fig:spec}, we present 
-\todo{conclude by emphasizing the fact that our simulations cover the full expected
-observable space of DESI BGS and therefore if the pipeline works on our mocks,
-then it should work for every expected type of galaxies in the observations} 
+where $f_{\rm SED}$ is the galaxy SED (Eq.~\ref{eq:sed}) and $R_X$ is the
+transmission for filter $X$. 
+We generate photometry for the $g$, $r$, and $z$ optical bands.
+Next, we apply realistic measurement uncertainties to the derived photometry
+using a simple empirical . 
+We match each simulated galaxy to a BGS object from LS DR9 with the nearest $r$-band magnitude and
+$g-r$ and $r-z$ color.
+The photometric uncertainties ($\sigma_X$) and $r$-band fiber flux ($f_r^{\rm
+fiber}$ of the BGS object are then assigned to the simulated galaxy. 
+We sample a Gaussian distribution with standard deviation $\sigma_X$ and apply
+it to construct realistic LS-like photometry: 
+\begin{equation}
+    \hat{f}_X = f_X + n_X  \quad {\rm where}~n_X \sim \mathcal{N}(0, \sigma_X).
+\end{equation} 
+Finally, we impose the target selection criteria of BGS~\citep[][Hahn~\etal~in
+prep.]{ruiz-macias2021}.
+In the left panel of Figure~\ref{fig:photo}, we overplot the forward
+modeled photometry (red) ontop of the SED flux (black) for an arbitrary \lgal
+galaxy. 
+For reference, we also plot $R_X$ for the $g$, $r$, and $z$ bands of the Legacy
+Survey in blue, orange, and green respectively. 
+On the right panel, we compare the $g - r$ versus $r - z$ color distribution
+for the forward modeled \lgal galaxies (red) to the color distribution of BGS
+objects in LS (black contour). 
+The forward modeled photometry show good agreement with LS BGS objects in
+color space.
 
 \begin{figure}
 \begin{center}
-\includegraphics[width=0.72\textwidth]{figs/fm_spec.pdf} 
-\caption{We construct forward model DESI spectra (blue) for our simulated galaxies by first
-applying a fiber aperture correction to the SED (black solid), then applying a DESI noise model. 
-We apply a fiber aperture correction by scaling down the SED based on the $r$-band aperture
-flux we assign from the Legacy Surveys imaging. The noise model includes a DESI instrument 
-model, which accounts for the DESI spectrograph response, and an atmosphere model, which 
-accounts for the bright time observing conditions. We construct simulated DESI spectra for 
-8 different bright time observing conditions. For more details, we refer readers to Section~\ref{sec:spec}.
-}
-\label{fig:spec}
+\includegraphics[width=0.72\textwidth]{figs/fm_spec.pdf} \label{fig:spec}
+\caption{
+    We construct simulated DESI spectra (solid) for \lgal~simulated galaxies by
+    applying a fiber aperture correction to the SED (dashed) and a realistic
+    DESI noise model. 
+    We apply a fiber aperture correction by scaling down the full SED (dotted)
+    by the $r$-band fiber fraction derived from the Legacy Surveys imaging. 
+    The noise model accounts for the DESI spectrograph response and an
+    atmosphere model that accounts for the bright time observing conditions of
+    BGS.
+    Our forward model produces DESI-like spectra for all three arms of the DESI
+    spectrographs: $b$, $r$, and $z$ (blue, orange, and green, respectively). 
+    For more details, we refer readers to Section~\ref{sec:spec}.
+    }
 \end{center}
 \end{figure}
+
+\subsection{Forward Modeling DESI Spectra} \label{sec:spec}
+In this section, we describe how we construct realistic DESI-like spectroscopy 
+from the SEDs of simulated galaxies. 
+Our forward model involves modeling the fiber aperture effect and applying a
+noise model that accurately reproduces the bright time observations of BGS. 
+
+DESI uses fiber-fed spectrographs with fibers that have angular radii of 1''. 
+Only the light from a galaxy within this fiber aperture is collected by the 
+instrument.
+LS provides measurements of photometric fiber flux within a 1'' radius aperture
+($f_X^{\rm fiber}$), which estimates the flux that passed through to the fibers.
+When we assign photometric uncertainties to our simulated galaxies based on
+$r$, $g-r$, and $r-z$ in Section~\ref{sec:photo}, we also assign $r$-band fiber
+flux. 
+We model the SED flux that passes through the fiber by scaling the SED flux by
+the $r$ band fiber fraction, the ratio of the $r$-band fiber flux over the
+total $r$ band flux: 
+\begin{equation}
+    f^{\rm spec}(\lambda) = \left(\frac{f_r^{\rm fiber}}{f_r}\right)f_{\rm SED}(\lambda).
+\end{equation}
+This fiber aperture correction assumes that there is no significant color
+dependence. 
+We also assume that there are no significant biases in the fiber flux
+measurements in LS due to miscentering of objects. 
+\todo{Do we want to say more about this assumption? Also cite Marta's paper
+investigating aperture effect.}
+In addition to using it for the aperture correction, we also use $f_r^{\rm
+fiber}$ to derive ``measured'' $\hat{f}_r^{\rm fiber}$: 
+\begin{equation}
+    \hat{f}_r^{\rm fiber} = f_r^{\rm fiber} + n^{\rm fiber}_r \quad~{\rm
+    where}~n^{\rm fiber}_r \sim \mathcal{N}\left(0, \frac{f_r^{\rm fiber}}{f_r}
+    \sigma_r\right).
+\end{equation}
+We later use $\hat{f}_r^{\rm fiber}$ to set the prior on the nuisance parameter
+of our SED modeling (Section~\ref{sec:methods}).
+
+Next, we apply a noise model that simulates the DESI instrument response and
+bright time observing conditions of BGS. 
+We use the spectral simulation pipeline of \todo{cite survey simulations paper
+and list details}
+\footnote{\href{https://specsim.readthedocs.io/en/stable/guide.html}{https://specsim.readthedocs.io}}. 
+More specifically, we use nominal dark time observing conditions with $180s$
+exposure time. 
+These conditions accurately reproduce the spectral noise and redshift success
+rates of observed BGS exposures in DESI survey validation data (Hahn~\etal~in
+prep.).
+In Figure~\ref{fig:spec}, we present the forward modeled BGS spectrum of a
+\lgal~galaxy (solid). 
+For reference, we include the full SED (dotted) and fiber fraction scaled SED
+(dashed) of the galaxy. 
+
+
+%\todo{conclude by emphasizing the fact that our simulations cover the full expected
+%observable space of DESI BGS and therefore if the pipeline works on our mocks,
+%then it should work for every expected type of galaxies in the observations} 
 

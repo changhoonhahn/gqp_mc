@@ -1,17 +1,9 @@
-\section{Inferring Galaxy Properties from Photometry and Spectra} \label{sec:methods}
-\begin{itemize}
-    \item overview of SED fitting
-    \item refer to appendix about different set ups 
-    \item be explicit about what physical properties are inferred from our SED
-        fitting: stellar masses, ages, metallicities, star-formation histories.
-        Expalin how we derive SFRs from the SFHs (i.e. our choice of 100Myr) 
-    \item brief description of other standard SED fitting methods we include for
-        comparison: firefly, VESPA, CIGALE
-\end{itemize} 
-
-
-description of our speculator SED model \citep{alsing2019}, which is based on
-FSPS. We use Chabrier IMF \ch{do we need to justify htis?}. 
+\section{Joint SED modeling of Photometry and Spectra} \label{sec:methods}
+PROVABGS will provide inferred galaxy properties derived from joint SED
+modeling of DESI photometry and spectra. 
+For our SED modeling we use a state-of-the-art stellar population synthesis
+(SPS) model based on \fsps~that uses non-parmaetric SFH and ZH, a flexible dust
+attenuation model, and accounts for uncertainties in the stellar evolution. 
 
 We don't use tau model for SFH because it biases the physical parameters
 inferred. \todo{citation}. Instead we use the
@@ -25,6 +17,21 @@ Similarly for ZH, we use the following ZH bases
 \begin{equation}
     {\rm ZH}(t) = \sum\limits_{i=1}^2 \gamma_i^{\rm ZH} s_i^{\rm ZH}(t)
 \end{equation} 
+
+\todo{describe model prior} 
+
+
+\begin{itemize}
+    \item be explicit about what physical properties are inferred from our SED
+        fitting: stellar masses, ages, metallicities, star-formation histories.
+        Expalin how we derive SFRs from the SFHs (i.e. our choice of 100Myr) 
+    \item brief description of other standard SED fitting methods we include for
+        comparison: firefly, VESPA, CIGALE
+\end{itemize} 
+
+
+description of our speculator SED model \citep{alsing2019}, which is based on
+FSPS. We use Chabrier IMF \ch{do we need to justify htis?}. 
 
 \begin{equation}
     {\rm SFR}_{100{\rm Myr}} = \frac{\int\limits_{t_{\rm age} - 100{\rm

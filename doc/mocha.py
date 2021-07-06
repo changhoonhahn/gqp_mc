@@ -6,6 +6,7 @@ generate plots for the mock challenge paper
 '''
 import os 
 import h5py 
+import pickle 
 import numpy as np 
 import corner as DFM 
 import scipy.optimize as op
@@ -13,8 +14,10 @@ from scipy.stats import norm as Norm
 # --- gqp_mc ---
 from gqp_mc import util as UT 
 from gqp_mc import data as Data 
+from gqp_mc import popinf as PopInf
 # --- provabgs --- 
 from provabgs import infer as Infer
+from provabgs import models as Models
 # --- astro ---
 from astropy.io import fits
 import astropy.table as aTable 
@@ -844,6 +847,118 @@ def _speculator_fsps(sfr='100myr'):
     return None 
 
 
+def eta_l2(sample='S2'):
+    ''' calculate bias as a function of galaxy properties
+    '''
+    props_infer, props_truth = L2_chains(sample)
+    
+    logM_infer, logSSFR_infer, _ = props_infer
+    logM_truth, logSSFR_truth, _ = props_truth 
+    
+    # get eta for log M*, log SSFR, and log Z_MW
+    logM_bin    = np.arange(8, 13, 0.5)
+    logSSFR_bin = np.arange(-14, -9, 0.5)
+    logZ_MW_bin = np.arange(-2.5, -1.5, 0.5)
+    
+    x_props, eta_mus, eta_sigs = [], [], []
+    for prop_infer, prop_truth, prop_bin in zip(props_infer[:2], props_truth[:2], [logM_bin, logSSFR_bin]): 
+
+        x_prop, eta_mu, eta_sig = [], [], []
+        for ibin in range(len(prop_bin)-1): 
+            inbin = (prop_truth > prop_bin[ibin]) & (prop_truth < prop_bin[ibin+1])
+            if np.sum(inbin) > 0: 
+                x_prop.append(0.5 * (prop_bin[ibin] + prop_bin[ibin+1]))
+
+                #_mu, _sig = PopInf.eta_Delta_opt(logM_infer[inbin,:] - logM_truth[inbin, None])
+                #eta_mu.append(_mu)
+                #eta_sig.append(_sig)
+                
+                _theta = PopInf.eta_Delta_mcmc(prop_infer[inbin,:] - prop_truth[inbin, None], 
+                        niter=1000, burnin=500, thin=5)
+                _mu, _sig = _theta[:,0], _theta[:,1]
+                eta_mu.append(np.median(_mu))
+                eta_sig.append(np.median(_sig))
+
+        x_props.append(np.array(x_prop))
+        eta_mus.append(np.array(eta_mu))
+        eta_sigs.append(np.array(eta_sig))
+            
+    # eta as a function of galaxy properties 
+    fig = plt.figure(figsize=(12,5))
+    for i, x_prop, eta_mu, eta_sig in zip(range(len(x_props)), x_props, eta_mus, eta_sigs): 
+        sub = fig.add_subplot(1,2,i=1) 
+        sub.plot([[8., 12.], [-14, -9]][i], [0., 0.], c='k', ls='--')
+        sub.fill_between(x_prop, eta_mu - eta_sig, eta_mu + eta_sig, fc='C0', ec='none', alpha=0.5) 
+        sub.scatter(x_prop, eta_mu, c='C0', s=2) 
+        sub.plot(x_prop, eta_mu, c='C0')
+        sub.set_xlabel([r'$\log(~M_*~[M_\odot]~)$', r'$\log(~{\rm SSFR}_{1Gyr}~[M_\odot/yr]~)$'][i], 
+                fontsize=25)
+        sub.set_xlim([(8., 12.), (-14, -9)][i])
+        sub.set_ylabel([r'$\Delta_{\log M_*}$', r'$\Delta_{\log{\rm SSFR}_{1Gyr}}$'][i],
+            fontsize=25)
+        sub.set_ylim(-1., 1.) 
+    #sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
+
+    ffig = os.path.join(dir_doc, '_eta_%s.png' % sample)
+    fig.savefig(ffig, bbox_inches='tight') 
+    return None 
+
+
+def L2_chains(sample): 
+    ''' read in posterior chains for L2 mock challenge and derive galaxy
+    properties for the chains and the corresponding true properties 
+    '''
+    dat_dir = '/Users/chahah/data/gqp_mc/mini_mocha/'
+    thetas = pickle.load(open(os.path.join(dat_dir, 'l2.theta.p'), 'rb'))
+
+    # read in MCMC chains 
+    if sample == 'S2': 
+        f_chain = lambda i: os.path.join(dat_dir, 'L2', 'S2.provabgs_model.%i.chain.p' % i)
+    
+    igals, chains = [], []
+    for i in range(100): 
+        if os.path.isfile(f_chain(i)): 
+            igals.append(i)
+            chains.append(pickle.load(open(f_chain(i), 'rb')))
+    print('%i of 100 galaxies in the mock challenge' % len(igals)) 
+    
+    # provabgs model 
+    m_nmf = Models.NMF(burst=True, emulator=True)
+
+    # derived 
+    logMstar_true, logMstar_inf = [], [] 
+    logSSFR_true, logSSFR_inf = [], [] 
+    logZ_MW_true, logZ_MW_inf = [], []
+
+    for i, chain in zip(igals, chains): 
+        flat_chain = UT.flatten_chain(chain['mcmc_chain'][1500:,:,:])       
+        
+        z_obs = thetas['redshift'][i]
+        
+        logMstar_true.append(thetas['logM_fiber'][i])
+        logMstar_inf.append(flat_chain[:,0])
+        
+        logSSFR_true.append(np.log10(thetas['sfr_1gyr'][i]) - thetas['logM_total'][i])
+        logSSFR_inf.append(np.log10(m_nmf.avgSFR(flat_chain, zred=z_obs, dt=1.0)) - flat_chain[:,0])
+        
+        logZ_MW_true.append(np.log10(thetas['Z_MW'])[i])
+        logZ_MW_inf.append(np.log10(m_nmf.Z_MW(flat_chain, zred=z_obs)))
+        
+    logMstar_true = np.array(logMstar_true)
+    logMstar_inf = np.array(logMstar_inf)
+
+    logSSFR_true = np.array(logSSFR_true).flatten()
+    logSSFR_inf = np.array(logSSFR_inf)
+
+    logZ_MW_true = np.array(logZ_MW_true).flatten()
+    logZ_MW_inf = np.array(logZ_MW_inf)
+
+    props_true = np.array([logMstar_true, logSSFR_true, logZ_MW_true])
+    props_inf = np.array([logMstar_inf, logSSFR_inf, logZ_MW_inf])
+
+    return props_inf, props_true
+
+
 def photo_vs_specphoto(sim='lgal', noise_photo='legacy', noise_specphoto='bgs0_legacy',
         method='ifsps', model='vanilla', sample='mini_mocha'):  
     ''' Compare properties inferred from photometry versus spectrophotometry to see how much
@@ -1326,8 +1441,8 @@ def _NMF_bases():
 if __name__=="__main__": 
     #BGS()
 
-    FM_photo()
-    FM_spec()
+    #FM_photo()
+    #FM_spec()
     
     #speculator()
     #_NMF_bases() 
@@ -1351,43 +1466,4 @@ if __name__=="__main__":
     #inferred_props(obs='specphoto', noise='bgs0_legacy', dt_sfr='100myr')
     #inferred_props(obs='specphoto', noise='bgs0_legacy', dt_sfr='1gyr')
 
-    #_speculator_fsps(sfr='100myr')
-
-    #photo_vs_specphoto(sim='lgal', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
-    #        method='ifsps', model='vanilla')
-    #photo_vs_specphoto(sim='tng', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
-    #        method='ifsps', model='vanilla')
-
-    #photo_vs_specphoto(sim='lgal', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
-    #        method='ispeculator', model='emulator')
-    #photo_vs_specphoto(sim='tng', noise_photo='legacy', noise_specphoto='bgs0_legacy', 
-    #        method='ispeculator', model='emulator')
-
-    #eta_Delta(sim='fsps', obs='spec', noise='none', dt_sfr='100myr')
-    #eta_Delta(sim='fsps', obs='spec', noise='none', dt_sfr='1gyr')
-    #eta_Delta(sim='lgal', obs='spec', noise='bgs0', dt_sfr='100myr')
-    #eta_Delta(sim='lgal', obs='spec', noise='bgs0', dt_sfr='1gyr')
-
-    #eta_Delta(sim='lgal', obs='photo', noise='legacy', dt_sfr='100myr')
-    #eta_Delta(sim='lgal', obs='photo', noise='legacy', dt_sfr='1gyr')
-
-    #eta_Delta(sim='lgal', obs='specphoto', noise='bgs0_legacy', dt_sfr='100myr')
-    #eta_Delta(sim='lgal', obs='specphoto', noise='bgs0_legacy', dt_sfr='1gyr')
-
-    #dust_comparison(sim='lgal', noise='bgs0_legacy')
-
-
-    #mock_challenge_photo(noise='none', dust=False, method='ifsps')
-    #mock_challenge_photo(noise='none', dust=True, method='ifsps')
-    #mock_challenge_photo(noise='legacy', dust=False, method='ifsps')
-    #mock_challenge_photo(noise='legacy', dust=True, method='ifsps')
-
-    #mini_mocha_spec(noise='bgs0', method='ifsps', sfr='1gyr')
-    #mini_mocha_spec(noise='bgs0', method='ifsps', sfr='100myr')
-    #mini_mocha_photo(noise='legacy', method='ifsps', sfr='1gyr')
-    #mini_mocha_photo(noise='legacy', method='ifsps', sfr='100myr')
-    #mini_mocha_specphoto(noise='bgs0_legacy', method='ifsps', sfr='1gyr')
-    #mini_mocha_specphoto(noise='bgs0_legacy', method='ifsps', sfr='100myr')
-    
-    #mini_mocha_spec(noise='bgs0', method='pfirefly')
-    
+    eta_l2(sample='S2')

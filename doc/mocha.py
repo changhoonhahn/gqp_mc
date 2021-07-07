@@ -324,155 +324,38 @@ def FM_spec():
     return None 
 
 
-def speculator():
-    '''plot the SFH and ZH bases of speculator 
+def nmf_bases():
+    '''plot the SFH and ZH bases of our NMF SPS model  
     '''
-    ispeculator = Fitters.iSpeculator()
-
-    tage = np.linspace(0., 13.7, 50) 
+    m_nmf = Models.NMF(burst=False, emulator=True)
     
+    # plot SFH bases 
     fig = plt.figure(figsize=(12,4))
     sub = fig.add_subplot(121)
-    for i, basis in enumerate(ispeculator._sfh_basis): 
-        sub.plot(tage, basis(tage), label=r'$s_{%i}^{\rm SFH}$' % (i+1)) 
+    for i in range(4): 
+        sub.plot(m_nmf._t_lb_hr, m_nmf._sfh_basis_hr[i], label=r'$s_{%i}^{\rm SFH}$' % (i+1)) 
     sub.set_xlim(0., 13.7) 
     sub.set_ylabel(r'star formation rate [$M_\odot/{\rm Gyr}$]', fontsize=20) 
     sub.set_ylim(0., 0.18) 
     sub.set_yticks([0.05, 0.1, 0.15]) 
     sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
 
+    # plot ZH bases 
     sub = fig.add_subplot(122)
-    for i, basis in enumerate(ispeculator._zh_basis): 
-        sub.plot(tage, basis(tage), label=r'$s_{%i}^{\rm ZH}$' % (i+1)) 
+    for i in range(2):
+        sub.plot(m_nmf._t_lb_hr, m_nmf._zh_basis[i](m_nmf._t_lb_hr), label=r'$s_{%i}^{\rm ZH}$' % (i+1)) 
     sub.set_xlim(0., 13.7) 
     sub.set_ylabel('metallicity $Z$', fontsize=20) 
     sub.set_ylim(0., None) 
-    sub.legend(loc='upper left', fontsize=20, handletextpad=0.2) 
+    sub.legend(loc='upper right', ncol=2, fontsize=20, handletextpad=0.2) 
 
     bkgd = fig.add_subplot(111, frameon=False)
-    bkgd.set_xlabel(r'$t_{\rm age}$ [Gyr]', labelpad=10, fontsize=25) 
+    bkgd.set_xlabel(r'$t_{\rm lookback}$ [Gyr]', labelpad=10, fontsize=25) 
     bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
     fig.subplots_adjust(wspace=0.2)
-    _ffig = os.path.join(dir_doc, 'speculator.png') 
-    fig.savefig(_ffig, bbox_inches='tight') 
-    fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
-    return None 
 
-
-def mcmc_posterior(sim='lgal', obs='spec', noise='bgs', dt_sfr='100myr'): 
-    ''' plot that includes a corner plot and also demonstrates how the best-fit
-    reproduces the data 
-    '''
-    igal = 20 
-    ########################################################################
-    # read meta data 
-    ########################################################################
-    _, meta = Data.Photometry(sim=sim, noise='legacy', lib='bc03', sample='mini_mocha') 
-    print('z=%f' % meta['redshift'][igal])
-    ########################################################################
-    # read markov chain 
-    ########################################################################
-    f_mcmc = os.path.join(dir_mm, 'provabgs',
-            '%s.%s.noise_%s.%i.mcmc.hdf5' % (sim, obs, noise, igal))
-    mcmc = h5py.File(f_mcmc, 'r')
-    f_post = os.path.join(dir_mm, 'provabgs',
-            '%s.%s.noise_%s.%i.postproc.hdf5' % (sim, obs, noise, igal))
-    post = h5py.File(f_post, 'r')
-    ########################################################################
-    # compile labels and truths
-    ########################################################################
-    theta_names = ['logmstar', 'beta1_sfh', 'beta2_sfh', 'beta3_sfh', 'beta4_sfh',
-            'gamma1_zh', 'gamma2_zh', 'dust1', 'dust2', 'dust_index']
-    lbls = [lbl_dict[_theta] for _theta in theta_names]
-    truths = [None for _ in theta_names]
-    truths[0] = meta['logM_%s' % ['total', 'fiber'][obs=='spec']][igal]
-    if obs == 'specphoto': 
-        theta_names += ['f_fiber']
-        truths[-1] = (photo['fiberflux_r_true'][igal]/photo['flux_r_true'][igal]) 
-    ########################################################################
-    # figure 
-    ########################################################################
-    # MCMC 
-    chain = mcmc['mcmc_chain'][...]
-    fig = DFM.corner(
-            chain.reshape((np.prod(chain.shape[:2]), chain.shape[2])),
-            range=np.array(mcmc['prior_range'][...]).T,
-            quantiles=[0.16, 0.5, 0.84], 
-            levels=[0.68, 0.95],
-            nbin=40,
-            smooth=True, 
-            truths=truths, 
-            labels=lbls, 
-            label_kwargs={'fontsize': 15})
-    _ffig = os.path.join(dir_doc, 'mcmc_posterior.%s.%s.%s.png' % (sim, obs, noise))
+    _ffig = os.path.join(dir_doc, 'nmf_bases.pdf') 
     fig.savefig(_ffig, bbox_inches='tight') 
-    #fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
-    plt.close()
-    ########################################################################
-    prop_names = ['logmstar', 'logsfr.%s' % dt_sfr, 'logz.mw']
-    props = np.array([
-        post['logmstar'][...],
-        post['logsfr.%s' % dt_sfr][...] - post['logmstar'][...], 
-        post['logz.mw'][...]]).T
-    lbls = [lbl_dict['logmstar'], r'$\log~{\rm SSFR}_{%s}$' % dt_sfr, lbl_dict['logz.mw']]
-    truths = [meta['logM_%s' % ['total', 'fiber'][obs=='spec']][igal], 
-            np.log10(meta['sfr_%s' % dt_sfr][igal]) - meta['logM_%s' % ['total', 'fiber'][obs=='spec']][igal], 
-            np.log10(meta['Z_MW'][igal])]
-    plot_range = [(np.median(props[:,i]) - 0.5, np.median(props[:,i]) + 0.5) for i in range(len(truths))]
-
-    fig = DFM.corner(
-            props,
-            #weights=post['w_prior.%s' % dt_sfr], 
-            range=plot_range, 
-            quantiles=[0.16, 0.5, 0.84], 
-            levels=[0.68, 0.95],
-            nbin=40,
-            smooth=True, 
-            truths=truths, 
-            labels=lbls, 
-            label_kwargs={'fontsize': 20})
-    _ffig = os.path.join(dir_doc, 'mcmc_posterior.%s.%s.%s.props.sfr%s.png' %
-            (sim, obs, noise, dt_sfr))
-    fig.savefig(_ffig, bbox_inches='tight') 
-    #fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
-    plt.close()
-    
-    if obs == 'specphoto': 
-        fig = plt.figure(figsize=(20,5))
-        gs2 = fig.add_gridspec(nrows=1, ncols=2, width_ratios=[1,3])#, top=0.17, bottom=0.05)
-        ax1 = fig.add_subplot(gs2[0,0]) 
-        ax2 = fig.add_subplot(gs2[0,1]) 
-    elif obs == 'spec': 
-        fig = plt.figure(figsize=(15,5))
-        ax2 = fig.add_subplot(111)
-    elif obs == 'photo': 
-        fig = plt.figure(figsize=(5,5))
-        ax1 = fig.add_subplot(111)
-
-    if 'photo' in obs: 
-        n_photo = len(mcmc['flux_photo_obs'][...])
-        ax1.errorbar(np.arange(n_photo), mcmc['flux_photo_obs'][...], 
-                yerr=mcmc['flux_ivar_photo_obs'][...]**-0.5, fmt='.k',
-                label='observations')
-        ax1.scatter(np.arange(n_photo), mcmc['flux_photo_model'][...], 
-                c='C1', label=r'best-fit') 
-        ax1.legend(loc='upper left', markerscale=3, handletextpad=0.2, fontsize=15) 
-        ax1.set_xticks([0, 1, 2])#, 3, 4]) 
-        ax1.set_xticklabels(['$g$', '$r$', '$z$'], fontsize=25) 
-        ax1.set_xlim(-0.5, n_photo-0.5)
-    if 'spec' in obs: 
-        ax2.plot(mcmc['wavelength_obs'][...], mcmc['flux_spec_obs'][...], c='k',
-                lw=1) 
-        ax2.plot(mcmc['wavelength_obs'][...], mcmc['flux_spec_model'][...], c='C1',
-                ls='--', lw=1) 
-        ax2.set_xlabel('wavelength [$\AA$]', fontsize=20) 
-        ax2.set_xlim(3600., 9800.)
-        ax2.set_ylim(-1., 10.) 
-        
-    _ffig = os.path.join(dir_doc, 'mcmc_posterior.%s.%s.%s.bestfit.png' % (sim, obs, noise))
-    fig.savefig(_ffig, bbox_inches='tight') 
-    #fig.savefig(UT.fig_tex(_ffig, pdf=True), bbox_inches='tight') 
-    plt.close()
     return None 
 
 
@@ -562,7 +445,176 @@ def posterior_demo():
     return None 
 
 
-def inferred_props(sim='lgal', obs='photo', noise='legacy', dt_sfr='100myr'):
+def inferred_props(): 
+    ''' Figure comparing inferred galaxy properties to the true galaxy
+    properties of the LGal mocks.
+    '''
+    lbls    = [r'$\log M_*$', r'$\log {\rm SFR}_{1Gyr}$', r'$\log Z_{\rm MW}$']
+    minmax  = [[8., 12.], [-4., -1], [-2.5, -1.5]]
+
+    fig = plt.figure(figsize=(15, 15))    
+    for i, sample in enumerate(['S2', 'P2', 'SP2']): 
+        props_infer, props_truth = L2_chains(sample, derived_properties=True)
+        
+        for ii, prop_infer, prop_truth in zip(range(len(props_infer)), props_infer, props_truth): 
+
+            sub = fig.add_subplot(3,3,3*i+ii+1)
+            dprop = prop_infer - prop_truth[:,None]
+            violins = sub.violinplot(dprop.T, positions=prop_truth,
+                                 widths=[0.02, 0.02, 0.005][ii], showextrema=False)
+            for violin in violins['bodies']:
+                violin.set_facecolor('C0') 
+                violin.set_alpha(1.)
+
+            sub.plot(minmax[ii], [0, 0], c='k', ls='--')
+            sub.set_xlim(minmax[ii])
+            sub.set_ylim(-1., 1.)
+            if i == 0: sub.text(0.05, 0.95, lbls[ii], ha='left', va='top', transform=sub.transAxes, fontsize=25)
+
+    bkgd = fig.add_subplot(111, frameon=False)
+    bkgd.set_xlabel(r'$\theta_{\rm true}$', fontsize=25) 
+    bkgd.set_ylabel(r'$\theta_{\rm infer} - \theta_{\rm true}$', labelpad=10, fontsize=25) 
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+    fig.subplots_adjust(wspace=0.225, hspace=0.1)
+
+    ffig = os.path.join(dir_doc, '_inferred_props.png')
+    fig.savefig(ffig, bbox_inches='tight') 
+    return None 
+
+
+def eta_l2(sample='S2', method='opt'):
+    ''' calculate bias as a function of galaxy properties
+    '''
+    props_infer, props_truth = L2_chains(sample)
+    
+    logM_infer, logSFR_infer, logZMW_infer = props_infer
+    logM_truth, logSFR_truth, logZMW_truth = props_truth 
+    
+    # get eta for log M*, log SFR, and log Z_MW
+    logM_bin    = np.arange(8, 13, 0.5)
+    logSFR_bin  = np.arange(-4, -1, 0.5)
+    logZMW_bin  = np.arange(-2.5, -1., 0.25)
+    
+    x_props, eta_mus, eta_sigs = [], [], []
+    for prop_infer, prop_truth, prop_bin in zip(props_infer, props_truth, [logM_bin, logSFR_bin, logZMW_bin]): 
+
+        x_prop, eta_mu, eta_sig = [], [], []
+        for ibin in range(len(prop_bin)-1): 
+            inbin = (prop_truth > prop_bin[ibin]) & (prop_truth < prop_bin[ibin+1])
+            if np.sum(inbin) > 0: 
+                x_prop.append(0.5 * (prop_bin[ibin] + prop_bin[ibin+1]))
+                
+                if method == 'opt': 
+                    _mu, _sig = PopInf.eta_Delta_opt(logM_infer[inbin,:] - logM_truth[inbin, None])
+                    eta_mu.append(_mu)
+                    eta_sig.append(_sig)
+                elif method == 'mcmc':  
+                    _theta = PopInf.eta_Delta_mcmc(prop_infer[inbin,:] - prop_truth[inbin, None], 
+                            niter=1000, burnin=500, thin=5)
+                    _mu, _sig = _theta[:,0], _theta[:,1]
+                    eta_mu.append(np.median(_mu))
+                    eta_sig.append(np.median(_sig))
+        print(eta_mu)
+        x_props.append(np.array(x_prop))
+        eta_mus.append(np.array(eta_mu))
+        eta_sigs.append(np.array(eta_sig))
+    
+    minmax = [[8., 12.], [-4., -1], [-2.5, -1.5]]
+    # eta as a function of galaxy properties 
+    fig = plt.figure(figsize=(16,5))
+    for i, x_prop, eta_mu, eta_sig in zip(range(len(x_props)), x_props, eta_mus, eta_sigs): 
+        sub = fig.add_subplot(1, len(x_props), i+1) 
+        sub.plot(minmax[i], [0., 0.], c='k', ls='--')
+        sub.fill_between(x_prop, eta_mu - eta_sig, eta_mu + eta_sig, fc='C0', ec='none', alpha=0.5) 
+        sub.scatter(x_prop, eta_mu, c='C0', s=2) 
+        sub.plot(x_prop, eta_mu, c='C0')
+        sub.set_xlabel([r'$\log(~M_*~[M_\odot]~)$', r'$\log(~{\rm SFR}_{1Gyr}~[M_\odot/yr]~)$', r'$\log(~Z_{\rm MW}~)$'][i], 
+                fontsize=25)
+        sub.set_xlim(minmax[i])
+        sub.set_ylabel([r'$\Delta_{\log M_*}$', r'$\Delta_{\log{\rm SFR}_{1Gyr}}$', r'$\Delta_{\log Z_{\rm MW}}$'][i],
+            fontsize=25)
+        sub.set_ylim(-1., 1.) 
+    #sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
+
+    ffig = os.path.join(dir_doc, '_eta_%s.png' % sample)
+    fig.savefig(ffig, bbox_inches='tight') 
+    return None 
+
+
+def L2_chains(sample, derived_properties=True): 
+    ''' read in posterior chains for L2 mock challenge and derive galaxy
+    properties for the chains and the corresponding true properties 
+    '''
+    dat_dir = '/Users/chahah/data/gqp_mc/mini_mocha/'
+    thetas = pickle.load(open(os.path.join(dat_dir, 'l2.theta.p'), 'rb'))
+
+    # read in MCMC chains 
+    if sample == 'S2': 
+        f_chain = lambda i: os.path.join(dat_dir, 'L2', 'S2.provabgs_model.%i.chain.p' % i)
+    elif sample == 'P2': 
+        f_chain = lambda i: os.path.join(dat_dir, 'L2', 'P2.provabgs.%i.chain.p' % i)
+    elif sample == 'SP2': 
+        f_chain = lambda i: os.path.join(dat_dir, 'L2', 'SP2.provabgs.%i.chain.p' % i)
+
+    
+    igals, chains = [], []
+    for i in range(100): 
+        if os.path.isfile(f_chain(i)): 
+            igals.append(i)
+            chains.append(pickle.load(open(f_chain(i), 'rb')))
+    print('%i of 100 galaxies in the mock challenge' % len(igals)) 
+    
+    # provabgs model 
+    m_nmf = Models.NMF(burst=True, emulator=True)
+    
+    if derived_properties: 
+        # derived 
+        logMstar_true, logMstar_inf = [], [] 
+        logSFR_true, logSFR_inf     = [], [] 
+        logZ_MW_true, logZ_MW_inf   = [], []
+
+        for i, chain in zip(igals, chains): 
+            if sample != 'SP2':
+                flat_chain = UT.flatten_chain(chain['mcmc_chain'][1500:,:,:])       
+            else: 
+                flat_chain = UT.flatten_chain(chain['mcmc_chain'][1500:,:,:-1])
+
+            z_obs = thetas['redshift'][i]
+            
+            if sample == 'S2': 
+                logMstar_true.append(thetas['logM_fiber'][i])
+            else: 
+                logMstar_true.append(thetas['logM_total'][i])
+            logMstar_inf.append(flat_chain[:,0])
+            
+            logSFR_true.append(np.log10(thetas['sfr_1gyr'][i]))
+            logSFR_inf.append(np.log10(m_nmf.avgSFR(flat_chain, zred=z_obs, dt=1.0)))
+            
+            logZ_MW_true.append(np.log10(thetas['Z_MW'])[i])
+            logZ_MW_inf.append(np.log10(m_nmf.Z_MW(flat_chain, zred=z_obs)))
+            
+        logMstar_true   = np.array(logMstar_true)
+        logMstar_inf    = np.array(logMstar_inf)
+
+        logSFR_true     = np.array(logSFR_true).flatten()
+        logSFR_inf      = np.array(logSFR_inf)
+
+        logZ_MW_true    = np.array(logZ_MW_true).flatten()
+        logZ_MW_inf     = np.array(logZ_MW_inf)
+
+        props_true      = np.array([logMstar_true, logSFR_true, logZ_MW_true])
+        props_inf       = np.array([logMstar_inf, logSFR_inf, logZ_MW_inf])
+
+        return props_inf, props_true
+    else:
+        flat_chains = [] 
+        for i, chain in zip(igals, chains): 
+            flat_chain = UT.flatten_chain(chain['mcmc_chain'][1500:,:,:])       
+            flat_chains.append(flat_chain)
+        return np.array(flat_chains)
+
+
+def _inferred_props(sim='lgal', obs='photo', noise='legacy', dt_sfr='100myr'):
     ''' compare inferred physical galaxy properties of each galaxy to its
     corresponding intrinsic values 
     '''
@@ -931,131 +983,6 @@ def _speculator_fsps(sfr='100myr'):
     _ffig = os.path.join(dir_doc, '_speculator_fsps.prosterior_comparison.png') 
     fig.savefig(_ffig, bbox_inches='tight') 
     return None 
-
-
-def eta_l2(sample='S2'):
-    ''' calculate bias as a function of galaxy properties
-    '''
-    props_infer, props_truth = L2_chains(sample)
-    
-    logM_infer, logSFR_infer, logZMW_infer = props_infer
-    logM_truth, logSFR_truth, logZMW_truth = props_truth 
-    
-    # get eta for log M*, log SFR, and log Z_MW
-    logM_bin    = np.arange(8, 13, 0.5)
-    logSFR_bin  = np.arange(-4, -1, 0.5)
-    logZMW_bin  = np.arange(-2.5, -1., 0.25)
-    
-    x_props, eta_mus, eta_sigs = [], [], []
-    for prop_infer, prop_truth, prop_bin in zip(props_infer, props_truth, [logM_bin, logSFR_bin, logZMW_bin]): 
-
-        x_prop, eta_mu, eta_sig = [], [], []
-        for ibin in range(len(prop_bin)-1): 
-            inbin = (prop_truth > prop_bin[ibin]) & (prop_truth < prop_bin[ibin+1])
-            if np.sum(inbin) > 0: 
-                x_prop.append(0.5 * (prop_bin[ibin] + prop_bin[ibin+1]))
-
-                #_mu, _sig = PopInf.eta_Delta_opt(logM_infer[inbin,:] - logM_truth[inbin, None])
-                #eta_mu.append(_mu)
-                #eta_sig.append(_sig)
-                
-                _theta = PopInf.eta_Delta_mcmc(prop_infer[inbin,:] - prop_truth[inbin, None], 
-                        niter=1000, burnin=500, thin=5)
-                _mu, _sig = _theta[:,0], _theta[:,1]
-                eta_mu.append(np.median(_mu))
-                eta_sig.append(np.median(_sig))
-        print(eta_mu)
-        x_props.append(np.array(x_prop))
-        eta_mus.append(np.array(eta_mu))
-        eta_sigs.append(np.array(eta_sig))
-    
-    minmax = [[8., 12.], [-4., -1], [-2.5, -1.5]]
-    # eta as a function of galaxy properties 
-    fig = plt.figure(figsize=(16,5))
-    for i, x_prop, eta_mu, eta_sig in zip(range(len(x_props)), x_props, eta_mus, eta_sigs): 
-        sub = fig.add_subplot(1, len(x_props), i+1) 
-        sub.plot(minmax[i], [0., 0.], c='k', ls='--')
-        sub.fill_between(x_prop, eta_mu - eta_sig, eta_mu + eta_sig, fc='C0', ec='none', alpha=0.5) 
-        sub.scatter(x_prop, eta_mu, c='C0', s=2) 
-        sub.plot(x_prop, eta_mu, c='C0')
-        sub.set_xlabel([r'$\log(~M_*~[M_\odot]~)$', r'$\log(~{\rm SFR}_{1Gyr}~[M_\odot/yr]~)$', r'$\log(~Z_{\rm MW}~)$'][i], 
-                fontsize=25)
-        sub.set_xlim(minmax[i])
-        sub.set_ylabel([r'$\Delta_{\log M_*}$', r'$\Delta_{\log{\rm SFR}_{1Gyr}}$', r'$\Delta_{\log Z_{\rm MW}}$'][i],
-            fontsize=25)
-        sub.set_ylim(-1., 1.) 
-    #sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
-
-    ffig = os.path.join(dir_doc, '_eta_%s.png' % sample)
-    fig.savefig(ffig, bbox_inches='tight') 
-    return None 
-
-
-def L2_chains(sample, derived_properties=True): 
-    ''' read in posterior chains for L2 mock challenge and derive galaxy
-    properties for the chains and the corresponding true properties 
-    '''
-    dat_dir = '/Users/chahah/data/gqp_mc/mini_mocha/'
-    thetas = pickle.load(open(os.path.join(dat_dir, 'l2.theta.p'), 'rb'))
-
-    # read in MCMC chains 
-    if sample == 'S2': 
-        f_chain = lambda i: os.path.join(dat_dir, 'L2', 'S2.provabgs_model.%i.chain.p' % i)
-    elif sample == 'P2': 
-        f_chain = lambda i: os.path.join(dat_dir, 'L2', 'P2.provabgs.%i.chain.p' % i)
-    elif sample == 'SP2': 
-        f_chain = lambda i: os.path.join(dat_dir, 'L2', 'SP2.provabgs.%i.chain.p' % i)
-
-    
-    igals, chains = [], []
-    for i in range(100): 
-        if os.path.isfile(f_chain(i)): 
-            igals.append(i)
-            chains.append(pickle.load(open(f_chain(i), 'rb')))
-    print('%i of 100 galaxies in the mock challenge' % len(igals)) 
-    
-    # provabgs model 
-    m_nmf = Models.NMF(burst=True, emulator=True)
-    
-    if derived_properties: 
-        # derived 
-        logMstar_true, logMstar_inf = [], [] 
-        logSFR_true, logSFR_inf     = [], [] 
-        logZ_MW_true, logZ_MW_inf   = [], []
-
-        for i, chain in zip(igals, chains): 
-            flat_chain = UT.flatten_chain(chain['mcmc_chain'][1500:,:,:])       
-            
-            z_obs = thetas['redshift'][i]
-            
-            logMstar_true.append(thetas['logM_fiber'][i])
-            logMstar_inf.append(flat_chain[:,0])
-            
-            logSFR_true.append(np.log10(thetas['sfr_1gyr'][i]))
-            logSFR_inf.append(np.log10(m_nmf.avgSFR(flat_chain, zred=z_obs, dt=1.0)))
-            
-            logZ_MW_true.append(np.log10(thetas['Z_MW'])[i])
-            logZ_MW_inf.append(np.log10(m_nmf.Z_MW(flat_chain, zred=z_obs)))
-            
-        logMstar_true   = np.array(logMstar_true)
-        logMstar_inf    = np.array(logMstar_inf)
-
-        logSFR_true     = np.array(logSFR_true).flatten()
-        logSFR_inf      = np.array(logSFR_inf)
-
-        logZ_MW_true    = np.array(logZ_MW_true).flatten()
-        logZ_MW_inf     = np.array(logZ_MW_inf)
-
-        props_true      = np.array([logMstar_true, logSFR_true, logZ_MW_true])
-        props_inf       = np.array([logMstar_inf, logSFR_inf, logZ_MW_inf])
-
-        return props_inf, props_true
-    else:
-        flat_chains = [] 
-        for i, chain in zip(igals, chains): 
-            flat_chain = UT.flatten_chain(chain['mcmc_chain'][1500:,:,:])       
-            flat_chains.append(flat_chain)
-        return np.array(flat_chains)
 
 
 def photo_vs_specphoto(sim='lgal', noise_photo='legacy', noise_specphoto='bgs0_legacy',
@@ -1543,28 +1470,14 @@ if __name__=="__main__":
     #FM_photo()
     #FM_spec()
     
-    #speculator()
     #_NMF_bases() 
-    
-    #mcmc_posterior(sim='fsps', obs='spec', noise='bgs', dt_sfr='100myr')
-    #mcmc_posterior(sim='fsps', obs='spec', noise='bgs', dt_sfr='1gyr')
-    
-    #inferred_props(sim='fsps', obs='spec', noise='none', dt_sfr='100myr')
-    #inferred_props_wprior(sim='fsps', obs='spec', noise='none', dt_sfr='100myr')
-    #inferred_props(sim='fsps', obs='spec', noise='none', dt_sfr='1gyr')
-    
-    #inferred_props(sim='fsps', obs='spec', noise='bgs', dt_sfr='100myr')
-    #inferred_props(sim='fsps', obs='spec', noise='bgs', dt_sfr='1gyr')
-    
-    #inferred_props(obs='spec', noise='bgs0', dt_sfr='100myr')
-    #inferred_props(obs='spec', noise='bgs0', dt_sfr='1gyr')
 
-    #inferred_props(obs='photo', noise='legacy', dt_sfr='100myr')
-    #inferred_props(obs='photo', noise='legacy', dt_sfr='1gyr')
-    
-    #inferred_props(obs='specphoto', noise='bgs0_legacy', dt_sfr='100myr')
-    #inferred_props(obs='specphoto', noise='bgs0_legacy', dt_sfr='1gyr')
+    nmf_bases()
 
-    posterior_demo()
+    #posterior_demo()
 
-    #eta_l2(sample='S2')
+    #inferred_props()
+
+    #eta_l2(sample='S2', method='opt')
+    #eta_l2(sample='P2', method='opt')
+    #eta_l2(sample='SP2', method='opt')

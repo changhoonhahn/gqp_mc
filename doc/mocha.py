@@ -338,7 +338,7 @@ def nmf_bases():
     sub.set_ylabel(r'star formation rate [$M_\odot/{\rm Gyr}$]', fontsize=20) 
     sub.set_ylim(0., 0.18) 
     sub.set_yticks([0.05, 0.1, 0.15]) 
-    sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
+    sub.legend(loc='upper right', ncol=2, fontsize=20, handletextpad=0.2) 
 
     # plot ZH bases 
     sub = fig.add_subplot(122)
@@ -347,7 +347,7 @@ def nmf_bases():
     sub.set_xlim(0., 13.7) 
     sub.set_ylabel('metallicity $Z$', fontsize=20) 
     sub.set_ylim(0., None) 
-    sub.legend(loc='upper right', ncol=2, fontsize=20, handletextpad=0.2) 
+    sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
 
     bkgd = fig.add_subplot(111, frameon=False)
     bkgd.set_xlabel(r'$t_{\rm lookback}$ [Gyr]', labelpad=10, fontsize=25) 
@@ -631,11 +631,11 @@ if __name__=="__main__":
     
     #_NMF_bases() 
 
-    #nmf_bases()
+    nmf_bases()
 
     #posterior_demo()
 
-    inferred_props()
+    #inferred_props()
 
     #eta_l2(sample='S2', method='opt')
     #eta_l2(sample='P2', method='opt')

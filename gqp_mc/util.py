@@ -4,6 +4,7 @@ some utility functions
 
 '''
 import os
+import numpy as np 
 from astropy.io import fits 
 
 
@@ -73,3 +74,13 @@ def fig_tex(ffig, pdf=False):
     if pdf: ext = 'pdf' 
     return os.path.join(path, '.'.join([_ffig_name, ext])) 
 
+
+def flatten_chain(chain): 
+    ''' flatten mcmc chain. If chain object is 2D then it assumes it's
+    already flattened. 
+    '''
+    if len(chain.shape) == 2: return chain # already flat 
+
+    s = list(chain.shape[1:])
+    s[0] = np.prod(chain.shape[:2]) 
+    return chain.reshape(s)

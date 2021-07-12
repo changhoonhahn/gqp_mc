@@ -1,46 +1,115 @@
-\section{Inferring Galaxy Properties from Photometry and Spectra} \label{sec:methods}
-\begin{itemize}
-    \item overview of SED fitting
-    \item refer to appendix about different set ups 
-    \item be explicit about what physical properties are inferred from our SED
-        fitting: stellar masses, ages, metallicities, star-formation histories.
-        Expalin how we derive SFRs from the SFHs (i.e. our choice of 100Myr) 
-    \item brief description of other standard SED fitting methods we include for
-        comparison: firefly, VESPA, CIGALE
-\end{itemize} 
+\section{Joint SED modeling of Photometry and Spectra} \label{sec:methods}
+PROVABGS will provide inferred galaxy properties derived from joint SED
+modeling of DESI photometry and spectra. 
+For the SED modeling, we use a state-of-the-art stellar population synthesis
+(SPS) model that uses a non-parametric SFH with a star-burst, a non-parametric
+ZH that varies with time, and a flexible dust attenuation prescription. 
 
+% describe SFH prescription
+The form of the SFH is one of the most important factors in the accuracy of an
+SPS model.
+In general, the form of the SFH requires balancing between being flexible enough
+to describe the wide range of SFHs in observations while not being too flexible
+that it can describe any SFH at the expense of constraining power.  
+If the model SFH is not flexible enough to describe actual SFHs of galaxies,
+then unbiased galaxy properties cannot be inferred using the SPS model. 
+For instance, most SPS models~(\emph{e.g.} CIGALE,~\citealt{serra2011};
+BAGPIPES,~\citealt{carnall2017}) use parametric SFH such as the exponentially
+declining $\tau$-model.
+Such functional forms, however, produce biased estimates of galaxy properties
+(\emph{e.g.} $M_*$ and SFR) when used to fit mock observations of simulated 
+galaxies~\citep{simha2014, pacific2015, carnall2018}.
+On the other hand, many non-parametric forms of the SFH are overly flexible
+and allow unphysical SFHs~\citep{leja2019}, which unncessarily increases 
+parameter degeneracies and discards constraining power. 
 
-description of our speculator SED model \citep{alsing2019}, which is based on
-FSPS. We use Chabrier IMF \ch{do we need to justify htis?}. 
-
-We don't use tau model for SFH because it biases the physical parameters
-inferred. \todo{citation}. Instead we use the
-following SFH bases from Rita in prep. 
-\begin{equation}
-    {\rm SFH}(t, t_{\rm age}) = \sum\limits_{i=1}^{4} \beta_i^{\rm SFH}
+In our SPS model, we use a non-parametric SFH with two components: one based on
+non-negative matrix factorization (NMF) basis functions and a starburst component.
+For the first component, SFH is a linear combination of NMF SFH bases:
+\begin{equation} \label{eq:nmf} 
+    {\rm SFH}^{\rm NMF} (t, t_{\rm age}) = \sum\limits_{i=1}^{4} \beta_i
     \frac{s_i^{\rm SFH}(t)}{\int\limits_0^{t_{\rm age}} s_i^{\rm SFH}(t) \,
-    {\rm d}t}
+    {\rm d}t}. 
 \end{equation} 
-Similarly for ZH, we use the following ZH bases 
-\begin{equation}
-    {\rm ZH}(t) = \sum\limits_{i=1}^2 \gamma_i^{\rm ZH} s_i^{\rm ZH}(t)
-\end{equation} 
+$\{s^{\rm SFH}_i\}$ are the NMF basis functions and $\{\beta_i\}$ are the
+coefficients. 
+The integral in the denominator normalizes the NMF basis functions to unity. 
+We constrain $\sum_i \beta_i = 1$, so the total SFH of the component over the
+age of the galaxy ($t_{\rm age})$ is normalized to unity.
+$\{s^{\rm SFH}_i\}$ are from Tojeiro \etal~(in prep.) and derived from the
+IllustrisTNG cosmological hydrodynamic simulation~\citep{nelson2018,
+pillepich2018, springel2018}.
+The SFHs of simulated galaxies IllustrisTNG are compiled, rebinnined, and smoothed
+\todo{more details here}. 
+Afterwards, we perform non-negative matrix
+factorization~\citep{lee1999,cichocki2009, fevotte2011} on the smooth SFHs to
+derive $\{s^{\rm SFH}_i\}$. 
+We find that 4 components is sufficient to accurately reconstruct the SFHs
+from IllustrisTNG. 
+Assuming that the SFHs of IllustrisTNG galaxies resemble the SFHs of actual
+observed galaxies, our NMF form provides a compact and flexible representation
+of the SFHs. 
 
+The NMF basis functions are derived from smooth SFHs, which means that it does
+not include any stochasticity. 
+However, observations and high resolution zoom-in hydrodyanmical simulations
+both find significant stochasticity in galaxy SFHs~\citep{sparre2017,
+caplar2019, hahn2019b, iyer2020}. 
+To include this stochasticity in our SPS model, we include a starburst
+component that consists of a SSP in the SFH. 
+For the total SFH, we use
 \begin{equation}
-    {\rm SFR}_{100{\rm Myr}} = \frac{\int\limits_{t_{\rm age} - 100{\rm
-    Myr}}^{t_{\rm age}}{\rm SFH}(t)\,{\rm d}t}{100\,{\rm Myr}}
-\end{equation} 
-see Figure~\ref{fig:speculator}. 
+    {\rm SFH} (t, t_{\rm age}) = (1 - f_{\rm burst})~{\rm SFH}^{\rm NMF} (t,
+    t_{\rm age}) + f_{\rm burst}~\delta_{\rm D}(t - t_{\rm burst}).
+\end{equation}
+$f_{\rm burst}$ is the fraction of total stellar mass formed during the
+starburst; $t_{\rm burst}$ is the time at which the starburst occurs; 
+$\delta_{\rm D}$ is the Dirac delta function.
+In totatl we have 6 free parameters in our SFH: 4 NMF basis coefficients 
+($\beta_i$), $f_{\rm burst}$, and $t_{\rm burst}$. 
 
-Calzetti dust attenuation curve
+% describe ZH 
+Another key part of an SPS model is the ZH, or chemical enrichment history. 
+Current SPS models mostly assume a ZH that does not vary over
+time~\citep{carnall2017, leja2019}. 
+Since galaxies in hydrodynamical simulations and observations do not have
+constant metallicities throughout their history, this assumption can
+significantly bias the inferred galaxy properties. 
+Instead, for our ZH, we take a similar approach to the SFH and use NMF basis
+functions:
+\begin{equation}
+    {\rm ZH}(t) = \sum\limits_{i=1}^2 \gamma_i s_i^{\rm ZH}(t).
+\end{equation} 
+$\{s_i^{\rm ZH}(t)\}$ are the ZH NMF basis functions and $\{\gamma_i\}$ are the
+coefficients. 
+$\{s_i^{\rm ZH}(t)\}$ are fit using the ZHs of simulated galaxies from IllustrisTNG. 
+We use two NMF components, so our ZH prescription has 2 free parameters. 
+
+
 
 \begin{figure}
 \begin{center}
-\includegraphics[width=0.8\textwidth]{figs/speculator.pdf} 
-\caption{speculator bases}
-\label{fig:speculator}
+\includegraphics[width=0.8\textwidth]{figs/nmf_bases.pdf} 
+    \label{fig:nmf}
+    \caption{
+        Non-negative matrix factorization basis functions for the SFH
+        (left) and ZH (right). 
+        These basis functions are derived from the SFHs and ZHs of simulated
+        galaxies in the IllustrisTNG cosmological hydrodynamic simulations. 
+    }
 \end{center}
 \end{figure}
+
+% describe construction of unattenuated spectra 
+% log-spaced lookback time for SFH for NMF portion + burst 
+
+
+% describe dust attenuation 
+
+%description of our speculator SED model \citep{alsing2019}, which is based on FSPS. We use Chabrier IMF \ch{do we need to justify htis?}. 
+
+Calzetti dust attenuation curve
+
 Rather than evaluating the SPS directly using FSPS we use {\sc Speculator}, an
 emulator for FSPS. Brief explanation of the PCA neural net. motivate why we're
 using speculator by reiterating \cite{alsing2019}s speed profiling. 
@@ -50,7 +119,32 @@ principle speculator can easily be used with HMC because you can get
 derivatives with backpropagation. provide detailed profiling of SED fitting and
 projections for full 10million galaxy BGS sample. 
 
-In Figure XXXX we present the posterior as well as the best-fit photometry and
+% describe how we derive galaxy properties
+\begin{equation}
+    {\rm SFR}_{100{\rm Myr}} = \frac{\int\limits_{t_{\rm age} - 100{\rm
+    Myr}}^{t_{\rm age}}{\rm SFH}(t)\,{\rm d}t}{100\,{\rm Myr}}
+\end{equation} 
+
+\begin{figure}
+\begin{center}
+    \includegraphics[width=0.95\textwidth]{figs/mcmc_posterior_demo.pdf}
+    \label{fig:posterior}
+    \caption{
+        \emph{Top}: 
+        Posterior probability distribution of our 12 SPS model parameters
+        derived from joint SED modeling of the mock DESI photometry and
+        spectra.
+        The contours mark the 68 and 95\% percentiles of the distribution. 
+        \emph{Bottom}: 
+        Comparison of our SPS model evaluated at the best-fit parameters
+        (orange) with the mock observations (black). 
+        On the left panel, we compare the $g$, $r$, $z$ band magnitudes; on the
+        right, we compare the spectroscopy.  
+    }
+\end{center}
+\end{figure}
+
+In Figure~\ref{fig:posterior} we present the posterior as well as the best-fit photometry and
 spectroscopy using speculator + emcee. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

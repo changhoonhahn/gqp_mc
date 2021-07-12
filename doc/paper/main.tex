@@ -1,5 +1,5 @@
-\documentclass[12pt, letterpaper, preprint]{aastex62}
-\input{vc}
+\documentclass[12pt, letterpaper, preprint]{aastex63}
+\usepackage[T1]{fontenc}
 \usepackage{color}
 \usepackage{amsmath}
 \usepackage{natbib}
@@ -7,7 +7,7 @@
 \usepackage{bm}
 \usepackage[normalem]{ulem} % Added by MS for \sout -> not required for final version
 \usepackage{xspace}
-\usepackage{csvsimple} 
+%\usepackage{csvsimple} 
 
 % typesetting shih
 \linespread{1.08} % close to 10/13 spacing
@@ -29,8 +29,6 @@
 % math shih
 \newcommand{\setof}[1]{\left\{{#1}\right\}}
 \newcommand{\given}{\,|\,}
-\newcommand{\lss}{{\small{LSS}}\xspace}
-\newcommand{\lgal}{{\sc LGalaxies}~}
 
 \newcommand{\Om}{\Omega_{\rm m}} 
 \newcommand{\Ob}{\Omega_{\rm b}} 
@@ -44,30 +42,27 @@
 \newcommand{\parti}[1]{\frac{\partial #1}{\partial \theta_i}}
 \newcommand{\partj}[1]{\frac{\partial #1}{\partial \theta_j}}
 \newcommand{\mpc}{h/{\rm Mpc}}
-\newcommand{\quij}{{\sc Quijote}~}
+\newcommand{\lgal}{{\sc LGal}}
+\newcommand{\fsps}{{\sc FSPS}}
 
 \newcommand{\specialcell}[2][c]{%
   \begin{tabular}[#1]{@{}c@{}}#2\end{tabular}}
 % text shih
-\newcommand{\foreign}[1]{\textsl{#1}}
-\newcommand{\etal}{\foreign{et~al.}}
-\newcommand{\opcit}{\foreign{Op.~cit.}}
-\newcommand{\documentname}{\textsl{Article}}
-\newcommand{\equationname}{equation}
+\newcommand{\etal}{\emph{et~al.}}
 \newcommand{\bitem}{\begin{itemize}}
 \newcommand{\eitem}{\end{itemize}}
-\newcommand{\beq}{\begin{equation}}
-\newcommand{\eeq}{\end{equation}}
+%\newcommand{\beq}{\begin{equation}}
+%\newcommand{\eeq}{\end{equation}}
 
 %% collaborating
 \newcommand{\todo}[1]{\marginpar{\color{red}TODO}{\color{red}#1}}
 \definecolor{orange}{rgb}{1,0.5,0}
 \newcommand{\ch}[1]{{\color{orange}{\bf CH:} #1}}
 
-\begin{document}\sloppy\sloppypar\frenchspacing 
+\begin{document} \sloppy\sloppypar\frenchspacing 
 
-\title{DESI: The PRObabilistic Value-Added Bright Galaxy Survey (PROVA-BGS) Mock Challenge} 
-\date{\texttt{DRAFT~---~\githash~---~\gitdate~---~NOT READY FOR DISTRIBUTION}}
+\title{The DESI PRObabilistic Value-Added Bright Galaxy Survey (PROVA-BGS) Mock Challenge} 
+%\date{\texttt{DRAFT~---~\githash~---~\gitdate~---~NOT READY FOR DISTRIBUTION}}
 
 \newcounter{affilcounter}
 \author{ChangHoon Hahn}
@@ -77,6 +72,7 @@
 
 \author{Gyubin Kwon}
 \author{Malgorzata Siudek} 
+\author{Rita Tojeiro}
 \author{GQP WG}
 
 \begin{abstract}
@@ -111,7 +107,8 @@ keyword1 -- keyword2 -- keyword3
 
 \section*{Acknowledgements}
 It's a pleasure to thank
-    Joel Leja 
+    Joel Leja, 
+    Peter Melchior
     ...
 This material is based upon work supported by the U.S. Department of Energy,
 Office of Science, Office of High Energy Physics, under contract No.
@@ -121,10 +118,9 @@ the Office of Science of the U.S.  Department of Energy under Contract No.
 DE-AC02-05CH11231. 
 
 \appendix
+\input{theory_unc} 
 \input{compare} 
 
 \bibliographystyle{mnras}
-\bibliography{gqpmc} 
+\bibliography{gqp_mc} 
 \end{document}
-
-

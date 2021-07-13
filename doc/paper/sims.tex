@@ -55,7 +55,7 @@ conroy2010c} model.
 % do we want to describe SPS models? 
 For \fsps, we use the MIST ischrones~\citep{paxton2011, paxton2013, paxton2015,
 choi2016, dotter2016}, the MILES spectral library~\citep{sanchez_blazquez2006},
-and the \cite{chabrier2003} initial mass function. 
+and the \cite{chabrier2003} initial mass function (IMF). 
 
 % applying velocity dispersion to bulge and disk components separately 
 Next, we apply velocity dispersions to $L^{\rm comp.}(\lambda)$.
@@ -74,7 +74,7 @@ No dust attenuation is applied to the bulge component.
 
 Finally, we combine the attenuated disk component and the bulge component to
 construct the total luminosity of the simulated galaxy and then convert this
-luminosity to SED flux using its redshift, $z$.
+rest-frame luminosity to observed-frame SED flux using its redshift, $z$.
 \begin{equation}\label{eq:sed} 
     f_{\rm SED}(\lambda) = \frac{A(\lambda)L^{\rm disk}(\lambda) + L^{\rm bulge}(\lambda)}{4 \pi d_L(z)^2 (1+z)}.
 \end{equation}
@@ -88,7 +88,7 @@ In this section, we describe how we construct realistic LS-like photometry
 from the SEDs of simulated galaxies described in the last section.
 First, we convolve the SEDs with the broadband filters of the Legacy Survey to
 generate broadband photometric fluxes: 
-\begin{equation}
+\begin{equation} \label{eq:photo}
     f_X = \int f_{\rm SED}(\lambda) R_X(\lambda) {\rm d}\lambda
 \end{equation}
 where $f_{\rm SED}$ is the galaxy SED (Eq.~\ref{eq:sed}) and $R_X$ is the

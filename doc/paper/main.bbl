@@ -21,6 +21,14 @@
   et~al.}{2019}]{alsing2019}
 Alsing J.,  et~al., 2019, arXiv:1911.11778 [astro-ph]
 
+\bibitem[\protect\citeauthoryear{Betancourt}{Betancourt}{2012}]{betancourt2012}
+Betancourt M.~J.,  2012, \mn@doi [arXiv:1010.3436 [physics]]
+  {10.1063/1.3703631}, pp 157--164
+
+\bibitem[\protect\citeauthoryear{Caplar \& Tacchella}{Caplar \&
+  Tacchella}{2019}]{caplar2019}
+Caplar N.,  Tacchella S.,  2019, arXiv:1901.07556 [astro-ph]
+
 \bibitem[\protect\citeauthoryear{Carnall, McLure, Dunlop  \& Dav{\'e}}{Carnall
   et~al.}{2017}]{carnall2017}
 Carnall A.~C.,  McLure R.~J.,  Dunlop J.~S.,   Dav{\'e} R.,  2017,
@@ -34,6 +42,11 @@ Carnall A.~C.,  Leja J.,  Johnson B.~D.,  McLure R.~J.,  Dunlop J.~S.,   Conroy
 \bibitem[\protect\citeauthoryear{Chabrier}{Chabrier}{2003}]{chabrier2003}
 Chabrier G.,  2003, \mn@doi [Publications of the Astronomical Society of the
   Pacific] {10.1086/376392}, 115, 763
+
+\bibitem[\protect\citeauthoryear{Charlot \& Fall}{Charlot \&
+  Fall}{2000}]{charlot2000}
+Charlot S.,  Fall S.~M.,  2000, \mn@doi [The Astrophysical Journal]
+  {10.1086/309250}, 539, 718
 
 \bibitem[\protect\citeauthoryear{Choi, Dotter, Conroy, Cantiello, Paxton  \&
   Johnson}{Choi et~al.}{2016}]{choi2016}
@@ -68,14 +81,36 @@ Dotter A.,  2016, \mn@doi [The Astrophysical Journal Supplement Series]
   Idier}{2011}]{fevotte2011}
 F{\'e}votte C.,  Idier J.,  2011, arXiv:1010.1763 [cs]
 
+\bibitem[\protect\citeauthoryear{Hahn, Tinker  \& Wetzel}{Hahn
+  et~al.}{2019}]{hahn2019b}
+Hahn C.,  Tinker J.~L.,   Wetzel A.,  2019, arXiv:1910.01644 [astro-ph]
+
 \bibitem[\protect\citeauthoryear{Henriques, White, Thomas, Angulo, Guo, Lemson,
   Springel  \& Overzier}{Henriques et~al.}{2015}]{henriques2015}
 Henriques B. M.~B.,  White S. D.~M.,  Thomas P.~A.,  Angulo R.,  Guo Q.,
   Lemson G.,  Springel V.,   Overzier R.,  2015, \mn@doi [Monthly Notices of
   the Royal Astronomical Society] {10.1093/mnras/stv705}, 451, 2663
 
+\bibitem[\protect\citeauthoryear{Iyer et~al.,}{Iyer et~al.}{2020}]{iyer2020}
+Iyer K.~G.,  et~al., 2020, \mn@doi [Monthly Notices of the Royal Astronomical
+  Society] {10.1093/mnras/staa2150}, 498, 430
+
+\bibitem[\protect\citeauthoryear{Karamanis \& Beutler}{Karamanis \&
+  Beutler}{2020}]{karamanis2020}
+Karamanis M.,  Beutler F.,  2020, arXiv e-prints, p. arXiv:2002.06212
+
+\bibitem[\protect\citeauthoryear{Kriek \& Conroy}{Kriek \&
+  Conroy}{2013}]{kriek2013}
+Kriek M.,  Conroy C.,  2013, \mn@doi [The Astrophysical Journal Letters]
+  {10.1088/2041-8205/775/1/L16}, 775, L16
+
 \bibitem[\protect\citeauthoryear{Lee \& Seung}{Lee \& Seung}{1999}]{lee1999}
 Lee D.~D.,  Seung H.~S.,  1999, \mn@doi [Nature] {10.1038/44565}, 401, 788
+
+\bibitem[\protect\citeauthoryear{Leja, Johnson, Conroy, {van Dokkum}  \&
+  Byler}{Leja et~al.}{2017}]{leja2017}
+Leja J.,  Johnson B.~D.,  Conroy C.,  {van Dokkum} P.~G.,   Byler N.,  2017,
+  \mn@doi [The Astrophysical Journal] {10.3847/1538-4357/aa5ffe}, 837, 170
 
 \bibitem[\protect\citeauthoryear{Leja, Carnall, Johnson, Conroy  \&
   Speagle}{Leja et~al.}{2019}]{leja2019}
@@ -128,10 +163,21 @@ Serra P.,  Amblard A.,  Temi P.,  Burgarella D.,  Giovannoli E.,  Buat V.,
 Simha V.,  Weinberg D.~H.,  Conroy C.,  Dave R.,  Fardal M.,  Katz N.,
   Oppenheimer B.~D.,  2014, arXiv e-prints, p. arXiv:1404.0402
 
+\bibitem[\protect\citeauthoryear{Sparre, Hayward, Feldmann,
+  {Faucher-Gigu{\`e}re}, Muratov, Kere{\v s}  \& Hopkins}{Sparre
+  et~al.}{2017}]{sparre2017}
+Sparre M.,  Hayward C.~C.,  Feldmann R.,  {Faucher-Gigu{\`e}re} C.-A.,  Muratov
+  A.~L.,  Kere{\v s} D.,   Hopkins P.~F.,  2017, \mn@doi [Monthly Notices of
+  the Royal Astronomical Society] {10.1093/mnras/stw3011}, 466, 88
+
 \bibitem[\protect\citeauthoryear{Springel et~al.,}{Springel
   et~al.}{2018}]{springel2018}
 Springel V.,  et~al., 2018, \mn@doi [Monthly Notices of the Royal Astronomical
   Society] {10.1093/mnras/stx3304}, 475, 676
+
+\bibitem[\protect\citeauthoryear{Tacchella et~al.,}{Tacchella
+  et~al.}{2021}]{tacchella2021}
+Tacchella S.,  et~al., 2021, arXiv e-prints, 2102, arXiv:2102.12494
 
 \bibitem[\protect\citeauthoryear{Zahid, Geller, Fabricant  \& Hwang}{Zahid
   et~al.}{2016}]{zahid2016}

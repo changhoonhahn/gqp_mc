@@ -1,4 +1,5 @@
 \section{Joint SED modeling of Photometry and Spectra} \label{sec:methods}
+\subsection{Stellar Population Synthesis Modeling} \label{sec:sps} 
 PROVABGS will provide inferred galaxy properties derived from joint SED
 modeling of DESI photometry and spectra. 
 For the SED modeling, we use a state-of-the-art stellar population synthesis
@@ -58,7 +59,7 @@ caplar2019, hahn2019b, iyer2020}.
 To include this stochasticity in our SPS model, we include a starburst
 component that consists of a SSP in the SFH. 
 For the total SFH, we use
-\begin{equation}
+\begin{equation} \label{eq:sfh}
     {\rm SFH} (t, t_{\rm age}) = (1 - f_{\rm burst})~{\rm SFH}^{\rm NMF} (t,
     t_{\rm age}) + f_{\rm burst}~\delta_{\rm D}(t - t_{\rm burst}).
 \end{equation}
@@ -85,8 +86,6 @@ coefficients.
 $\{s_i^{\rm ZH}(t)\}$ are fit using the ZHs of simulated galaxies from IllustrisTNG. 
 We use two NMF components, so our ZH prescription has 2 free parameters. 
 
-
-
 \begin{figure}
 \begin{center}
 \includegraphics[width=0.8\textwidth]{figs/nmf_bases.pdf} 
@@ -100,30 +99,194 @@ We use two NMF components, so our ZH prescription has 2 free parameters.
 \end{center}
 \end{figure}
 
-% describe construction of unattenuated spectra 
-% log-spaced lookback time for SFH for NMF portion + burst 
+Next, we use the SFH and ZH above to model the unattenuated rest-frame
+luminosity as a linear combination of multiple SSPs, evaluated at
+logarithmically-spaced lookback time bins.
+We use a fixed log-binning with the bin egdes starting with $(0, 10^{6.05}{\rm
+yr})$, $(10^{6.05}, 10^{6.15}{\rm yr})$, and continuing on with bins of width
+0.1 dex.
+The binning is truncated at the age of the model galaxy. 
+For a $z=0$ galaxy, we use 43 $\tlb$ bins.
+We use log-spaced $\tlb$ bins because it better reproduces galaxy luminosities
+evaluated with much higher resolution $\tlb$ binning than linearly-spacing, for
+the same number of bins. 
+At every $\tlb$ bin $i$, we evaluate the luminosity of a SSP with ${\rm
+ZH}(t_i)$, where $t_i$ is the center of $\tlb$ bin, and total stellar mass
+calculated by resampling the SFH in Eq.~\ref{eq:sfh}. 
+We use \fsps to evaluate the SSP luminosities and use the MIST ischrones, MILES
+spectral library, and the \cite{chabrier2003} IMF (same as in
+Section~\ref{sec:sed}).  
+Since we use MIST isochrones, we impose a minimum and maximum limit to ${\rm
+ZH}$ based on its coverage: $4.49\times10^{-5}$ and $4.49\times10^{-2}$,
+respectively.
+Our stellar metallicity range is significantly broader than previous studies,
+\emph{e.g.} \cite{carnall2017, leja2017, tacchella2021}. 
 
-
-% describe dust attenuation 
+Before we combine the SSP luminosities, we apply dust attenuation.
+We use a two component \cite{charlot2000} dust attenuation model with birth
+cloud (BC) and diffuse-dust (ISM) components. 
+The BC component represents the extra dust attenuation of young stars that are
+embedded in modecular clouds and HII regions. 
+For SSPs younger than $t_i < 100{\rm Myr}$, we apply the
+following BC dust attenuation: 
+\begin{equation}
+    L_i(\lambda) = L_i^{\rm unatten.}(\lambda) \exp\left[-\tau_{\rm BC} \left(
+    \frac{\lambda}{5500\AA} \right)^{-0.7} \right].
+\end{equation}
+$\tau_{\rm BC}$ is the BC optical depth that determines the strength of the BC
+attenuation. 
+Afterwards, {\em all} SSPs are attenuated by the diffuse dust using the
+\cite{kriek2013} attenuation curve parameterization: 
+\begin{equation}
+    L_i(\lambda) = L_i^{\rm unatten.}(\lambda) \exp\left[-\tau_{\rm ISM} \left(
+    \frac{\lambda}{5500\AA} \right)^{n_{\rm dust}} \left(k_{\rm Cal}(\lambda) +
+    D(\lambda) \right) \right].
+\end{equation}
+$\tau_{\rm ISM}$ is the diffuse dust optical depth.
+$n_{\rm dust}$ is the \cite{calzetti2001} dust index, which determines the
+slope of the attenuation curve. 
+$k_{\rm Cal}(\lambda)$ is the \cite{calzetti2001} attenuation curve and
+$D(\lambda)$ is the UV dust bump, parameterized using a Lorentzian-like Drude 
+profile:
+\begin{equation}
+    D(\lambda) = \frac{E_b(\lambda~\Delta \lambda)^2}{(\lambda^2 -
+    \lambda_0^2)^2 + (\lambda~\Delta \lambda)^2}
+\end{equation}
+where $\lambda_0 = 2175 \AA$, $\Delta \lambda = 350\AA$, and \todo{$E_b=?$} are the
+central wavelength, full width at half maximum, and strength of the bump,
+respectively. 
+Once dust attenuation is applied to the SSPs, we sum them up to get the
+rest-frame luminosity of the galaxy. 
+In total, our SPS model has 12 free parameters: $M_*$, 4 SFH basis
+coefficients, $f_{\rm burst}$, $t_{\rm burst}$, 2 ZH basis coefficients,
+$\tau_{\rm BC}$, $\tau_{\rm ISM}$, and $n_{\rm dust}$. 
 
 %description of our speculator SED model \citep{alsing2019}, which is based on FSPS. We use Chabrier IMF \ch{do we need to justify htis?}. 
 
-Calzetti dust attenuation curve
+In practice, evaluating each SSP using \fsps~requires \todo{X} seconds. 
+For each model evaluation, we evaluate $\sim 43$ SSPs in each of the log-spaced
+$\tlb$ bins; this takes \todo{X} seconds. 
+Though this is not a prohibitive computational cost on its own, sampling a
+high dimensional parameter space for inference requires $>100,000$ evaluations
+--- \emph{i.e.} \todo{$>100$} CPU hours \emph{per galaxy}. 
+For the $>10$ million BGS galaxies, this would require \todo{\emph{a billion}}
+CPU hours. 
+Instead, we use an emulator for the model luminosity, which uses a Principal
+Component Analysis (PCA) neural network (NN) following the approach of
+\cite{alsing2019}.
 
-Rather than evaluating the SPS directly using FSPS we use {\sc Speculator}, an
-emulator for FSPS. Brief explanation of the PCA neural net. motivate why we're
-using speculator by reiterating \cite{alsing2019}s speed profiling. 
+Our emulator consists of a NN and PCA basis functions. 
+The NN provides a flexible and accurate mapping between the SPS model
+parameters and PCA coefficients --- \emph{i.e.} the NN predicts PCA
+coefficients for a given set of SPS parameters. 
+Then the linear combination of the predicted coefficients and PCA basis
+functions give us the emulated model luminosity. 
+The PCA basis functions and NN are trained using $1,000,000$ pairs of SPS
+parameters and model luminosity, $(\theta, L(\lambda;\theta))$. 
+Throughout the wavelength range relevant for BGS, $3000 < \lambda < 9800\AA$,
+we achieve $< 1\%$ accurate with the emulator. 
+For details on the training, validation, and performance of our PCA NN
+emulator, we refer readers to Kwon \etal~(in prep.). 
 
-describe our MCMC sampling. James's work in convergence here. talk about how in
-principle speculator can easily be used with HMC because you can get
-derivatives with backpropagation. provide detailed profiling of SED fitting and
-projections for full 10million galaxy BGS sample. 
+From the rest-frame luminosity, we obtain the observed-frame, redshifted, flux
+in the same way as Eq.~\ref{eq:sed}.
+In our case, redshift is not a free parameter since we will have spectroscopic
+redshifts for every DESI BGS galaxy.
+To model DESI photometry, we convolve the model flux with the LS broadband
+filters as in Eq.~\ref{eq:photo}.
+To model DESI spectra, we first apply Gaussian velocity dispersion. 
+In this work, we keep velocity dispersion fixed at \todo{$0km/s$} but in
+practice velocity disperion can be set as a free parameter. 
+Then the broadened flux is resampled into the wavelength binning of the
+observed DESI spectra, which has spectral resolution $R = 2000 - 5000$ over
+$3600 < \lambda < 9800\AA$. 
+Finally, the SPS model photometry and spectrum can be directly compared to
+observations.
 
-% describe how we derive galaxy properties
+
+\begin{table} \label{tab:params}
+\caption{Parameters of the PROVABGS SPS model used for joint SED modeling of
+    DESI photometry and spectroscopy.} 
+\begin{center}
+    \begin{tabular}{ccc} \toprule
+        name & description & prior \\[3pt]
+        \hline 
+        $\log M_*$                              & log galaxy stellar mass & uniform over [8, 13] \\
+        $\beta_1, \beta_2, \beta_3, \beta_4$    & NMF basis coefficients for SFH & Dirichlet prior \\
+        $f_{\rm burst}$ & fraction of total stellar mass formed in starburst event & uniform over [0, 1] \\
+        $t_{\rm burst}$ & time of starburst event & uniform over [10Myr, 13.2Gyr] \\
+        $\gamma_1, \gamma_2$ & NMF basis coefficients for ZH & uniform over [] \\
+        $\tau_{\rm BC}$ & Birth cloud optical depth & uniform over [] \\
+        $\tau_{\rm ISM}$ & diffuse-dust optical depth & uniform over [] \\
+        $n_{\rm dust}$ & \cite{calzetti2001} dust index & unifrom over[]\\
+        \hline            
+\end{tabular} 
+\end{center}
+\end{table}
+
+
+\subsection{Parameter Inference} \label{sec:infer} 
+Using the SPS model above, we perform Bayesian parameter inference to derive
+posterior probability distributions of the SPS parameters from photometry and
+spectroscopy. 
+From Bayes rule, we write down the posterior as
+\begin{equation} \label{eq:bayes}
+    p(\theta\given {\bf X}) \propto p(\theta)~p({\bf X} \given \theta)
+\end{equation}
+where ${\bf X}$ is the photometry or spectrum and $\theta$ is the set of SPS
+parameters. 
+$p({\bf X} \given \theta)$ is the likelihood, which we calculate separately for
+the photometry
 \begin{equation}
-    {\rm SFR}_{100{\rm Myr}} = \frac{\int\limits_{t_{\rm age} - 100{\rm
-    Myr}}^{t_{\rm age}}{\rm SFH}(t)\,{\rm d}t}{100\,{\rm Myr}}
-\end{equation} 
+    \mathcal{L}^{\rm photo} \propto \exp\left[-\frac{1}{2} \left(\frac{X^{\rm photo} -
+    m^{\rm photo}(\theta)}{\sigma^{\rm photo}}\right)\right]
+\end{equation}
+and for the spectrum
+\begin{equation}
+    \mathcal{L}^{\rm spec} \propto \exp\left[-\frac{1}{2} \left(\frac{X^{\rm spec} -
+    m^{\rm spec}(\theta)}{\sigma^{\rm spec}} \right)^2\right].
+\end{equation}
+$m^{\rm photo}$ and $m^{\rm spec}$ represent SPS model for photometry and
+spectroscopy. 
+$\sigma^{\rm photo}$ and $\sigma^{\rm spec}$ respresent the uncertainties on
+the measured photometry and spectrum. 
+We consider the photometry indepedent from the spectrum so we combine the
+likelihoods when jointly model the spectrophotometry: 
+\begin{equation}
+    \log \mathcal{L} \approx \log \mathcal{L}^{\rm photo} + \log
+    \mathcal{L}^{\rm spec}.
+\end{equation}
+$p(\theta)$ is the prior on the SPS parameters. 
+For most of our parameters, we use uninformative uniform priors with
+conservatively chosen ranges that are listed in Table~\ref{tab:param}. 
+However, for the priors of $\{\beta_1, \beta_2, \beta_3, \beta_4 \}$, the NMF coefficients
+for the SFH, we use a Dirichlet distribution.  
+With a Dirichlet distribution, $\beta_i$ are within $0 < \beta_i < 1$ and
+satisfy the constraint $\sum_i \beta_i = 1$. 
+This maintains the normalization of the SFH in Eq.~\ref{eq:nmf}. 
+
+Now that we can evaluate the posterior using the likelihood and prior, we
+derive the posterior distributions using Markov Chain Monte Carlo (MCMC)
+sampling. 
+We use the \cite{karamanis2020} ensemble slice sampling MCMC algorithm with the
+{\sc zeus} Python package. 
+\todo{highlight advantages of ensemble slice MCMC}
+
+When we sample the posterior, we do not directly sample our 12 dimensional
+SPS parameter space. 
+This is because we impose a Dirichlet prior on the SFH NMF coefficients. 
+Dirichlet distributions are difficult to directly and efficiently sample so
+instead we use the \cite{betancourt2012} sampling method, which allows us to
+transforms an $N$ dimensional Dirichlet distribution into an easier to sample
+$N-1$ dimensional space.
+Hence, we sample the posterior in the transformed 11 dimensional space. 
+
+%go into detail about the Dirichlet priors and the slight complication with sampling that. 
+James's work in convergence here. 
+talk about how in
+principle speculator can easily be used with HMC because you can get
+derivatives with backpropagation. 
+provide detailed profiling of SED fitting and projections for full 10million galaxy BGS sample. 
 
 \begin{figure}
 \begin{center}
@@ -148,7 +311,7 @@ In Figure~\ref{fig:posterior} we present the posterior as well as the best-fit p
 spectroscopy using speculator + emcee. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% forecast table
+%% parameter table
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %\begin{table}
 %\caption{Table of the different parameterizations for the spectro-photometric fitting. The changes in each setup with respect to default configuration, CIGALE D, are bolted. } 

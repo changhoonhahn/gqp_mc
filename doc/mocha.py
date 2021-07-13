@@ -449,100 +449,188 @@ def inferred_props():
     ''' Figure comparing inferred galaxy properties to the true galaxy
     properties of the LGal mocks.
     '''
-    lbls    = [r'$\log M_*$', r'$\log {\rm SFR}_{1Gyr}$', r'$\log Z_{\rm MW}$']
-    minmax  = [[8., 12.], [-4., 1], [-2.5, -1.5]]
-    widths  = [0.04, 0.04, 0.01]
+    lbls    = [r'$\log M_*$', r'$\log {\rm SFR}_{1Gyr}$', r'$\log Z_{\rm MW}$',
+            r'$\tau_{\rm ISM}$']
+    minmax  = [[8., 12.], [-4., 1], [-2.5, -1.5], [0., 2.]]
+    widths  = [0.04, 0.04, 0.01, 0.03]
 
-    fig = plt.figure(figsize=(20, 10))    
+    fig = plt.figure(figsize=(20, 15))    
     for i, sample in enumerate(['S2', 'P2', 'SP2']): 
         props_infer, props_truth = L2_chains(sample, derived_properties=True)
         
         for ii, prop_infer, prop_truth in zip(range(len(props_infer)), props_infer, props_truth): 
 
-            sub = fig.add_subplot(3,3,3*i+ii+1)
-            dprop = prop_infer - prop_truth[:,None]
+            sub = fig.add_subplot(3,4,4*i+ii+1)
+            #dprop = prop_infer - prop_truth[:,None]
+            dprop = prop_infer
             violins = sub.violinplot(dprop.T, positions=prop_truth,
                                  widths=widths[ii], showextrema=False)
             for violin in violins['bodies']:
-                violin.set_facecolor('C0') 
+                violin.set_facecolor('C%i' % i) 
+                #violin.set_edgecolor('black')
+                #violin.set_linewidths(0.1)
                 violin.set_alpha(0.5)
 
-            sub.plot(minmax[ii], [0, 0], c='k', ls='--')
+            sub.plot(minmax[ii], minmax[ii], c='k', ls='--')
             sub.set_xlim(minmax[ii])
-            sub.set_ylim(-1., 1.)
-            sub.set_yticks([-0.8, -0.4, 0., 0.4, 0.8]) 
-            if ii != 0: sub.set_yticklabels([])
-            if ii == 2: sub.text(0.95, 0.05, ['spectra', 'photometry', 'spectra + photometry'][i], 
+            sub.set_ylim(minmax[ii])
+            if ii == 0: sub.set_yticks([8., 9., 10., 11., 12.])
+            if ii == 1: sub.set_yticks([-4., -3., -2., -1., 0., 1.])
+            if ii == 3: sub.set_yticks([0., 0.5, 1.0, 1.5, 2.]) 
+            if ii == 0: sub.text(0.95, 0.05, ['spectra', 'photometry', 'spectra + photometry'][i], 
                     ha='right', va='bottom', transform=sub.transAxes, fontsize=25)
             if i != 2: sub.set_xticklabels([])
-            if i == 0: sub.set_title(lbls[ii], pad=20, fontsize=25)
+            if i == 0: sub.set_title(lbls[ii], pad=10, fontsize=25)
 
     bkgd = fig.add_subplot(111, frameon=False)
-    bkgd.set_xlabel(r'$\theta_{\rm true}$', fontsize=25) 
-    bkgd.set_ylabel(r'$\theta_{\rm infer} - \theta_{\rm true}$', labelpad=15, fontsize=25) 
+    bkgd.set_xlabel(r'$\theta_{\rm true}$', fontsize=30) 
+    bkgd.set_ylabel(r'$\hat{\theta}$', labelpad=10, fontsize=30) 
     bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
-    fig.subplots_adjust(wspace=0.1, hspace=0.1)
+    fig.subplots_adjust(wspace=0.2, hspace=0.1)
 
-    ffig = os.path.join(dir_doc, '_inferred_props.png')
+    ffig = os.path.join(dir_doc, 'inferred_props.pdf')
     fig.savefig(ffig, bbox_inches='tight') 
     return None 
 
 
-def eta_l2(sample='S2', method='opt'):
+def eta_l2(method='opt'):
     ''' calculate bias as a function of galaxy properties
     '''
-    props_infer, props_truth = L2_chains(sample)
-    
-    logM_infer, logSFR_infer, logZMW_infer = props_infer
-    logM_truth, logSFR_truth, logZMW_truth = props_truth 
-    
-    # get eta for log M*, log SFR, and log Z_MW
-    logM_bin    = np.arange(8, 13, 0.5)
-    logSFR_bin  = np.arange(-4, -1, 0.5)
-    logZMW_bin  = np.arange(-2.5, -1., 0.25)
-    
-    x_props, eta_mus, eta_sigs = [], [], []
-    for prop_infer, prop_truth, prop_bin in zip(props_infer, props_truth, [logM_bin, logSFR_bin, logZMW_bin]): 
-
-        x_prop, eta_mu, eta_sig = [], [], []
-        for ibin in range(len(prop_bin)-1): 
-            inbin = (prop_truth > prop_bin[ibin]) & (prop_truth < prop_bin[ibin+1])
-            if np.sum(inbin) > 0: 
-                x_prop.append(0.5 * (prop_bin[ibin] + prop_bin[ibin+1]))
-                
-                if method == 'opt': 
-                    _mu, _sig = PopInf.eta_Delta_opt(logM_infer[inbin,:] - logM_truth[inbin, None])
-                    eta_mu.append(_mu)
-                    eta_sig.append(_sig)
-                elif method == 'mcmc':  
-                    _theta = PopInf.eta_Delta_mcmc(prop_infer[inbin,:] - prop_truth[inbin, None], 
-                            niter=1000, burnin=500, thin=5)
-                    _mu, _sig = _theta[:,0], _theta[:,1]
-                    eta_mu.append(np.median(_mu))
-                    eta_sig.append(np.median(_sig))
-        print(eta_mu)
-        x_props.append(np.array(x_prop))
-        eta_mus.append(np.array(eta_mu))
-        eta_sigs.append(np.array(eta_sig))
-    
-    minmax = [[8., 12.], [-4., -1], [-2.5, -1.5]]
+    lbls    = [r'$\log M_*$', r'$\log {\rm SFR}_{1Gyr}$', r'$\log Z_{\rm MW}$', r'$\tau_{\rm ISM}$']
+    minmax  = [[8., 12.], [-4., 1], [-2.5, -1.5], [0., 2.]]
     # eta as a function of galaxy properties 
-    fig = plt.figure(figsize=(16,5))
-    for i, x_prop, eta_mu, eta_sig in zip(range(len(x_props)), x_props, eta_mus, eta_sigs): 
-        sub = fig.add_subplot(1, len(x_props), i+1) 
-        sub.plot(minmax[i], [0., 0.], c='k', ls='--')
-        sub.fill_between(x_prop, eta_mu - eta_sig, eta_mu + eta_sig, fc='C0', ec='none', alpha=0.5) 
-        sub.scatter(x_prop, eta_mu, c='C0', s=2) 
-        sub.plot(x_prop, eta_mu, c='C0')
-        sub.set_xlabel([r'$\log(~M_*~[M_\odot]~)$', r'$\log(~{\rm SFR}_{1Gyr}~[M_\odot/yr]~)$', r'$\log(~Z_{\rm MW}~)$'][i], 
-                fontsize=25)
-        sub.set_xlim(minmax[i])
-        sub.set_ylabel([r'$\Delta_{\log M_*}$', r'$\Delta_{\log{\rm SFR}_{1Gyr}}$', r'$\Delta_{\log Z_{\rm MW}}$'][i],
-            fontsize=25)
-        sub.set_ylim(-1., 1.) 
-    #sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
+    fig = plt.figure(figsize=(20, 12))    
 
-    ffig = os.path.join(dir_doc, '_eta_%s.png' % sample)
+    for ii, sample in enumerate(['S2', 'P2', 'SP2']): 
+        props_infer, props_truth = L2_chains(sample)
+        
+        # get eta for log M*, log SFR, and log Z_MW
+        logM_bin    = np.arange(8, 13, 0.25)
+        logSFR_bin  = np.arange(-4, 1, 0.25)
+        logZMW_bin  = np.arange(-2.5, -1., 0.1)
+        tauism_bin  = np.arange(0., 2., 0.1) 
+        
+        x_props, eta_mus, eta_sigs = [], [], []
+        for prop_infer, prop_truth, prop_bin in zip(props_infer, props_truth, [logM_bin, logSFR_bin, logZMW_bin, tauism_bin]): 
+
+            x_prop, eta_mu, eta_sig = [], [], []
+            for ibin in range(len(prop_bin)-1): 
+                inbin = (prop_truth > prop_bin[ibin]) & (prop_truth < prop_bin[ibin+1])
+                if np.sum(inbin) > 3: 
+                    x_prop.append(0.5 * (prop_bin[ibin] + prop_bin[ibin+1]))
+                    
+                    if method == 'opt': 
+                        _mu, _sig = PopInf.eta_Delta_opt(prop_infer[inbin,:] - prop_truth[inbin, None])
+                        eta_mu.append(_mu)
+                        eta_sig.append(_sig)
+                    elif method == 'mcmc':  
+                        _theta = PopInf.eta_Delta_mcmc(prop_infer[inbin,:] - prop_truth[inbin, None], 
+                                niter=1000, burnin=500, thin=5)
+                        _mu, _sig = _theta[:,0], _theta[:,1]
+                        eta_mu.append(np.median(_mu))
+                        eta_sig.append(np.median(_sig))
+            print(eta_mu)
+            x_props.append(np.array(x_prop))
+            eta_mus.append(np.array(eta_mu))
+            eta_sigs.append(np.array(eta_sig))
+        
+        for i, x_prop, eta_mu, eta_sig in zip(range(len(x_props)), x_props, eta_mus, eta_sigs): 
+            sub = fig.add_subplot(3, len(x_props), len(x_props)*ii+i+1) 
+            sub.plot(minmax[i], [0., 0.], c='k', ls='--')
+            sub.fill_between(x_prop, eta_mu - eta_sig, eta_mu + eta_sig,
+                    fc='C%i' % ii, ec='none', alpha=0.5) 
+            sub.scatter(x_prop, eta_mu, c='C%i' % ii, s=2) 
+            sub.plot(x_prop, eta_mu, c='C%i' % ii)
+            if ii == 2: sub.set_xlabel(lbls[i], fontsize=25)
+            else: sub.set_xticklabels([]) 
+            sub.set_xlim(minmax[i])
+            if i == 0 and ii == 1: sub.set_ylabel(r'$\Delta_\theta$', fontsize=30)
+            if i != 0: sub.set_yticklabels([]) 
+            sub.set_ylim(-1., 1.) 
+            if i == 3: sub.text(0.95, 0.05, ['spectra', 'photometry', 'spectra + photometry'][ii], 
+                    ha='right', va='bottom', transform=sub.transAxes, fontsize=25)
+
+        #sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
+    fig.subplots_adjust(wspace=0.1, hspace=0.1)
+
+    ffig = os.path.join(dir_doc, 'etas.pdf')
+    fig.savefig(ffig, bbox_inches='tight') 
+    return None 
+
+
+
+def eta_photo_l2(method='opt'):
+    ''' calculate bias as a function of galaxy properties
+    '''
+    dat_dir = '/Users/chahah/data/gqp_mc/mini_mocha/'
+    thetas = pickle.load(open(os.path.join(dat_dir, 'l2.theta.p'), 'rb'))
+    fluxes = np.load(os.path.join(dat_dir, 'mocha_p2.flux.npy'))
+
+    r_fiber = 22.5 - 2.5 * np.log10(thetas['f_fiber_meas'] * fluxes[:,1]) 
+    g_mag = 22.5 - 2.5 * np.log10(fluxes[:,0])
+    r_mag = 22.5 - 2.5 * np.log10(fluxes[:,1]) 
+    z_mag = 22.5 - 2.5 * np.log10(fluxes[:,2]) 
+
+    g_r = g_mag - r_mag
+    r_z = r_mag - z_mag 
+
+    proplbls = [r'\log M_*', r'\log {\rm SFR}_{1Gyr}', r'\log Z_{\rm MW}', r'\tau_{\rm ISM}']
+    lbls    = [r'$r_{\rm fiber}$', r'$r$', r'$g-r$', r'$r-z$']
+    minmax  = [[17., 22.], [15., 20], [0, 1.], [0., 1.]]
+    dbin    = [0.5, 0.5, 0.1, 0.1]
+
+    photos  = [r_fiber, r_mag, g_r, r_z]
+
+    # eta as a function of galaxy properties 
+    fig = plt.figure(figsize=(20, 12))    
+
+    props_infer, props_truth = L2_chains('SP2')
+        
+    for ii, prop_infer, prop_truth in zip(range(len(props_infer)), props_infer, props_truth): 
+        print(proplbls[ii]) 
+        # get eta for different photometry bins 
+        photo_bins = [np.arange(minmax[ii][0], minmax[ii][1], dbin[ii]) for ii in range(len(minmax))]
+        
+        x_props, eta_mus, eta_sigs = [], [], []
+        for photo, photo_bin in zip(photos, photo_bins): 
+
+            x_prop, eta_mu, eta_sig = [], [], []
+            for ibin in range(len(photo_bin)-1): 
+                inbin = (photo > photo_bin[ibin]) & (photo < photo_bin[ibin+1])
+                if np.sum(inbin) > 3: 
+                    x_prop.append(0.5 * (photo_bin[ibin] + photo_bin[ibin+1]))
+                    
+                    if method == 'opt': 
+                        _mu, _sig = PopInf.eta_Delta_opt(prop_infer[inbin,:] - prop_truth[inbin, None])
+                        eta_mu.append(_mu)
+                        eta_sig.append(_sig)
+                    elif method == 'mcmc':  
+                        _theta = PopInf.eta_Delta_mcmc(prop_infer[inbin,:] - prop_truth[inbin, None], 
+                                niter=1000, burnin=500, thin=5)
+                        _mu, _sig = _theta[:,0], _theta[:,1]
+                        eta_mu.append(np.median(_mu))
+                        eta_sig.append(np.median(_sig))
+            print(eta_mu)
+            x_props.append(np.array(x_prop))
+            eta_mus.append(np.array(eta_mu))
+            eta_sigs.append(np.array(eta_sig))
+        
+        for i, x_prop, eta_mu, eta_sig in zip(range(len(x_props)), x_props, eta_mus, eta_sigs): 
+            sub = fig.add_subplot(len(proplbls), len(x_props), len(x_props)*ii+i+1) 
+            sub.plot(minmax[i], [0., 0.], c='k', ls='--')
+            sub.fill_between(x_prop, eta_mu - eta_sig, eta_mu + eta_sig, fc='C2', ec='none', alpha=0.5) 
+            sub.scatter(x_prop, eta_mu, c='C2', s=2) 
+            sub.plot(x_prop, eta_mu, c='C2')
+            if ii == 3: sub.set_xlabel(lbls[i], fontsize=25)
+            else: sub.set_xticklabels([]) 
+            sub.set_xlim(minmax[i])
+            if i == 0: sub.set_ylabel(r'$\Delta_{%s}$' % proplbls[ii], fontsize=30)
+            if i != 0: sub.set_yticklabels([]) 
+            sub.set_ylim(-1., 1.) 
+        #sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
+    fig.subplots_adjust(wspace=0.1, hspace=0.1)
+
+    ffig = os.path.join(dir_doc, 'etas_photo.pdf')
     fig.savefig(ffig, bbox_inches='tight') 
     return None 
 
@@ -578,6 +666,7 @@ def L2_chains(sample, derived_properties=True):
         logMstar_true, logMstar_inf = [], [] 
         logSFR_true, logSFR_inf     = [], [] 
         logZ_MW_true, logZ_MW_inf   = [], []
+        tau_ism_true, tau_ism_inf   = [], [] 
 
         for i, chain in zip(igals, chains): 
             if sample != 'SP2':
@@ -601,6 +690,9 @@ def L2_chains(sample, derived_properties=True):
             
             logZ_MW_true.append(np.log10(thetas['Z_MW'])[i])
             logZ_MW_inf.append(np.log10(m_nmf.Z_MW(flat_chain, zred=z_obs)))
+
+            tau_ism_true.append(thetas['tau_ism'][i])
+            tau_ism_inf.append(flat_chain[:,-2])
             
         logMstar_true   = np.array(logMstar_true)
         logMstar_inf    = np.array(logMstar_inf)
@@ -611,8 +703,11 @@ def L2_chains(sample, derived_properties=True):
         logZ_MW_true    = np.array(logZ_MW_true).flatten()
         logZ_MW_inf     = np.array(logZ_MW_inf)
 
-        props_true      = np.array([logMstar_true, logSFR_true, logZ_MW_true])
-        props_inf       = np.array([logMstar_inf, logSFR_inf, logZ_MW_inf])
+        tau_ism_true    = np.array(tau_ism_true)
+        tau_ism_inf     = np.array(tau_ism_inf)
+
+        props_true      = np.array([logMstar_true, logSFR_true, logZ_MW_true, tau_ism_true])
+        props_inf       = np.array([logMstar_inf, logSFR_inf, logZ_MW_inf, tau_ism_inf])
 
         return props_inf, props_true
     else:
@@ -631,12 +726,14 @@ if __name__=="__main__":
     
     #_NMF_bases() 
 
-    nmf_bases()
+    #nmf_bases()
 
     #posterior_demo()
 
-    #inferred_props()
+    inferred_props()
 
-    #eta_l2(sample='S2', method='opt')
-    #eta_l2(sample='P2', method='opt')
-    #eta_l2(sample='SP2', method='opt')
+    #eta_l2(method='opt')
+    #eta_l2(method='mcmc')
+
+    #eta_photo_l2(method='opt') 
+    #eta_photo_l2(method='mcmc') 

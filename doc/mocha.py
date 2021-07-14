@@ -453,7 +453,7 @@ def inferred_props():
     ''' Figure comparing inferred galaxy properties to the true galaxy
     properties of the LGal mocks.
     '''
-    lbls    = [r'$\log M_*$', r'$\log {\rm SFR}_{1Gyr}$', r'$\log Z_{\rm MW}$',
+    lbls    = [r'$\log M_*$', r'$\log \overline{\rm SFR}_{1Gyr}$', r'$\log Z_{\rm MW}$',
             r'$\tau_{\rm ISM}$']
     minmax  = [[8., 12.], [-4., 1], [-2.5, -1.5], [0., 2.]]
     widths  = [0.04, 0.04, 0.01, 0.03]
@@ -467,6 +467,11 @@ def inferred_props():
             sub = fig.add_subplot(3,4,4*i+ii+1)
             #dprop = prop_infer - prop_truth[:,None]
             dprop = prop_infer
+            if i == 2: 
+                print(lbls[ii])
+                print(np.std(dprop, axis=1))
+                print(np.median(np.std(dprop, axis=1)))
+
             violins = sub.violinplot(dprop.T, positions=prop_truth,
                                  widths=widths[ii], showextrema=False)
             for violin in violins['bodies']:
@@ -560,7 +565,6 @@ def eta_l2(method='opt'):
     ffig = os.path.join(dir_doc, 'etas.pdf')
     fig.savefig(ffig, bbox_inches='tight') 
     return None 
-
 
 
 def eta_photo_l2(method='opt'):
@@ -722,6 +726,12 @@ def L2_chains(sample, derived_properties=True):
         return np.array(flat_chains)
 
 
+def model_prior(): 
+    ''' figure illustrating model priors 
+    '''
+    return None 
+
+
 if __name__=="__main__": 
     #BGS()
 
@@ -732,9 +742,9 @@ if __name__=="__main__":
 
     #nmf_bases()
 
-    posterior_demo()
+    #posterior_demo()
 
-    #inferred_props()
+    inferred_props()
 
     #eta_l2(method='opt')
     #eta_l2(method='mcmc')

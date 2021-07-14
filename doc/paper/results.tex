@@ -2,16 +2,15 @@
 \begin{center}
 \includegraphics[width=0.95\textwidth]{figs/inferred_props.pdf}
 \caption{
-    Comparison between the true ($\theta_{\rm true}$) and inferred galaxy
-    properties ($\hat{\theta}$). 
-    From the left to right columns, we compare $\log M_*$, $\log {\rm
-    SFR}_{1Gyr}$, $\log Z_{\rm MW}$, and $\tau_{\rm ISM}$. 
+    Comparison between the true galaxy properties, $\theta_{\rm true}$, and
+    those inferred from SED modeling of mock observations, $\hat{\theta}$. 
+    From the left to right columns, we compare $\log M_*$, $\log \avgsfr$, 
+    $\log Z_{\rm MW}$, and $\tau_{\rm ISM}$. 
     The inferred galaxy properties are derived from SED modeling of mock
-    spectra (top row), photometry (middle row), and joint spectra + photometry
-    (bottom row). 
-    We represent the marginalized posterior of each galaxy property with a
-    violin plot.  
-    We derive unbiased and precise $\log M_*$
+    spectra (top), photometry (middle), and spectra + photometry (bottom). 
+    For each simulated galaxy, we represent the marginalized posterior of
+    $\theta$ with a violin plot.  
+    %We derive unbiased and precise $\log M_*$
 }
 \label{fig:prop_inf}
 \end{center}
@@ -19,17 +18,75 @@
 
 \section{Results} \label{sec:results}
 %\subsection{Inferred Galaxy Properties}
-Figuree~\ref{fig:prop_inf} 
-
-
-% describe how we derive galaxy properties
+The goal of this work is to demonstrate the precision and accuracy of inferred
+galaxy properties for PROVABGS. 
+We apply our SED modeling to the mock observables of \todo{100} \lgal~galaxies.
+From the posterior distributions of the SPS parameters, we derive the following
+physical galaxy properties: stellar mass ($M_*$), SFR averaged over 1 Gyr
+($\avgsfr$), mass-weighted stellar metallicity ($Z_{\rm MW}$), and diffuse-dust
+optical depth ($\tau_{\rm ISM}$).
+$M_*$ and $\tau_{\rm ISM}$ are both SPS model parameters. 
+We derive $\avgsfr$ and $Z_{\rm MW}$ as 
 \begin{equation}
-    {\rm SFR}_{100{\rm Myr}} = \frac{\int\limits_{t_{\rm age} - 100{\rm
-    Myr}}^{t_{\rm age}}{\rm SFH}(t)\,{\rm d}t}{100\,{\rm Myr}}
+    \avgsfr = \frac{\int\limits_{t_{\rm age} - {\rm 1 Gyr}}^{t_{\rm age}}{\rm
+    SFH}(t)\,{\rm d}t}{{\rm 1 Gyr}} \quad{\rm and}\quad
+    Z_{\rm MW} = \frac{\int\limits_0^{t_{\rm age}}{\rm SFH}(t)\,{\rm
+    ZH}(t)\,{\rm d}t}{M_*}.
 \end{equation} 
 
+In Figure~\ref{fig:prop_inf}, we compare the galaxy properties inferred from
+SED modeling the mock observations, $\hat{\theta}$ to the true (input) galaxy
+properties, $\theta_{\rm true}$ of the simulated galaxies.
+In each column, we compare $\log M_*$, $\log \avgsfr$, $\log Z_{\rm MW}$, and
+$\tau_{\rm ISM}$ from left to right. 
+The inferred properties in the top, middle, and bottom rows are derived from
+SED modeling of spectra, photometry, and spectra + photometry, respectively.
+In each panel, we plot $\hat{\theta}$ using a violin plot, where the width
+of the marker represents the marginalized posterior distribution of $\theta$. 
+We note that in the comparison with SED modeling spectra only, we do not
+include $f_{\rm fiber}$. 
+Therefore, the true stellar mass in this case corresponds to $f_{\rm fiber}
+\times M_*$. 
+\emph{Overall, the comparison demonstrates that we can robustly infer galaxy
+properties using the {\sc PROVABGS} SED modeling}. 
 
-In order to quantify the precision and accuracy of the inferred physical
+In more detail, we find that we infer unbiased and precise constraints on
+$M_*$ throughout the entire $M_*$ range. 
+%For spectra+photometry SED modeling, the posteriors have $\sigma_{M_*}\sim0.06$ dex.
+We also infer robust $\avgsfr$ for $\log \avgsfr > -2$ dex; below this limit,
+however, the inferred $\avgsfr$ are significantly less precise and
+overestimated the true $\avgsfr$. 
+This bias at low $\avgsfr$ is caused by model priors, which we discuss in
+further detail later in \todo{Section~\ref{sec:discuss} and
+Appendix~\ref{sec:model_priors}}. 
+$Z_{\rm MW}$ is not precisely constrained ($\sigma_{\log Z_{\rm MW}} \sim 0.1$
+dex); however, there is no strong bias in the constraints. 
+Lastly, $\tau_{\rm ISM}$ is accurately inferred for simulated galaxies with
+low $\tau_{\rm ISM}$ but the accuracy declines significantly for high 
+$\tau_{\rm ISM}$ galaxies. 
+
+The fact that we infer overall unbiased constrainted on galaxy properties for
+the mock observations is especially encouraging because there are significant
+differences in the forward model used to generate the observations and the SPS
+model used in the SED modeling. 
+First, the SFH in the forward model is taken directly from \lgal~simulation
+outputs. 
+Meanwhile, the SFH parameterization in the SPS model is based on NMF bases fit
+on SFHs of IllustrisTNG galaxies.
+Even though the there are significant differences between the SFHs of \lgal~and
+IllustrisTNG, the NMF SFH prescription is able to accurately reproduce recent
+SFH.
+Furthermore, in the forward model we construct the SED of the bulge and disk
+components fo the simulated galaxies separately. 
+There are also differences between the dust prescriptions in the forward model
+versus the SPS model.
+Nevertheless, we recover overall unbiased $\avgsfr$ and $Z_{\rm MW}$. 
+
+In Figure~\ref{fig:prop_inf}, we can also compare spectra, photometry, versus
+SP.
+
+
+In order to quantify the precision and accuracy of the inferred galaxy
 properties for our simulated galaxy population, we begin by assuming that the
 discrepancy between the inferred and true parameters for each galaxy 
 $\Delta_{\theta,i}$) 
@@ -139,14 +196,8 @@ in orange, we infer $M_*$s and SFRs by jointly fitting both photometry and spect
 
 discussion: 
 \begin{itemize}
-    \item sfh basis improves SFH accuracy? 
-    \item advantage of mcmc over MAP
-    \item non-Gaussian posteriors
     \item science applicatoins 
     \item comparison to other methods 
     \item different observing condition doesn't impact our results? 
-    \item we use super simple dust mmodel. \ch{more sophistiicated dust
-        models doesn't matter?} 
-    \item \ch{we try fitting with a different IMF}
 \end{itemize}
 

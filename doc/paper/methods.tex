@@ -200,6 +200,9 @@ practice velocity disperion can be set as a free parameter.
 Then the broadened flux is resampled into the wavelength binning of the
 observed DESI spectra, which has spectral resolution $R = 2000 - 5000$ over
 $3600 < \lambda < 9800\AA$. 
+Since the DESI spectra does not necessarily include all the light of a galaxy,
+we include a nuisance parameter $f_{\rm fiber}$, a normalization factor on the
+spectra to account for fiber aperture effects. 
 Finally, the SPS model photometry and spectrum can be directly compared to
 observations.
 
@@ -218,6 +221,7 @@ observations.
         $\tau_{\rm BC}$ & Birth cloud optical depth & uniform over [] \\
         $\tau_{\rm ISM}$ & diffuse-dust optical depth & uniform over [] \\
         $n_{\rm dust}$ & \cite{calzetti2001} dust index & unifrom over[]\\
+        $f_{\rm fiber}$ & spectrum fiber-aperture effect normalization & Gaussian []\\
         \hline            
 \end{tabular} 
 \end{center}

@@ -203,7 +203,6 @@ $3600 < \lambda < 9800\AA$.
 Finally, the SPS model photometry and spectrum can be directly compared to
 observations.
 
-
 \begin{table} \label{tab:params}
 \caption{Parameters of the PROVABGS SPS model used for joint SED modeling of
     DESI photometry and spectroscopy.} 
@@ -223,6 +222,30 @@ observations.
 \end{tabular} 
 \end{center}
 \end{table}
+
+\begin{figure}
+\begin{center}
+    \includegraphics[width=0.9\textwidth]{figs/mcmc_posterior_demo.pdf}
+    \label{fig:posterior}
+    \caption{
+        \emph{Top}: 
+        Posterior probability distribution of our 12 SPS model parameters
+        derived from joint SED modeling of the mock DESI photometry and
+        spectrum.
+        The contours mark the 68 and 95\% percentiles.
+        We use a Gaussian likelihood and the prior specified in
+        Table~\ref{tab:params} to evaluate the posterior and sample the
+        distribution using ensemble slice MCMC. 
+        \emph{With our Bayesian SED modeling approach, we capture the significiant
+        parameter degeneracies and multimodality of the posterior distribution.}
+        \emph{Bottom}: 
+        We compare the best-fit model observables (orange) to the mock
+        observations (black).  
+        We find excellent agreement for both the LS photometry (left) and the
+        DESI spectrum (right). 
+    }
+\end{center}
+\end{figure}
 
 
 \subsection{Parameter Inference} \label{sec:infer} 
@@ -258,76 +281,51 @@ likelihoods when jointly model the spectrophotometry:
 \end{equation}
 $p(\theta)$ is the prior on the SPS parameters. 
 For most of our parameters, we use uninformative uniform priors with
-conservatively chosen ranges that are listed in Table~\ref{tab:param}. 
+conservatively chosen ranges that are listed in Table~\ref{tab:params}. 
 However, for the priors of $\{\beta_1, \beta_2, \beta_3, \beta_4 \}$, the NMF coefficients
 for the SFH, we use a Dirichlet distribution.  
 With a Dirichlet distribution, $\beta_i$ are within $0 < \beta_i < 1$ and
 satisfy the constraint $\sum_i \beta_i = 1$. 
 This maintains the normalization of the SFH in Eq.~\ref{eq:nmf}. 
 
-Now that we can evaluate the posterior using the likelihood and prior, we
-derive the posterior distributions using Markov Chain Monte Carlo (MCMC)
-sampling. 
+Now that we can evaluate the posterior at given $\theta$, we derive the
+posterior distributions using Markov Chain Monte Carlo (MCMC) sampling. 
 We use the \cite{karamanis2020} ensemble slice sampling MCMC algorithm with the
 {\sc zeus} Python package. 
-\todo{highlight advantages of ensemble slice MCMC}
+Ensemble slice sampling is an extension of standard slice sampling that does
+not requires specifying the initial length scale or any further hand-tuning.
+Furthermore, it generally converges faster than other MCMC algorithms
+(\emph{e.g.} Metropolis and standard slice sampling) and generates chains with
+significantly lower autocorrelation.
 
 When we sample the posterior, we do not directly sample our 12 dimensional
 SPS parameter space. 
 This is because we impose a Dirichlet prior on the SFH NMF coefficients. 
-Dirichlet distributions are difficult to directly and efficiently sample so
-instead we use the \cite{betancourt2012} sampling method, which allows us to
-transforms an $N$ dimensional Dirichlet distribution into an easier to sample
-$N-1$ dimensional space.
+Dirichlet distributions are difficult to directly sample so we instead use the
+\cite{betancourt2012} sampling method, which transforms an $N$ dimensional
+Dirichlet distribution into an easier to sample $N-1$ dimensional space.
 Hence, we sample the posterior in the transformed 11 dimensional space. 
+Given this dimensionality, we run our MCMC sampling with 30 walkers.
+Overall, we find that the sampling converges after 2,500 iterations with a 500
+iteration burn in. 
+Deriving the posterior distribution from a joint SED modeling of photometry and
+spectra, with the emulator, takes \todo{0.5 CPU hours}. 
+In principle, since our emulator uses a PCA NN, we can further expedite our
+paremeter inference using more efficient sampling methods that exploit gradient
+information, such as Hamlitonian Monte Carlo.  
+We will explore further expediting our SED modeling in future works. 
 
-%go into detail about the Dirichlet priors and the slight complication with sampling that. 
-James's work in convergence here. 
-talk about how in
-principle speculator can easily be used with HMC because you can get
-derivatives with backpropagation. 
-provide detailed profiling of SED fitting and projections for full 10million galaxy BGS sample. 
-
-\begin{figure}
-\begin{center}
-    \includegraphics[width=0.95\textwidth]{figs/mcmc_posterior_demo.pdf}
-    \label{fig:posterior}
-    \caption{
-        \emph{Top}: 
-        Posterior probability distribution of our 12 SPS model parameters
-        derived from joint SED modeling of the mock DESI photometry and
-        spectra.
-        The contours mark the 68 and 95\% percentiles of the distribution. 
-        \emph{Bottom}: 
-        Comparison of our SPS model evaluated at the best-fit parameters
-        (orange) with the mock observations (black). 
-        On the left panel, we compare the $g$, $r$, $z$ band magnitudes; on the
-        right, we compare the spectroscopy.  
-    }
-\end{center}
-\end{figure}
-
-In Figure~\ref{fig:posterior} we present the posterior as well as the best-fit photometry and
-spectroscopy using speculator + emcee. 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% parameter table
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%\begin{table}
-%\caption{Table of the different parameterizations for the spectro-photometric fitting. The changes in each setup with respect to default configuration, CIGALE D, are bolted. } 
-%\begin{center} 
-%\begin{tabular}{ccccc} \toprule
-%name & SFH & dust & IMF \\[3pt]
-%\hline 
-%iFSPS C & rita's basis & & \\
-%Firefly  & rita's basis & & \\
-%VESPA    & & & \\
-%CIGALE A & \textbf{delayed SFH} & Charlot $\&$ Fall 2000, Draine et al. 2014 & Salpter \\
-%CIGALE B & delayed SFH + additional burst & \textbf{Calzetti et al. 2000, Dale et al. 2014} & Salpter \\
-%CIGALE C & delayed SFH + additional burst & Charlot $\&$ Fall 2000, Draine et al. 2014 & \textbf{Chabrier} \\
-%CIGALE D & delayed SFH + additional burst & Charlot $\&$ Fall 2000, Draine et al. 2014 & Salpeter \\[3pt]
-%\hline            
-%\end{tabular} \label{tab:setups}
-%\end{center}
-%\end{table}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+In Figure~\ref{fig:posterior} we present the posterior distribution of our 12
+SPS model parameters for an arbitrarily chosen \lgal~mock observation. 
+We mark the 68 and 95 percentiles of the distribution with the the contours. 
+The posterior distribution reveal there are significant degeneracies between
+SPS parameters --- \emph{e.g.} $\beta_2^{\rm SFH}$ and $f_{\rm burst}$. 
+Furthermore, the distribution is multimodal (see $f_{\rm burst}$ panels). 
+With our Bayesian SED modeling, we are able to capture such complexities in the
+posterior.
+In the bottom panels, we compare our SPS model evaluated at the best-fit
+parameters (orange) with the \lgal~mock observations (black). 
+On the left, we compare the $g$, $r$, $z$ band magnitudes; on the right, we
+compare the DESI spectroscopy. 
+We find excellent agreement between the best-fit SPS model and mock
+observations.

@@ -385,6 +385,7 @@ def posterior_demo():
     lbls = [r'$\log M_*$', r'$\beta^{\rm SFH}_1$', r'$\beta^{\rm SFH}_2$', r'$\beta^{\rm SFH}_3$', r'$\beta^{\rm SFH}_4$', 
             r'$f_{\rm burst}$', r'$t_{\rm burst}$', r'$\gamma_1^{\rm ZH}$', r'$\gamma_2^{\rm ZH}$', 
             r'$\tau_{\rm BC}$', r'$\tau_{\rm ISM}$', r'$n_{\rm dust}$', r'$f_{\rm fiber}$'] 
+    param_lims = [(9.6, 12.), (0., 1.), (0., 1.), (0., 1.), (0., 1.), (0., 1.), (1e-2, 13.27), (4.5e-5, 1.5e-2), (4.5e-5, 1.5e-2), (0., 3.), (0., 3.), (-2., 1.), (0.12, 0.24)]
     ndim = len(lbls)
 
     fig = plt.figure(figsize=(15, 20))
@@ -394,18 +395,21 @@ def posterior_demo():
             sub = fig.add_subplot(gs0[yi, xi])
     
     flat_chain = UT.flatten_chain(chain['mcmc_chain'][1500:,:,:])
-    _ = DFM.corner(
+    _fig = DFM.corner(
             flat_chain[::10,:], 
-            quantiles=[0.16, 0.5, 0.84], 
+            quantiles=None, #[0.16, 0.5, 0.84], 
             levels=[0.68, 0.95],
             bins=20,
             smooth=True,
             labels=lbls, 
             label_kwargs={'fontsize': 20, 'labelpad': 0.1}, 
-            range=[(9.6, 12.), (0., 1.), (0., 1.), (0., 1.), (0., 1.), (0., 1.),
-                (1e-2, 13.27), (4.5e-5, 1.5e-2), (4.5e-5, 1.5e-2), (0., 3.), (0., 3.), 
-                (-2., 1.), (0.12, 0.24)], 
+            range=param_lims, 
             fig=fig)
+    #axes = np.array(_fig.axes).reshape(ndim, ndim)
+    #for i in range(ndim): 
+    #    axes[i,i].set_xlim(param_lims[i])
+    #DFM.overplot_points(_fig, [chain['theta_bestfit']], color='C1',
+    #        markersize=10)
 
     axes = np.array(fig.axes).reshape((ndim, ndim))
     for yi in range(1, ndim):
@@ -728,9 +732,9 @@ if __name__=="__main__":
 
     #nmf_bases()
 
-    #posterior_demo()
+    posterior_demo()
 
-    inferred_props()
+    #inferred_props()
 
     #eta_l2(method='opt')
     #eta_l2(method='mcmc')

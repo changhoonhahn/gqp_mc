@@ -21,6 +21,11 @@
   et~al.}{2019}]{alsing2019}
 Alsing J.,  et~al., 2019, arXiv:1911.11778 [astro-ph]
 
+\bibitem[\protect\citeauthoryear{Baronchelli, Nandra  \& Buchner}{Baronchelli
+  et~al.}{2020}]{baronchelli2020}
+Baronchelli L.,  Nandra K.,   Buchner J.,  2020, \mn@doi [Monthly Notices of
+  the Royal Astronomical Society] {10.1093/mnras/staa2684}, 498, 5284
+
 \bibitem[\protect\citeauthoryear{Betancourt}{Betancourt}{2012}]{betancourt2012}
 Betancourt M.~J.,  2012, \mn@doi [arXiv:1010.3436 [physics]]
   {10.1063/1.3703631}, pp 157--164
@@ -90,6 +95,11 @@ Hahn C.,  Tinker J.~L.,   Wetzel A.,  2019, arXiv:1910.01644 [astro-ph]
 Henriques B. M.~B.,  White S. D.~M.,  Thomas P.~A.,  Angulo R.,  Guo Q.,
   Lemson G.,  Springel V.,   Overzier R.,  2015, \mn@doi [Monthly Notices of
   the Royal Astronomical Society] {10.1093/mnras/stv705}, 451, 2663
+
+\bibitem[\protect\citeauthoryear{Hogg, Myers  \& Bovy}{Hogg
+  et~al.}{2010}]{hogg2010}
+Hogg D.~W.,  Myers A.~D.,   Bovy J.,  2010, \mn@doi [The Astrophysical Journal]
+  {10.1088/0004-637X/725/2/2166}, 725, 2166
 
 \bibitem[\protect\citeauthoryear{Iyer et~al.,}{Iyer et~al.}{2020}]{iyer2020}
 Iyer K.~G.,  et~al., 2020, \mn@doi [Monthly Notices of the Royal Astronomical

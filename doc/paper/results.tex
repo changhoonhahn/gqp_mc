@@ -65,93 +65,169 @@ Lastly, $\tau_{\rm ISM}$ is accurately inferred for simulated galaxies with
 low $\tau_{\rm ISM}$ but the accuracy declines significantly for high 
 $\tau_{\rm ISM}$ galaxies. 
 
-The fact that we infer overall unbiased constrainted on galaxy properties for
-the mock observations is especially encouraging because there are significant
-differences in the forward model used to generate the observations and the SPS
-model used in the SED modeling. 
+The overall unbiased constraints on galaxy properties for the mock observations
+is especially encouraging due to the significant differences in the forward
+model used to generate the observations and the SPS model used in the SED
+modeling. 
 First, the SFH in the forward model is taken directly from \lgal~simulation
-outputs. 
-Meanwhile, the SFH parameterization in the SPS model is based on NMF bases fit
-on SFHs of IllustrisTNG galaxies.
-Even though the there are significant differences between the SFHs of \lgal~and
-IllustrisTNG, the NMF SFH prescription is able to accurately reproduce recent
-SFH.
-Furthermore, in the forward model we construct the SED of the bulge and disk
-components fo the simulated galaxies separately. 
-There are also differences between the dust prescriptions in the forward model
-versus the SPS model.
-Nevertheless, we recover overall unbiased $\avgsfr$ and $Z_{\rm MW}$. 
+outputs while the SFH parameterization in the SPS model is based on NMF bases fit
+to IllustrisTNG galaxy SFHs.
+Second, in the forward model, we construct the SED of the bulge and disk
+components of the simulated galaxies separately: the components have separate
+SFHs and ZHs. 
+Lastly, we use different dust prescriptions: \cite{mathis1983} dust attenuation  
+curve in the forward model and \cite{kriek2013} dust attenuation curve in the
+SPS model. 
+Despite these significant differences our constraints on galaxy properties are
+unbiased. 
 
-In Figure~\ref{fig:prop_inf}, we can also compare spectra, photometry, versus
-SP.
+Figure~\ref{fig:prop_inf}, also highlights the advantages of jointly modeling
+spectra and photometry. 
+Comparing the constraints from spectra+photometry to photometry alone, we find
+that including spectra significantly tightens the constraints for all
+properties. 
+In addition to tightening constraints, including spectra also reduces the bias
+of the constraints. 
+For instance, with only photometry, we derive biased $\avgsfr$ constraints for
+some of the galaxies. 
+This is due to the limited constraining power of photometry, which allows the
+posteriors to be dominated by model priors. 
+Adding spectra, significantly increases the contribution of the likelihood and
+ameliorates this effect. 
+%Therefore, joint SED modeling of spectra and photometry 
 
-
-In order to quantify the precision and accuracy of the inferred galaxy
-properties for our simulated galaxy population, we begin by assuming that the
-discrepancy between the inferred and true parameters for each galaxy 
-$\Delta_{\theta,i}$) 
-\begin{equation}
-    \theta^{\rm inf}_i = \theta^{\rm true}_i + \Delta_{\theta,i}
+We want to examine the precision and accuracy of the inferred galaxy properties
+beyond qualitative comparisons of the posteriors. 
+Let $\Delta_{\theta,i}$ be the discrepancy between the inferred and true
+parameters for each galaxy: $\hat{\theta}_i = \theta^{\rm true}_i +
+\Delta_{\theta,i}$.
+Then, if we assume that $\Delta_{\theta,i}$ are sampled from a Gaussian
+distribution,
+\begin{equation} \label{eq:eta_gauss}
+    \Delta_{\theta,i} \sim \mathcal{N}(\mu_{\Delta_{\theta}}, \sigma_{\Delta_{\theta}}),
 \end{equation}
-where $\Delta_{\theta,i}$ is sampled from a Gaussian distribution
-\begin{equation}
-    \Delta_{\theta,i} \sim \mathcal{N}(\mu_{\Delta_{\theta}}, \sigma_{\Delta_{\theta}}).
-\end{equation}
-This Gaussian distribution is described by population hyperparameters $\mu_{\Delta_{\theta}}$ and 
-$\sigma_{\Delta_{\theta}}$, the mean and standard deviation, which quantify the accuracy and 
-precision of the inferred physical properties for the population. 
+the mean ($\mu_{\Delta_{\theta}}$) and standard deviation
+($\sigma_{\Delta_{\theta}}$) of the distribution represent the accuracy and
+precision of the inferred posteriors for the galaxy population. 
+Therefore, to quantify the bias and precision of our SED modeling, we derive the 
+population hyperparameters ($\mu_{\Delta_{\theta}}, \sigma_{\Delta_{\theta}}$)
+using a hierarchical Bayesian framework~\citep[\emph{e.g.}][]{hogg2010,
+foreman-mackey2014, baronchelli2020}.
 
-Given the photomety and spectrum of our galaxies, $\{{\bfi D}_i\}$, we can get the posteriors
-for these population hyperparameters $\eta_\Delta = \{\mu_{\Delta_{\theta}},
-\sigma_{\Delta_{\theta}}\}$ 
-using a hierarchical Bayesian framework~\citep{hogg2010a}: 
+
+\begin{figure}
+\begin{center}
+    \includegraphics[width=\textwidth]{figs/etas.pdf} \label{fig:etas}
+    \caption{
+        The accuracy and precision of our joint SED modeling of
+        spectra+photometry, quantified using population hyperparameters
+        $\mu_{\Delta_{\theta}}$ and $\sigma_{\Delta_{\theta}}$, as a function
+        of true galaxy property (green). 
+        We plot $\mu_{\Delta_{\theta}}$ in solid line and
+        $\sigma_{\Delta_{\theta}}$ in the shaded region.
+        We include $\{\mu_{\Delta_{\theta}}, \sigma_{\Delta_{\theta}}\}$ for SED
+        modeling of photometry alone (orange) for comparison. 
+    }
+\end{center}
+\end{figure}
+
+Let $\{{\bfi X}_i\}$ represent the photometry or spcetrum of a galaxy
+population and $\eta_\Delta = \{\mu_{\Delta_{\theta}},
+\sigma_{\Delta_{\theta}}\}$ be the population hyperparameters.
+Our goal is to constrain $\eta_\Delta$ from $\{{\bfi X}_i\}$ --- \emph{i.e.}
+$p(\eta_\Delta \given \{{\bfi X}_i\})$.
+As usual, we can expand 
 \begin{align}
-p(\eta_\Delta \given \{{\bfi D_i}\}) 
-    =&~\frac{p(\eta_\Delta)~p( \{{\bfi D_i}\} \given \theta_{\Delta})}{p(\{{\bfi D_i}\})}\\
-    =&~\frac{p(\eta_\Delta)}{p(\{{\bfi D_i}\})}\int p(\{{\bfi D_i}\} \given \{\theta_i\})~p(\{\theta_i\} \given \eta_\Delta)~{\rm d}\{\theta_i\}.
+p(\eta_\Delta \given \{{\bfi X_i}\}) 
+    =&~\frac{p(\eta_\Delta)~p( \{{\bfi X_i}\} \given \eta_\Delta)}{p(\{{\bfi X_i}\})}\\
+    =&~\frac{p(\eta_\Delta)}{p(\{{\bfi X_i}\})}\int p(\{{\bfi X_i}\} \given \{\theta_i\})~p(\{\theta_i\} \given \eta_\Delta)~{\rm d}\{\theta_i\}.
 \end{align} 
-Naively the posteriors for each of the galaxies are not correlated, so we can factorize the expression above
+$\theta_i$ is the SPS parameters for galaxy $i$ and $p(\{{\bfi X_i}\} \given
+\{\theta_i\})$ is likelihood of the set of observations $\{{\bfi X_i}\}$ given
+the set of $\{\theta_i\}$. 
+Since the likelihoods for each of the $N$ galaxies ($p(\bfi X_i \given
+\theta_i)$) are not correlated, we can factorize and write the expression above
+as 
 \begin{align}
-p(\eta_\Delta \given \{{\bfi D_i}\}) 
-    =&~\frac{p(\eta_\Delta)}{p(\{{\bfi D_i}\})}\prod\limits_{i=1}^N\int p({\bfi D_i} \given \theta_i)~p(\theta_i \given \theta_\Delta)~{\rm d}\theta_i\\
-    =&~\frac{p(\eta_\Delta)}{p(\{{\bfi D_i}\})}\prod\limits_{i=1}^N\int
-    \frac{p(\theta_i \given {\bfi D_i})~p({\bfi D_i})}{p(\theta_i)}~p(\theta_i
+p(\eta_\Delta \given \{{\bfi X_i}\}) 
+    =&~\frac{p(\eta_\Delta)}{p(\{{\bfi X_i}\})}\prod\limits_{i=1}^N\int p({\bfi X_i} \given \theta_i)~p(\theta_i \given \theta_\Delta)~{\rm d}\theta_i\\
+    =&~\frac{p(\eta_\Delta)}{p(\{{\bfi X_i}\})}\prod\limits_{i=1}^N\int
+    \frac{p(\theta_i \given {\bfi X_i})~p({\bfi X_i})}{p(\theta_i)}~p(\theta_i
     \given \eta_\Delta)~{\rm d}\theta_i\\
     =&~p(\eta_\Delta)\prod\limits_{i=1}^N\int \frac{p(\theta_i \given {\bfi
-    D_i})~p(\theta_i \given \eta_\Delta)}{p(\theta_i)}~{\rm d}\theta_i.
-\end{align} 
-$p(\theta_i \given {\bfi D_i})$ is the posterior for galaxy $i$. Hence, the
-integral can be which means the integral can be estimated using the MCMC sample
-from the posterior
-\begin{align}
-p(\eta_\Delta \given \{{\bfi D_i}\}) 
-    =&~p(\eta_\Delta)\prod\limits_{i=1}^N\frac{1}{S_i}\sum\limits_{j=1}^{S_i}
+    X_i})~p(\theta_i \given \eta_\Delta)}{p(\theta_i)}~{\rm d}\theta_i. 
+\intertext{
+    $p(\theta_i \given {\bfi X_i})$ is the posterior for an individual galaxy,
+    so the integral can be estimated using the Monte Carlo samples from the
+    posterior: 
+}
+    \approx&~p(\eta_\Delta)\prod\limits_{i=1}^N\frac{1}{S_i}\sum\limits_{j=1}^{S_i}
     \frac{p(\theta_{i,j} \given \eta_\Delta)}{p(\theta_{i,j})}.
 \end{align} 
-$S_i$ is the number of MCMC samples and $\theta_{i,j}$ is the $j^{\rm th}$
-sample of galaxy $i$. We present the maximum a posteriori (MAP) estimates of
-$\eta_\Delta$ for $\log~M_*$ and $\log~{\rm SFR}$ in
-Figure~\ref{fig:specphoto}. 
+$S_i$ is the number of posterior samples and $\theta_{i,j}$ is the $j^{\rm th}$
+sample of galaxy $i$.
+In practice,
+$p(\theta_{i,j} \given \eta_\Delta) = p(\Delta_{\theta,i,j} \given
+\eta_\Delta)$ is a Gaussian distribution and, hence, easy to evaluate
+(Eq.~\ref{eq:eta_gauss}. 
+$p(\theta_{i,j}) = 1$ since we use uninformative and Dirichlet priors
+(Table~\ref{tab:params}). 
+Lastly, we derive $p(\eta_\Delta \given \{{\bfi X_i}\})$ by sampling the
+distribution using MCMC.
 
+In Figure~\ref{fig:etas}, we present the accuracy and precision
+($\mu_{\Delta_{\theta}}, \sigma_{\Delta_{\theta}}$) of our joint
+SED modeling of spectra and photometry (green) as a function of true galaxy
+property. 
+We use the median of $p(\eta_\Delta \given \{{\bfi X_i}\})$ for
+$\mu_{\Delta_{\theta}}$ (solid) and $\sigma_{\Delta_{\theta}}$ (shaded region).
+And in each panel, we derive $p(\eta_\Delta \given \{{\bfi X_i}\})$ for each
+property bin using the galaxies within it.
+We use bins with widths of \todo{0.2, 0.2, 0.05, and 0.1 dex} for $\log
+M_*$, $\avgsfr$, $\log Z_{\rm MW}$, and $\tau_{\rm ISM}$ respectively and only
+include bins with more than one galaxy. 
+
+For $\log M_*$ and $\tau_{\rm ISM}$ we find no bias in $\mu_{\Delta_{\theta}}$
+even as a function of galaxy property. 
+On the other hand, we confirm the significant bias in $\avgsfr$ at low $\avgsfr
+< -1$ dex: inferred $\avgsfr$ is biased by $\gtrsim 0.2$ dex at the SFRs. 
+There is also a noticeable bias in $\log Z_{\rm MW}$, which was difficult to
+detect in Figure~\ref{fig:prop_inf}. 
+However, the bias is small compared to the precision ($\mu_{\Delta_{\theta}}
+\sim 0.1$ dex) and is independent of the true $\log Z_{\rm MW}$. 
+
+The biases in $\avgsfr$ and $\log Z_{\rm MW}$ are both a consequence of our SPS
+model priors (Appendix~\ref{sec:model_priors}). 
+While $\log M_*$ and $\tau_{\rm ISM}$ are directly parameters in our SPS model
+and, thus, have uniform priors.
+$\avgsfr$ and $\log Z_{\rm MW}$, however, are derived quantities so the uniform
+priors we impose on SPS parameters induce non-uniform priors $\avgsfr$ and
+$\log Z_{\rm MW}$.
+For our SPS model, we impose a prior on $\log \overline{\rm SSFR}_{\rm 1 Gyr}$
+that is skewed and peaks at ${\sim}-10.4$ dex (Figure~\ref{fig:model_priors}). 
+Consequently, the posterior overestimates $\avgsfr$ at low $\avgsfr$.
+We also impose a skewed prior on $\log Z_{\rm MW}$; however, the prior is
+significantly broader so the posteriors are only slightly biased. 
+Overall, $\mu_{\Delta_{\theta}}(\theta)$ in Figure~\ref{fig:etas} illustrates
+that we derive overall unbiased constraints on galaxy properties, except for
+galaxies with $\avgsfr < -1$.
+
+In Figure~\ref{fig:etas}, we also include $\{\mu_{\Delta_{\theta}},
+\sigma_{\Delta_{\theta}}\}$ for SED modeling of photometry alone (orange). 
+Comparing these $\{\mu_{\Delta_{\theta}}, \sigma_{\Delta_{\theta}}\}$ to those
+from spectra+photometry, we confirm that including spectra significantly
+tightens the constraints on galaxy properties. 
+\todo{elaborate}
+Furthermore, including the spectra significantly improves the bias in the
+inferred $\avgsfr$. 
+\todo{elaborate} 
 
 $\eta_\Delta$ as a function of SNR/mag/colour. 
 
 \begin{figure}
 \begin{center}
-\includegraphics[width=0.95\textwidth]{figs/etas.pdf} 
-\caption{The discrepancies between the inferred and input/``true'' $M_*$s (left) and SFRs 
-(right) for our {\sc LGal} galaxies. In blue, we infer $M_*$s and SFRs using only photometry;
-in orange, we infer $M_*$s and SFRs by jointly fitting both photometry and spectroscopy. 
-{\em Jointly fitting spectroscopy and photometry improves constraints on galaxy properties.}
-}
-\label{fig:specphoto}
-\end{center}
-\end{figure}
-
-\begin{figure}
-\begin{center}
     \includegraphics[width=0.95\textwidth]{figs/etas_photo.pdf}
-    \caption{do we want to test bias against other properties? (e.g. obs condition?)} 
+    \caption{} 
     \label{fig:systematics}
 \end{center}
 \end{figure}
@@ -193,11 +269,4 @@ in orange, we infer $M_*$s and SFRs by jointly fitting both photometry and spect
 %\label{fig:photo_cigaleALL}
 %\end{center}
 %\end{figure}
-
-discussion: 
-\begin{itemize}
-    \item science applicatoins 
-    \item comparison to other methods 
-    \item different observing condition doesn't impact our results? 
-\end{itemize}
 

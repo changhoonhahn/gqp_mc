@@ -25,7 +25,7 @@ from . import util as UT
 version = '1.3' # updated 06/24/2021
 
 
-def Spectra(sim='lgal', noise='none', lib='fsps', sample='mini_mocha'): 
+def Spectra(sim='lgal', noise='none', lib='fsps'): 
     ''' read forward modeled spectra generated for simulations
 
     parameters
@@ -41,11 +41,7 @@ def Spectra(sim='lgal', noise='none', lib='fsps', sample='mini_mocha'):
     lib : str 
         (default: 'fsps') 
         stellar library used to generate the spectra 
-    sample : str
-        (default: 'spectral_challenge') 
-        specify sample from the simulations. default is spectral_challenge, which
-        are 100 randomly selected galaxies. 
-    
+
     returns
     -------
     specs : array 
@@ -53,7 +49,7 @@ def Spectra(sim='lgal', noise='none', lib='fsps', sample='mini_mocha'):
     meta : array 
         dictionary of meta data 
     '''
-    meta, mock = read_data(sim=sim, noise=noise, lib=lib, sample=sample)
+    meta, mock = read_data(sim=sim, noise=noise, lib=lib)
         
     specs = {} 
     specs['frac_fiber'] = mock ['frac_fiber'][...] # fiber flux scaling factor 
@@ -101,7 +97,7 @@ def Spectra(sim='lgal', noise='none', lib='fsps', sample='mini_mocha'):
     return specs, meta 
 
 
-def Photometry(sim='lgal', noise='none', lib='fsps', sample='mini_mocha'): 
+def Photometry(sim='lgal', noise='none', lib='fsps'): 
     ''' read forward modeled photometry generated for simulations
 
     :param sim: 
@@ -114,10 +110,6 @@ def Photometry(sim='lgal', noise='none', lib='fsps', sample='mini_mocha'):
         stellar library used to generate the spectra. lib == 'fsps' only
         supported. (default: 'fsps') 
 
-    :param sample:         
-        specify sample from the simulations. default is spectral_challenge, which
-        are 100 randomly selected galaxies. (default: 'spectral_challenge') 
-    
     returns
     -------
     photo : dict 
@@ -125,7 +117,7 @@ def Photometry(sim='lgal', noise='none', lib='fsps', sample='mini_mocha'):
     meta : array 
         dictionary of meta data 
     '''
-    meta, mock = read_data(sim=sim, noise=noise, lib=lib, sample=sample)
+    meta, mock = read_data(sim=sim, noise=noise, lib=lib)
 
     bands = ['g', 'r', 'z', 'w1', 'w2', 'w3', 'w4']
 
@@ -150,7 +142,7 @@ def Photometry(sim='lgal', noise='none', lib='fsps', sample='mini_mocha'):
     return photo, meta
 
 
-def read_data(sim='lgal', noise='none', lib='fsps', sample='mini_mocha'): 
+def read_data(sim='lgal', noise='none', lib='fsps'): 
     ''' read compiled data 
 
     notes
@@ -159,10 +151,10 @@ def read_data(sim='lgal', noise='none', lib='fsps', sample='mini_mocha'):
     '''
     if sim not in ['lgal', 'fsps']: raise NotImplementedError 
     
-    dir_sample = os.path.join(UT.dat_dir(), sample) 
+    dir_sample = os.path.join(UT.dat_dir(), 'mini_mocha') 
     
     # description of data (sample, library used, and version number) 
-    dat_descrip = '%s.%s.v%s' % (lib, sample, version) 
+    dat_descrip = '%s.mocha.v%s' % (lib, version) 
 
     # read in meta data 
     meta = pickle.load(open(os.path.join(dir_sample,

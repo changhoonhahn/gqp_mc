@@ -208,65 +208,70 @@ that is skewed and peaks at ${\sim}-10.4$ dex (Figure~\ref{fig:model_priors}).
 Consequently, the posterior overestimates $\avgsfr$ at low $\avgsfr$.
 We also impose a skewed prior on $\log Z_{\rm MW}$; however, the prior is
 significantly broader so the posteriors are only slightly biased. 
-Overall, $\mu_{\Delta_{\theta}}(\theta)$ in Figure~\ref{fig:etas} illustrates
-that we derive overall unbiased constraints on galaxy properties, except for
-galaxies with $\avgsfr < -1$.
 
 In Figure~\ref{fig:etas}, we also include $\{\mu_{\Delta_{\theta}},
 \sigma_{\Delta_{\theta}}\}$ for SED modeling of photometry alone (orange). 
-Comparing these $\{\mu_{\Delta_{\theta}}, \sigma_{\Delta_{\theta}}\}$ to those
-from spectra+photometry, we confirm that including spectra significantly
-tightens the constraints on galaxy properties. 
-\todo{elaborate}
-Furthermore, including the spectra significantly improves the bias in the
-inferred $\avgsfr$. 
-\todo{elaborate} 
-
-$\eta_\Delta$ as a function of SNR/mag/colour. 
+Comparing $\sigma_{\Delta_{\theta}}$, we confirm that including spectra
+significantly tightens the constraints on all of the galaxy properties. 
+\todo{  % update with final calculations
+    For instance, $\sigma_{\Delta_{\theta}}$ for $M_*$ improves from X to X dex
+    once spectra is included.
+} 
+In addition to the increased precision, including spectra significantly
+improves the bias in the inferred galaxy properties. 
+\todo{
+    This is especially clear for $\avgsfr$, where the bias is reduced by X dex
+    at $\avgsfr \sim -2$ dex. 
+    The bias on $Z_{\rm MW}$ is also noticeably reduced. 
+}
+Overall, Figure~\ref{fig:etas} illustrates that we derive overall unbiased
+constraints on galaxy properties, except for low $\avgsfr$ galaxies, and that
+including spectra in the SED modeling substantially improves the inferred
+galaxy properties. 
 
 \begin{figure}
 \begin{center}
     \includegraphics[width=0.95\textwidth]{figs/etas_photo.pdf}
-    \caption{} 
+    \caption{
+        Accuracy and precision of the galaxy properties inferred from joint SED
+        modeling of spectra+photometry as a function of $r_{\rm fiber}$, $r$,
+        $g-r$, and $r-z$.
+        From the top to bottom rows, we present $\eta_\Delta$ for $\log M_*$,
+        $\avgsfr$, $\log Z_{\rm MW}$, and $\tau_{\rm ISM}$.
+        $r_{\rm fiber}$ and $r$ magnitudes are proxies for SNR of spectra and
+        photometry. 
+        $g-r$ and $r-z$ are the optical photometric colors. 
+        We find no significant dependence on SNR or color in the accuracy of
+        the inferred $\log M_*$, $\log Z_{\rm MW}$, and $\tau_{\rm ISM}$. 
+    } 
     \label{fig:systematics}
 \end{center}
 \end{figure}
 
-%\begin{table}
-%\caption{$\theta_\Delta$ $\theta_{\rm inf}$ - $\theta_{\rm true}$ and uncertainties for different sets of data fitted with ifsps} 
-%\begin{center} 
-%\begin{tabular}{ccccc} \toprule
-%set & photometry & spectroscopy & specphot \\
-%$\Delta M_{tot}$ & 0.13 & 0.11 & 0.09\\
-%$M_{err}$ & 0.10 & 0.08 & 0.07 \\
-%$\Delta$ Age & 4.05 & 3.84 & 4.33\\
-%$Age_{err}$ & 1.83 & 2.37 & 2.03\\
-%$\Delta$ Z & 0.0546 & 0.0126 & 0.0063 \\
-%$Z_{err}$ & 0.0291 & 0.0203 & 0.0050\\
-%\hline 
-%\hline            
-%\end{tabular} \label{tab:setups}
-%\end{center}
-%\end{table}
 
-%\begin{figure}
-%\begin{center}
-%\includegraphics[width=\textwidth]{figs/mini_mocha_cigale_noise_CIGALEA.png} 
-%\includegraphics[width=\textwidth]{figs/mini_mocha_cigale_noise_CIGALEB.png} 
-%\includegraphics[width=\textwidth]{figs/mini_mocha_cigale_noise_CIGALEC.png}
-%\includegraphics[width=\textwidth]{figs/mini_mocha_cigale_noise_CIGALED.png}
-%\caption{The properties inferred from CIGALE photometry fit as a function of true properties. Configuration CIGALE A, B, C, and D 
-%}
-%\label{fig:photo_cigale}
-%\end{center}
-%\end{figure}
+Beyond quantifying the accuracy and precision of our parameter inference as a
+function of galaxy properties, we examine how our parameter inference is
+impacted by signal-to-noise ratio (SNR) and photometric color. 
+In Figure~\ref{fig:systematics}, we present $\eta_\Delta$ of our joint
+SED modeling of spectra and photometry as a function of $r_{\rm fiber}$, $r$,
+$g-r$, and $r-z$. 
+In each row, we plot $\eta_\Delta$ for a different galaxy property: $\log M_*$,
+$\avgsfr$, $\log Z_{\rm MW}$, and $\tau_{\rm ISM}$ (from top to bottom).
+$r_{\rm fiber}$ and $r$ magnitudes serve proxies of the SNR for the spectra and
+photometry, respectively. 
+Besides $\avgsfr$, we find no significant dependence on SNR or color in the
+inferred galaxy properties. 
+We again confirm that the inferred $M_*$ and $\tau_{\rm ISM}$ values are
+unbiased.
+While the inferred $Z_{\rm MW}$ overestimate the true $Z_{\rm MW}$, the bias is
+small $\sim 0.1$ dex and, more importantly, independent of SNR or color. 
+Together with the results from Figure~\ref{fig:etas}, \emph{we conclude that with our
+SED modeling we can infer robust constraints on $M_*$, $Z_{\rm MW}$, and
+$\tau_{\rm ISM}$}.
 
-%\begin{figure}
-%\begin{center}
-%\includegraphics[width=\textwidth]{figs/mini_mocha_ifsps_specphotofit_vanilla_noise_bgs0_legacy_delta.pdf} 
-%\caption{delta(galaxy properties) as a function of $M_{tot}$, r mag and colors for ifsps(spectrophotometry) and CIGALE (photometry, CIGALE D). 
-%}
-%\label{fig:photo_cigaleALL}
-%\end{center}
-%\end{figure}
-
+The situation is more complex for $\avgsfr$. 
+For galaxies with high SNR spectra and photometry, we find no significant bias
+in the inferred $\avgsfr$. 
+However, for $r_{\rm fiber} > 20.5$ and $r > 19$, inferred $\avgsfr$
+overestimates the true $\avgsfr$. 
+\todo{color dependence once we get to the bottom of that}  

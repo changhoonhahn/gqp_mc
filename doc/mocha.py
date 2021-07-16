@@ -125,8 +125,11 @@ def BGS():
     # footprint comparison 
     #-------------------------------------------------------------------
     fig = plt.figure(figsize=(15,5))
-    gs1 = mpl.gridspec.GridSpec(1,4, figure=fig) 
-    sub = plt.subplot(gs1[0,:-1], projection='mollweide')
+    gs1 = fig.add_gridspec(nrows=1, ncols=1, left=0.05, right=0.75)
+    sub = plt.subplot(gs1[0,0], projection='mollweide')
+    #sub = fig.add_subplot(gs1[0, :7])
+    #gs1 = mpl.gridspec.GridSpec(1,3, figure=fig) 
+    #sub = plt.subplot(gs1[0,:-1], projection='mollweide')
     sub.grid(True, linewidth=0.1) 
     # DESI footprint 
     sub.scatter(
@@ -155,7 +158,8 @@ def BGS():
     #-------------------------------------------------------------------
     # n(z) comparison 
     #-------------------------------------------------------------------
-    sub = plt.subplot(gs1[0,-1])
+    gs2 = fig.add_gridspec(nrows=1, ncols=1, wspace=0.05, left=0.75, right=0.95)
+    sub = plt.subplot(gs2[0,0])
     sub.hist(z_bgs, range=[0.0, 1.], color='C0', bins=100) 
     sub.hist(z_sdss, range=[0.0, 1.], color='C1', bins=100) 
     sub.hist(np.array(gama['Z']), range=[0.0, 1.], color='r', bins=100) 
@@ -177,10 +181,11 @@ def BGS():
     for clr in ['C0', 'C1', 'r']: 
         _plt = sub.fill_between([0], [0], [0], color=clr, linewidth=0)
         plts.append(_plt) 
-    sub.legend(plts, ['DESI', 'SDSS', 'GAMA'], loc='upper right', handletextpad=0.3, prop={'size': 20}) 
-    ffig = os.path.join(dir_doc, 'bgs.png')
+    sub.legend(plts, ['DESI', 'SDSS', 'GAMA'], loc='upper left', handletextpad=0.2, prop={'size': 20}) 
+    ffig = os.path.join(dir_doc, 'bgs.pdf')
     fig.savefig(ffig, bbox_inches='tight')
-    fig.savefig(UT.fig_tex(ffig, pdf=True), bbox_inches='tight') 
+
+    raise ValueError
     #-------------------------------------------------------------------
     # mstar(z) comparison 
     #-------------------------------------------------------------------
@@ -486,7 +491,7 @@ def inferred_props():
             if ii == 0: sub.set_yticks([8., 9., 10., 11., 12.])
             if ii == 1: sub.set_yticks([-4., -3., -2., -1., 0., 1.])
             if ii == 3: sub.set_yticks([0., 0.5, 1.0, 1.5, 2.]) 
-            if ii == 0: sub.text(0.95, 0.05, ['spectra', 'photometry', 'spectra + photometry'][i], 
+            if ii == 0: sub.text(0.95, 0.05, ['spectra', 'photometry', 'spectra+photometry'][i], 
                     ha='right', va='bottom', transform=sub.transAxes, fontsize=25)
             if i != 2: sub.set_xticklabels([])
             if i == 0: sub.set_title(lbls[ii], pad=10, fontsize=25)
@@ -505,27 +510,29 @@ def inferred_props():
 def eta_l2(method='opt'):
     ''' calculate bias as a function of galaxy properties
     '''
-    lbls    = [r'$\log M_*$', r'$\log {\rm SFR}_{1Gyr}$', r'$\log Z_{\rm MW}$', r'$\tau_{\rm ISM}$']
-    minmax  = [[8., 12.], [-4., 1], [-2.5, -1.5], [0., 2.]]
+    lbls    = [r'$\log M_*$', r'$\log \overline{\rm SFR}_{\rm 1Gyr}$', r'$\log Z_{\rm MW}$', r'$\tau_{\rm ISM}$']
+    minmax  = [[9., 12.], [-3., 1], [-2.3, -1.7], [0., 1.]]
     # eta as a function of galaxy properties 
-    fig = plt.figure(figsize=(20, 12))    
+    fig = plt.figure(figsize=(20, 3))
 
-    for ii, sample in enumerate(['S2', 'P2', 'SP2']): 
+    #for ii, sample in enumerate(['S2', 'P2', 'SP2']): 
+    for ii, sample, clr in zip(range(2), ['P2', 'SP2'], ['C1', 'C2']): 
         props_infer, props_truth = L2_chains(sample)
         
         # get eta for log M*, log SFR, and log Z_MW
-        logM_bin    = np.arange(8, 13, 0.25)
-        logSFR_bin  = np.arange(-4, 1, 0.25)
-        logZMW_bin  = np.arange(-2.5, -1., 0.1)
-        tauism_bin  = np.arange(0., 2., 0.1) 
+        logM_bin    = np.arange(8, 13, 0.2)
+        logSFR_bin  = np.arange(-4, 1, 0.5)
+        logZMW_bin  = np.arange(-2.3, -1.7, 0.05)
+        tauism_bin  = np.arange(0., 1., 0.1) 
         
         x_props, eta_mus, eta_sigs = [], [], []
         for prop_infer, prop_truth, prop_bin in zip(props_infer, props_truth, [logM_bin, logSFR_bin, logZMW_bin, tauism_bin]): 
 
-            x_prop, eta_mu, eta_sig = [], [], []
+            x_prop, eta_mu, eta_sig, nbins = [], [], [], [] 
             for ibin in range(len(prop_bin)-1): 
                 inbin = (prop_truth > prop_bin[ibin]) & (prop_truth < prop_bin[ibin+1])
-                if np.sum(inbin) > 3: 
+                if np.sum(inbin) > 1: 
+                    nbins.append(np.sum(inbin))
                     x_prop.append(0.5 * (prop_bin[ibin] + prop_bin[ibin+1]))
                     
                     if method == 'opt': 
@@ -538,26 +545,32 @@ def eta_l2(method='opt'):
                         _mu, _sig = _theta[:,0], _theta[:,1]
                         eta_mu.append(np.median(_mu))
                         eta_sig.append(np.median(_sig))
+            print()
+            print(x_prop)
+            print(nbins)
             print(eta_mu)
+            print(eta_sig)
             x_props.append(np.array(x_prop))
             eta_mus.append(np.array(eta_mu))
             eta_sigs.append(np.array(eta_sig))
         
         for i, x_prop, eta_mu, eta_sig in zip(range(len(x_props)), x_props, eta_mus, eta_sigs): 
-            sub = fig.add_subplot(3, len(x_props), len(x_props)*ii+i+1) 
+            sub = fig.add_subplot(1, len(x_props), i+1) 
+
             sub.plot(minmax[i], [0., 0.], c='k', ls='--')
             sub.fill_between(x_prop, eta_mu - eta_sig, eta_mu + eta_sig,
-                    fc='C%i' % ii, ec='none', alpha=0.5) 
-            sub.scatter(x_prop, eta_mu, c='C%i' % ii, s=2) 
-            sub.plot(x_prop, eta_mu, c='C%i' % ii)
-            if ii == 2: sub.set_xlabel(lbls[i], fontsize=25)
-            else: sub.set_xticklabels([]) 
+                    fc=clr, ec='none', alpha=[0.3, 0.6][ii], label=['photometry', 'spectra+photometry'][ii]) 
+            sub.scatter(x_prop, eta_mu, c=clr, s=2) 
+            sub.plot(x_prop, eta_mu, c=clr)
+            if ii == 0: sub.set_xlabel(lbls[i], fontsize=25)
             sub.set_xlim(minmax[i])
-            if i == 0 and ii == 1: sub.set_ylabel(r'$\Delta_\theta$', fontsize=30)
+            if i == 0: 
+                sub.set_ylabel(r'$\Delta_\theta$ [dex]', fontsize=30)
             if i != 0: sub.set_yticklabels([]) 
+            if i == 0: sub.legend(loc='upper left', handletextpad=0.2, fontsize=20)
             sub.set_ylim(-1., 1.) 
-            if i == 3: sub.text(0.95, 0.05, ['spectra', 'photometry', 'spectra + photometry'][ii], 
-                    ha='right', va='bottom', transform=sub.transAxes, fontsize=25)
+            #if i == 3: sub.text(0.95, 0.05, ['spectra', 'photometry', 'spectra + photometry'][ii], 
+            #        ha='right', va='bottom', transform=sub.transAxes, fontsize=25)
 
         #sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
     fig.subplots_adjust(wspace=0.1, hspace=0.1)
@@ -582,6 +595,8 @@ def eta_photo_l2(method='opt'):
     g_r = g_mag - r_mag
     r_z = r_mag - z_mag 
 
+    high_snr = (r_fiber < 20.5) 
+
     proplbls = [r'\log M_*', r'\log {\rm SFR}_{1Gyr}', r'\log Z_{\rm MW}', r'\tau_{\rm ISM}']
     lbls    = [r'$r_{\rm fiber}$', r'$r$', r'$g-r$', r'$r-z$']
     minmax  = [[17., 22.], [15., 20], [0, 1.], [0., 1.]]
@@ -604,6 +619,7 @@ def eta_photo_l2(method='opt'):
 
             x_prop, eta_mu, eta_sig = [], [], []
             for ibin in range(len(photo_bin)-1): 
+                #inbin = high_snr & (photo > photo_bin[ibin]) & (photo < photo_bin[ibin+1])
                 inbin = (photo > photo_bin[ibin]) & (photo < photo_bin[ibin+1])
                 if np.sum(inbin) > 3: 
                     x_prop.append(0.5 * (photo_bin[ibin] + photo_bin[ibin+1]))
@@ -639,6 +655,153 @@ def eta_photo_l2(method='opt'):
     fig.subplots_adjust(wspace=0.1, hspace=0.1)
 
     ffig = os.path.join(dir_doc, 'etas_photo.pdf')
+    fig.savefig(ffig, bbox_inches='tight') 
+    return None 
+
+
+def eta_l2_highSNR(method='opt'):
+    ''' calculate bias as a function of galaxy properties for high SNR galaxies
+    '''
+    dat_dir = '/Users/chahah/data/gqp_mc/mini_mocha/'
+    thetas = pickle.load(open(os.path.join(dat_dir, 'l2.theta.p'), 'rb'))
+    fluxes = np.load(os.path.join(dat_dir, 'mocha_p2.flux.npy'))
+
+    r_fiber = 22.5 - 2.5 * np.log10(thetas['f_fiber_meas'] * fluxes[:,1]) 
+
+    high_snr = (r_fiber < 20.5) 
+    print(np.sum(high_snr), len(r_fiber))
+
+    lbls    = [r'$\log M_*$', r'$\log \overline{\rm SFR}_{\rm 1Gyr}$', r'$\log Z_{\rm MW}$', r'$\tau_{\rm ISM}$']
+    minmax  = [[9., 12.], [-3., 1], [-2.3, -1.7], [0., 1.]]
+    # eta as a function of galaxy properties 
+    fig = plt.figure(figsize=(20, 3))
+
+    #for ii, sample in enumerate(['S2', 'P2', 'SP2']): 
+    for ii, sample, clr in zip(range(2), ['P2', 'SP2'], ['C1', 'C2']): 
+        props_infer, props_truth = L2_chains(sample)
+        
+        # get eta for log M*, log SFR, and log Z_MW
+        logM_bin    = np.arange(8, 13, 0.2)
+        logSFR_bin  = np.arange(-4, 1, 0.5)
+        logZMW_bin  = np.arange(-2.3, -1.7, 0.05)
+        tauism_bin  = np.arange(0., 1., 0.1) 
+        
+        x_props, eta_mus, eta_sigs = [], [], []
+        for prop_infer, prop_truth, prop_bin in zip(props_infer, props_truth, [logM_bin, logSFR_bin, logZMW_bin, tauism_bin]): 
+
+            x_prop, eta_mu, eta_sig, nbins = [], [], [], [] 
+            for ibin in range(len(prop_bin)-1): 
+                inbin = high_snr & (prop_truth > prop_bin[ibin]) & (prop_truth < prop_bin[ibin+1])
+                if np.sum(inbin) > 1: 
+                    nbins.append(np.sum(inbin))
+                    x_prop.append(0.5 * (prop_bin[ibin] + prop_bin[ibin+1]))
+                    
+                    if method == 'opt': 
+                        _mu, _sig = PopInf.eta_Delta_opt(prop_infer[inbin,:] - prop_truth[inbin, None])
+                        eta_mu.append(_mu)
+                        eta_sig.append(_sig)
+                    elif method == 'mcmc':  
+                        _theta = PopInf.eta_Delta_mcmc(prop_infer[inbin,:] - prop_truth[inbin, None], 
+                                niter=1000, burnin=500, thin=5)
+                        _mu, _sig = _theta[:,0], _theta[:,1]
+                        eta_mu.append(np.median(_mu))
+                        eta_sig.append(np.median(_sig))
+            print()
+            print(x_prop)
+            print(nbins)
+            print(eta_mu)
+            print(eta_sig)
+            x_props.append(np.array(x_prop))
+            eta_mus.append(np.array(eta_mu))
+            eta_sigs.append(np.array(eta_sig))
+        
+        for i, x_prop, eta_mu, eta_sig in zip(range(len(x_props)), x_props, eta_mus, eta_sigs): 
+            sub = fig.add_subplot(1, len(x_props), i+1) 
+
+            sub.plot(minmax[i], [0., 0.], c='k', ls='--')
+            sub.fill_between(x_prop, eta_mu - eta_sig, eta_mu + eta_sig,
+                    fc=clr, ec='none', alpha=[0.3, 0.6][ii], label=['photometry', 'spectra+photometry'][ii]) 
+            sub.scatter(x_prop, eta_mu, c=clr, s=2) 
+            sub.plot(x_prop, eta_mu, c=clr)
+            if ii == 0: sub.set_xlabel(lbls[i], fontsize=25)
+            sub.set_xlim(minmax[i])
+            if i == 0: 
+                sub.set_ylabel(r'$\Delta_\theta$ [dex]', fontsize=30)
+            if i != 0: sub.set_yticklabels([]) 
+            if i == 0: sub.legend(loc='upper left', handletextpad=0.2, fontsize=20)
+            sub.set_ylim(-1., 1.) 
+            #if i == 3: sub.text(0.95, 0.05, ['spectra', 'photometry', 'spectra + photometry'][ii], 
+            #        ha='right', va='bottom', transform=sub.transAxes, fontsize=25)
+
+        #sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
+    fig.subplots_adjust(wspace=0.1, hspace=0.1)
+
+    ffig = os.path.join(dir_doc, '_etas_highsnr.png')
+    fig.savefig(ffig, bbox_inches='tight') 
+    return None 
+
+
+def _l2_photo():
+    ''' check the photometric properties of the L2 catalog 
+    '''
+    dat_dir = '/Users/chahah/data/gqp_mc/mini_mocha/'
+    thetas = pickle.load(open(os.path.join(dat_dir, 'l2.theta.p'), 'rb'))
+    fluxes = np.load(os.path.join(dat_dir, 'mocha_p2.flux.npy'))
+
+    r_fiber = 22.5 - 2.5 * np.log10(thetas['f_fiber_meas'] * fluxes[:,1]) 
+    g_mag = 22.5 - 2.5 * np.log10(fluxes[:,0])
+    r_mag = 22.5 - 2.5 * np.log10(fluxes[:,1]) 
+    z_mag = 22.5 - 2.5 * np.log10(fluxes[:,2]) 
+
+    g_r = g_mag - r_mag
+    r_z = r_mag - z_mag 
+
+    low_snr = r_fiber > 20.
+    
+    ranges  = [(18, 22), (16, 20), (0., 1.5), (0., 1)]
+    lbls    = [r'$r_{\rm fiber}$', r'$r$', '$g - r$', '$r - z$']
+    props   = [r_fiber, r_mag, g_r, r_z]
+
+    fig = plt.figure(figsize=(16, 16))
+    for i in range(4): 
+        for j in range(4): 
+            if j > i: 
+                sub = fig.add_subplot(4, 4, 4*j+i+1)
+                sub.scatter(props[i], props[j])
+                sub.scatter(props[i][low_snr], props[j][low_snr])
+                if j == 3: 
+                    sub.set_xlabel(lbls[i], fontsize=25)
+                else: 
+                    sub.set_xticklabels([])
+                if i == 0: 
+                    sub.set_ylabel(lbls[j], fontsize=25) 
+                else: 
+                    sub.set_yticklabels([])
+                sub.set_xlim(ranges[i])
+                sub.set_ylim(ranges[j]) 
+            elif j == i: 
+                sub = fig.add_subplot(4, 4, 4*j+i+1)
+                _ = sub.hist(props[i], range=ranges[i], bins=20)
+                _ = sub.hist(props[i][low_snr], range=ranges[i], bins=20)
+                sub.set_xlim(ranges[i])
+                sub.set_xticklabels([])
+                sub.set_yticklabels([])
+
+    ffig = os.path.join(dir_doc, '_l2_photo.png')
+    fig.savefig(ffig, bbox_inches='tight') 
+    return None 
+
+
+def _l2_props():
+    ''' check the photometric properties of the L2 catalog 
+    '''
+    _, props_truth = L2_chains('SP2', derived_properties=True)
+
+    fig = plt.figure(figsize=(6,6))
+    sub = fig.add_subplot(111)
+    sub.scatter(props_truth[0], props_truth[1]) 
+    
+    ffig = os.path.join(dir_doc, '_l2_prop.png')
     fig.savefig(ffig, bbox_inches='tight') 
     return None 
 
@@ -729,6 +892,43 @@ def L2_chains(sample, derived_properties=True):
 def model_prior(): 
     ''' figure illustrating model priors 
     '''
+    # prior  on SPS parameters
+    prior = Infer.load_priors([
+        Infer.UniformPrior(7., 12.5, label='sed'),
+        Infer.FlatDirichletPrior(4, label='sed'),   # flat dirichilet priors
+        Infer.UniformPrior(0., 1., label='sed'), # burst fraction
+        Infer.UniformPrior(1e-2, 13.27, label='sed'), # tburst
+        Infer.LogUniformPrior(4.5e-5, 4.5e-2, label='sed'), # log uniform priors on ZH coeff
+        Infer.LogUniformPrior(4.5e-5, 4.5e-2, label='sed'), # log uniform priors on ZH coeff
+        Infer.UniformPrior(0., 3., label='sed'),        # uniform priors on dust1
+        Infer.UniformPrior(0., 3., label='sed'),        # uniform priors on dust2
+        Infer.UniformPrior(-3., 1., label='sed')    # uniform priors on dust_index
+    ])
+
+    # declare SPS model  
+    m_nmf = Models.NMF(burst=True, emulator=True)
+    
+    n_sample = 10000 # draw n_sample samples from the prior
+    zred = 0.1
+    
+    # sample prior and evaluate SSFR and Z_MW 
+    _thetas = np.array([prior.sample() for i in range(n_sample)])
+    thetas = prior.transform(_thetas)
+    
+    logmstar        = thetas[:,0]
+    logssfr_1gyr    = np.log10(m_nmf.avgSFR(thetas, zred=zred, dt=1.)) - logmstar
+    logz_mw         = np.log10(m_nmf.Z_MW(thetas, zred=zred))
+
+    
+    lbls = [r'$\log M_*$', r'$\log {\rm SSFR}_{\rm 1 Gyr}$', r'$\log Z_{\rm MW}$']
+    fig = DFM.corner(
+            np.array([logmstar, logssfr_1gyr, logz_mw]).T, 
+            range=[(7., 12.5), (-14, -8.5), (-5, -1)],
+            labels=[r'$\log M_*$', r'$\log \overline{\rm SSFR}_{\rm 1 Gyr}$', r'$\log Z_{\rm MW}$'], 
+            label_kwargs={'fontsize': 20}) 
+
+    ffig = os.path.join(dir_doc, 'model_prior.pdf')
+    fig.savefig(ffig, bbox_inches='tight')
     return None 
 
 
@@ -744,10 +944,18 @@ if __name__=="__main__":
 
     #posterior_demo()
 
-    inferred_props()
+    #inferred_props()
 
     #eta_l2(method='opt')
     #eta_l2(method='mcmc')
 
     #eta_photo_l2(method='opt') 
     #eta_photo_l2(method='mcmc') 
+    
+    # eta for high SNR only 
+    #eta_l2_highSNR(method='opt')
+
+    #_l2_photo() 
+    _l2_props()
+
+    #model_prior()

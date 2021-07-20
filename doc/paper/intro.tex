@@ -1,45 +1,114 @@
 \section{Introduction} \label{sec:intro} 
-\todo{make the case for galaxy evolution with big data and where that has
-brought the field so far} 
+% galaxy evolution with big data 
+Large galaxy surveys have been transformational for our understanding of galaxy
+evolution. 
+With surveys such as the Sloan Digital Sky Survey~\citep[SDSS][]{york2000},
+Galaxy and Mass Assembly survey~\citep[GAMA][]{driver2011}, and 
+PRIsm MUlti-object Survey~\citep[PRIMUS][]{coil2011}, 
+we have now established the global trends of galaxies in the local universe. 
 
-The Dark Energy Spectroscopic Instrument will conduct the largest spectroscopic
-galaxy survey to date covering ${\sim}14,000~{\rm deg}^2$~\citep{desicollaboration2016}. 
-Over the next five years, 
+%Observations from large surveys such as the Sloan Digital Sky Survey (SDSS; York et al. 2000) have been critical for establishing the global trends of galaxies in the local universe. Broadly speaking, galaxies fall into two categories: quiescent and star-forming (hereafter SF) galaxies. Quiescent galaxies have little to no star formation, are red in color due to old stellar populations, and have elliptical morphologies. Meanwhile, SF galaxies have significant star formation, thus are blue in color, and have disk-like morphologies (Kauffmann et al. 2003; Blanton et al. 2003; Baldry et al. 2006; Taylor et al. 2009; Moustakas et al. 2013; see Blanton & Moustakas 2009 and references therein). SF galaxies, furthermore, are found on the so-called “star-forming sequence” (hereafter SFS), a tight relationship between their star formation rates (SFR) and stellar masses (Noeske et al. 2007; Daddi et al. 2007; Salim et al. 2007; Speagle et al. 2014; Lee et al. 2015, see also Figure 1). This sequence, which is observed out to z > 2 (Wang et al. 2013; Leja et al. 2015) plays a crucial role in determining galaxy evolution over the past ∼10Gyr (see Kelson 2014; Abramson et al. 2016, for an alternative point of view). The significant fraction of SF galaxies that quench their star formation and migrate off of the SFS reflects the growth in the fraction of quiescent galaxies (Blanton 2006; Borch et al. 2006; Bundy et al. 2006; Moustakas et al. 2013). The decline of star formation in the entire SFS (Lee et al. 2015; Schreiber et al. 2015) over time reflects the decline in overall cosmic star formation (Hopkins & Beacom 2006; Behroozi et al. 2013; Madau & Dickinson 2014). With its evolution, the SFS also connects the star formation histories of SF galaxies to their stellar mass growths.
 
-\todo{What is DESI? And why should galaxy folks care} 
-Provide an overview of DESI specifics, numbers, and science goals, which will 
-mostly be cosmology (BAO, RSD, etc). DESI will be great
-Beyond its impact on cosmology, DESI will also be transformative for galaxy
-science. 
 
-\todo{Why do we need a VAGC} 
-provide value-added galaxy
-catalogs (VAGCs), which will be transformative for galaxy science. 
-In the past, VAGCs such as the
-MPA-JHU\footnote{https://wwwmpa.mpa-garching.mpg.de/SDSS/DR7/}
-provided galaxy properties from emission line analyses of SDSS
-spectra~\cite{brinchmann2004}. 
 
-Similarly, the NYU-VAGC~\citep{blanton2005}, 
+The Dark Energy Spectroscopic Instrument (DESI) marks the next stage in large
+galaxy surveys. 
+Over the next five years, DESI will use its 5000 robotically-actuated fibers to
+provide redshifts of ${\sim}30$ million galaxies over 
+${\sim}14,000~{\rm deg}^2$, a third of the sky~\citep{desicollaboration2016}.
+The redshifts will be spectroscopically measured from optical spectra that
+spans the wavelength range $3600 < \lambda < 9800\AA$ with spectral resolutions
+$R = \lambda/\Delta \lambda = 2000 - 5000$.
+In addition, DESI targets will also have photometry from the Legacy Imaging
+Surveys Data Release 9~\citep[LS][]{dey2019}, used for target selection. 
+LS is a combination of three public projects (Dark Energy Camera Legacy Survey,
+Beijing-Arizona Sky Survey, and Mayall $z$-band Legacy Survey) that jointly
+imaged the DESI footprint in three optical bands ($g$, $r$, and $z$). 
+It also includes photometry in the WISE $W1$, $W2$, $W3$, and $W4$ infrared bands.
+\todo{The infrared photometry is from all imaging through year 4 of
+NEOWISE-Reactivation force-photometered in the unWISE maps at the locations of
+LS optical sources (cite).}
 
-These catalogs have been indispensible for establishing the global statistical
-view of galaxy properties~\citep[see][for a review]{blanton2009}. 
-\todo{previous successes with value-added catalogs}
+
+
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=\textwidth]{figs/bgs.pdf} 
+\caption{DESI will conduct the largest spectroscopic survey to 
+date covering ${\sim}14,000~{\rm deg}^2$. During dark time, DESI will measure
+${>}20$ million spectra of luminous red galaxies, emission line galaxies, and 
+quasars out to $z > 3$. During bright time, DESI will measure the spectra of 
+${\sim}10$ million galaxies out to $z{\sim}0.4$  with the Bright Galaxy Survey (BGS).
+{\em Left}: With its ${\sim}14,000~{\rm deg}^2$ footprint (black), DESI will 
+cover ${\sim}2\times$ the SDSS footprint (blue; ${\sim}7000~{\rm deg}^2$) 
+and ${\sim}45\times$ the GAMA footprint (orange; ${\sim}300~{\rm deg}^2$). 
+{\em Right}: Over this footprint, the BGS will provide spectra for a magnitude 
+limited sample of ${\sim}10$ million galaxies down to $r < 20$, two orders of 
+magnitude deeper than the SDSS main galaxy sample and $0.2$ mag deeper than GAMA.}
+\label{fig:bgs}
+\end{center}
+\end{figure}
+
+During bright time (\emph{e.g.} when the moon is above the horizon), DESI will
+conduct the Bright Galaxy Survey (BGS). 
+BGS will provide a $r < 19.5$ magnitude-limited sample of ${\sim}10$ million
+galaxies out to redshift $z < 0.6$ --- \emph{i.e.} the BGS bright sample. 
+It will also provide a surface brightness and color selected sample of 
+\todo{X faint galaxies with $19.5 < r < 20.1$}. 
+With these BGS galaxy samples we will be able to measure the Baryon Acoustic
+Oscillation to the cosmic variance limit. 
+They also have the potential to unlock higher-order statistics and
+multiple-tracer methods. 
+\todo{overview of cosmology impact of BGS}~\citep{desicollaboration2016,
+desicollaboration2016a}.
+
+BGS will be equally transformative for galaxy evolution. 
+Compared to the seminal SDSS main galaxy survey, BGS will provide optical
+spectra two magnitudes deeper, over twice the sky, and \todo{X} billion years
+farther. 
+This provides a unique opportunity to 
+\todo{develop a more complete picture of low mass galaxies. 
+Extend detailed galaxy environment studies to higher redshifts. 
+Overall more complete picture of galaxy evolution 
+}
+
+Alongside the BGS, the DESI collaboration will also provide a number of
+Value-Added Catalogs (VAC) with detailed properties of BGS galaxies to maximize
+the scientific impact of DESI. 
+In the past, such VACs have been instrumental for hundreds of scientific
+analyses~\citep[see][for a review]{blanton2009}. 
+The New York University-Value-Added Galaxy
+Catalog~\citep[NYU-VAGC][]{blanton2005}, for instance, provided photometric
+properties such as absolute magnitudes of SDSS galaxies. 
+The MPA-JHU catalog\footnote{https://wwwmpa.mpa-garching.mpg.de/SDSS/DR7/}
+provided spectral properties such as emission line
+luminosities~\cite{brinchmann2004}.
+Despite being released over a decade ago, these VACs are still widely used
+today~\citep[\emph{e.g.}][]{alpaslan2021}. 
+
+One key VAC that DESI will provide is the PRObabilistic Valued-Added Bright
+Galaxy Survey (PROVABGS) catalog. 
+For all ${\sim}10$ million BGS galaxies, PROVABGS will provide posterior
+probability distributions of physical properties such as stellar mass ($M_*$),
+star formation rate (SFR), metallicity, and stellar age. 
+These properties will be inferred from the LS photometry and DESI spectroscopy
+using a state-of-the-art Bayesian modeling of the galaxy spectral energy
+distribution (SED). 
+With these properties, PROVABGS will enable direct extension of previous works
+to the more complete and statistically powerful spectroscopic galaxy sample. 
+For instance, $M_*$ values will be used to measure the stellar mass function
+down to \todo{$M_* \sim 10^{8}M_\odot$} (Hahn\etal~in prep.). 
+$M_*$ and SFR will also be used to more precisely measure the star forming
+sequence.
+Detailed galaxy environment studies will be 
+
+Moreover, instead of point estimates of galaxy properties, PROVABGS will
+provide full posterior distributions. 
+\todo{provabgs introduces a new frontier of low signal-to-noise statistically
+powerful sample that will require}
+
 %Increasingly sophisticated statistical studies of the overall population of galaxies as a function of mass, cosmic time, and environment have provided a basic picture of the formation and evolution of galaxies
-
-\todo{what are some key challenges that PROVABGS will address}
-
-\todo{how will PROVABGS address those challenges?} 
-extending previous statistcal analyses on SDSS to a larger sample and to higher
-redshift. 
-Mention some obvious ones: stellar mass function, luminosity function,
-star-formation sequence.  
-more detailed galaxy-halo connection 
-mention some cosmological applications: multi-tracer analyses.  
-Furthermore, since BGS will measure galaxy spectra down to $r\sim20$, we will
-have faint dwarf galaxies at low redshift. 
-provabgs introduces a new frontier of low signal-to-noise statistically
-powerful sample that will require  
 
 \todo{Why do we need a mock challenge? i.e. what are the goals of this paper?}
 We want to test and cement our methodology specifically for our GQP 
@@ -61,20 +130,3 @@ This has been done before (\todo{citations}) but not extensively tested
 on simulations. 
 
 
-\begin{figure}
-\begin{center}
-\includegraphics[width=\textwidth]{figs/bgs.pdf} 
-\caption{DESI will conduct the largest spectroscopic survey to 
-date covering ${\sim}14,000~{\rm deg}^2$. During dark time, DESI will measure
-${>}20$ million spectra of luminous red galaxies, emission line galaxies, and 
-quasars out to $z > 3$. During bright time, DESI will measure the spectra of 
-${\sim}10$ million galaxies out to $z{\sim}0.4$  with the Bright Galaxy Survey (BGS).
-{\em Left}: With its ${\sim}14,000~{\rm deg}^2$ footprint (black), DESI will 
-cover ${\sim}2\times$ the SDSS footprint (blue; ${\sim}7000~{\rm deg}^2$) 
-and ${\sim}45\times$ the GAMA footprint (orange; ${\sim}300~{\rm deg}^2$). 
-{\em Right}: Over this footprint, the BGS will provide spectra for a magnitude 
-limited sample of ${\sim}10$ million galaxies down to $r < 20$, two orders of 
-magnitude deeper than the SDSS main galaxy sample and $0.2$ mag deeper than GAMA.}
-\label{fig:bgs}
-\end{center}
-\end{figure}

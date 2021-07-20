@@ -30,6 +30,12 @@ Baronchelli L.,  Nandra K.,   Buchner J.,  2020, \mn@doi [Monthly Notices of
 Betancourt M.~J.,  2012, \mn@doi [arXiv:1010.3436 [physics]]
   {10.1063/1.3703631}, pp 157--164
 
+\bibitem[\protect\citeauthoryear{{Boylan-Kolchin}, Springel, White, Jenkins  \&
+  Lemson}{{Boylan-Kolchin} et~al.}{2009}]{boylan-kolchin2009}
+{Boylan-Kolchin} M.,  Springel V.,  White S. D.~M.,  Jenkins A.,   Lemson G.,
+  2009, \mn@doi [Monthly Notices of the Royal Astronomical Society]
+  {10.1111/j.1365-2966.2009.15191.x}, 398, 1150
+
 \bibitem[\protect\citeauthoryear{Caplar \& Tacchella}{Caplar \&
   Tacchella}{2019}]{caplar2019}
 Caplar N.,  Tacchella S.,  2019, arXiv:1901.07556 [astro-ph]
@@ -85,6 +91,11 @@ Dotter A.,  2016, \mn@doi [The Astrophysical Journal Supplement Series]
 \bibitem[\protect\citeauthoryear{F{\'e}votte \& Idier}{F{\'e}votte \&
   Idier}{2011}]{fevotte2011}
 F{\'e}votte C.,  Idier J.,  2011, arXiv:1010.1763 [cs]
+
+\bibitem[\protect\citeauthoryear{{Foreman-Mackey}, Hogg  \&
+  Morton}{{Foreman-Mackey} et~al.}{2014}]{foreman-mackey2014}
+{Foreman-Mackey} D.,  Hogg D.~W.,   Morton T.~D.,  2014, \mn@doi [The
+  Astrophysical Journal] {10.1088/0004-637X/795/1/64}, 795, 64
 
 \bibitem[\protect\citeauthoryear{Hahn, Tinker  \& Wetzel}{Hahn
   et~al.}{2019}]{hahn2019b}
@@ -179,6 +190,10 @@ Simha V.,  Weinberg D.~H.,  Conroy C.,  Dave R.,  Fardal M.,  Katz N.,
 Sparre M.,  Hayward C.~C.,  Feldmann R.,  {Faucher-Gigu{\`e}re} C.-A.,  Muratov
   A.~L.,  Kere{\v s} D.,   Hopkins P.~F.,  2017, \mn@doi [Monthly Notices of
   the Royal Astronomical Society] {10.1093/mnras/stw3011}, 466, 88
+
+\bibitem[\protect\citeauthoryear{Springel et~al.,}{Springel
+  et~al.}{2005}]{springel2005a}
+Springel V.,  et~al., 2005, \mn@doi [Nature] {10.1038/nature03597}, 435, 629
 
 \bibitem[\protect\citeauthoryear{Springel et~al.,}{Springel
   et~al.}{2018}]{springel2018}

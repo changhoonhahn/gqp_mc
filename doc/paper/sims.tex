@@ -1,22 +1,12 @@
 \section{Simulations}\label{sec:sims}
-DESI, with its robotically-actuated and fibre-fed spectrographs, will collect 5000 spectra simultaneously. The spectra
-cover the wavelength range 3600 to 9800 $\AA$, with a spectral resolution of $R
-= \lambda/\Delta \lambda$ between 2000 and 5500.
-During its five-year operation, starting in 2020, it will measure over 30
-million spectra over $14,000~{\rm deg}^2$ of the sky (\todo{cite}). 
-In addition, these DESI targets also have optical and infrared imaging data 
-from the DESI Legacy Imaging Surveys~\citep[hereafter Legacy Surveys][]{dey2019}.
-The Legacy Surveys are a combination of three public projects 
-(Dark Energy Camera Legacy Survey, Beijing-Arizona Sky Survey, and Mayall 
-$z$-band Legacy Survey) that jointly imaged the ${\sim}14,000~{\rm deg}^2$ DESI 
-footprint in three optical bands ($g$, $r$, and $z$). Furthermore, DR8 of the
-Legacy Survey also includes photometry in the WISE $W1$, $W2$, $W3$, and $W4$ 
-infrared bands. \todo{The infrared photometry is
-from all imaging through year 4 of NEOWISE-Reactivation force-photometered 
-in the unWISE maps at the locations of Legacy Surveys optical sources (cite).}
-Below we describe how we simulate realistic DESI-like galaxy spectra and photometry 
-from state-of-the-art simulations.  
-
+In this Section, we describe how we construct mock observations for simulated
+galaxies from the state-of-the-art {\sc L-Galaxies} semi-analytic galaxy
+formation model.
+Our forward model for the simulated observations includes realistic noise,
+instrumental effects, and observational systematics and produces DESI-like
+photometry and spectra. 
+Later, we apply Bayesian SED modeling to these mock observations and
+demonstrate that we can accurately infer the true galaxy propertries.
 
 \begin{figure}
 \begin{center}
@@ -32,7 +22,25 @@ from state-of-the-art simulations.
 \end{figure}
 
 \subsection{L-Galaxies} \label{sec:lgal}
-brief overview of {\sc L-Galaxies}~\citep[hereafter \lgal;][]{henriques2015}
+{\sc L-Galaxies}~\citep[hereafter \lgal;][]{henriques2015} is a state-of-the-at
+semi-analytic galaxy formation model run on subhalo merger trees from the
+Millennium~\citep{springel2005a} and Millenium-II~\citep{boylan-kolchin2009}
+$N$-body simulations. 
+Millenium-I and II provide a dynamic range of $10^{7.0} M_\odot < M_* < 10^{12}
+M_\odot$ and adopts a \cite{collaboration2014} $\Lambda$CDM cosmology.
+\lgal~includes prescriptions for gas infall and cooling, star formation, disc
+and bulge formation, stellar and black hole feedback, and the environmental
+effects of tidal and ram-pressure stripping.
+AGN feedback, which prevents hot gas from cooling, is the major mechanism for
+quenching star formation in massive galaxies.
+\lgal~model parameters are calibrated against the observed stellar mass
+functions and passive fractions at four different redshifts from $z = 3$ to
+0.
+For further detail on the \lgal~SAM, we refer readers to \cite{henriques2015}. 
+
+% A recent comparison to the cosmological hydrodynamical simulation
+% IllustrisTNG,  \lgal was recently compared to stellar mass functions and the stellar masses of individual galaxies agree
+%  to better than  ∼0.2  dex with IllustrisTNG (Mohammadreza2021)
 
 \subsection{Spectral Energy Distributions} \label{sec:sed}
 For each simulated galaxy, \lgal~provides the star formation histories (SFHs)

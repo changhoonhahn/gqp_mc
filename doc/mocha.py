@@ -458,18 +458,18 @@ def inferred_props():
     ''' Figure comparing inferred galaxy properties to the true galaxy
     properties of the LGal mocks.
     '''
-    lbls    = [r'$\log M_*$', r'$\log \overline{\rm SFR}_{1Gyr}$', r'$\log Z_{\rm MW}$',
-            r'$\tau_{\rm ISM}$']
-    minmax  = [[8., 12.], [-4., 1], [-2.5, -1.5], [0., 2.]]
-    widths  = [0.04, 0.04, 0.01, 0.03]
+    lbls    = [r'$\log M_*$', r'$\log \overline{\rm SFR}_{1Gyr}$', r'$\log Z_{\rm MW}$', 
+            r'$t_{\rm age, MW}$', r'$\tau_{\rm ISM}$']
+    minmax  = [[8., 12.], [-4., 1], [-2.5, -1.5], [0., 13.2], [0., 2.]]
+    widths  = [0.04, 0.04, 0.01, 0.1, 0.03]
 
-    fig = plt.figure(figsize=(20, 15))    
+    fig = plt.figure(figsize=(25, 15))    
     for i, sample in enumerate(['S2', 'P2', 'SP2']): 
         props_infer, props_truth = L2_chains(sample, derived_properties=True)
         
         for ii, prop_infer, prop_truth in zip(range(len(props_infer)), props_infer, props_truth): 
 
-            sub = fig.add_subplot(3,4,4*i+ii+1)
+            sub = fig.add_subplot(3,5,5*i+ii+1)
             #dprop = prop_infer - prop_truth[:,None]
             dprop = prop_infer
             if i == 2: 
@@ -490,7 +490,7 @@ def inferred_props():
             sub.set_ylim(minmax[ii])
             if ii == 0: sub.set_yticks([8., 9., 10., 11., 12.])
             if ii == 1: sub.set_yticks([-4., -3., -2., -1., 0., 1.])
-            if ii == 3: sub.set_yticks([0., 0.5, 1.0, 1.5, 2.]) 
+            if ii == 4: sub.set_yticks([0., 0.5, 1.0, 1.5, 2.]) 
             if ii == 0: sub.text(0.95, 0.05, ['spectra', 'photometry', 'spectra+photometry'][i], 
                     ha='right', va='bottom', transform=sub.transAxes, fontsize=25)
             if i != 2: sub.set_xticklabels([])
@@ -510,10 +510,11 @@ def inferred_props():
 def eta_l2(method='opt'):
     ''' calculate bias as a function of galaxy properties
     '''
-    lbls    = [r'$\log M_*$', r'$\log \overline{\rm SFR}_{\rm 1Gyr}$', r'$\log Z_{\rm MW}$', r'$\tau_{\rm ISM}$']
-    minmax  = [[9., 12.], [-3., 1], [-2.3, -1.7], [0., 1.]]
+    lbls    = [r'$\log M_*$', r'$\log \overline{\rm SFR}_{\rm 1Gyr}$', r'$\log Z_{\rm MW}$', r'$t_{\rm age, MW}$', r'$\tau_{\rm ISM}$']
+    minmax  = [[9., 12.], [-3., 2], [-2.3, -1.7], [0., 13.2], [0., 1.]]
+
     # eta as a function of galaxy properties 
-    fig = plt.figure(figsize=(20, 3))
+    fig = plt.figure(figsize=(18, 8))
 
     #for ii, sample in enumerate(['S2', 'P2', 'SP2']): 
     for ii, sample, clr in zip(range(2), ['P2', 'SP2'], ['C1', 'C2']): 
@@ -521,12 +522,13 @@ def eta_l2(method='opt'):
         
         # get eta for log M*, log SFR, and log Z_MW
         logM_bin    = np.arange(8, 13, 0.2)
-        logSFR_bin  = np.arange(-4, 1, 0.5)
+        logSFR_bin  = np.arange(-4, 2, 0.5)
         logZMW_bin  = np.arange(-2.3, -1.7, 0.05)
+        tageMW_bin  = np.arange(0.02, 13.2, 0.5)
         tauism_bin  = np.arange(0., 1., 0.1) 
         
         x_props, eta_mus, eta_sigs = [], [], []
-        for prop_infer, prop_truth, prop_bin in zip(props_infer, props_truth, [logM_bin, logSFR_bin, logZMW_bin, tauism_bin]): 
+        for prop_infer, prop_truth, prop_bin in zip(props_infer, props_truth, [logM_bin, logSFR_bin, logZMW_bin, tageMW_bin, tauism_bin]): 
 
             x_prop, eta_mu, eta_sig, nbins = [], [], [], [] 
             for ibin in range(len(prop_bin)-1): 
@@ -555,7 +557,7 @@ def eta_l2(method='opt'):
             eta_sigs.append(np.array(eta_sig))
         
         for i, x_prop, eta_mu, eta_sig in zip(range(len(x_props)), x_props, eta_mus, eta_sigs): 
-            sub = fig.add_subplot(1, len(x_props), i+1) 
+            sub = fig.add_subplot(2, 3, i+1) 
 
             sub.plot(minmax[i], [0., 0.], c='k', ls='--')
             sub.fill_between(x_prop, eta_mu - eta_sig, eta_mu + eta_sig,
@@ -564,16 +566,23 @@ def eta_l2(method='opt'):
             sub.plot(x_prop, eta_mu, c=clr)
             if ii == 0: sub.set_xlabel(lbls[i], fontsize=25)
             sub.set_xlim(minmax[i])
-            if i == 0: 
-                sub.set_ylabel(r'$\Delta_\theta$ [dex]', fontsize=30)
-            if i != 0: sub.set_yticklabels([]) 
-            if i == 0: sub.legend(loc='upper left', handletextpad=0.2, fontsize=20)
-            sub.set_ylim(-1., 1.) 
+            if i not in [0, 3]: sub.set_yticklabels([]) 
+            sub.set_ylim(-1.5, 1.5) 
             #if i == 3: sub.text(0.95, 0.05, ['spectra', 'photometry', 'spectra + photometry'][ii], 
             #        ha='right', va='bottom', transform=sub.transAxes, fontsize=25)
 
         #sub.legend(loc='upper right', fontsize=20, handletextpad=0.2) 
-    fig.subplots_adjust(wspace=0.1, hspace=0.1)
+    sub = fig.add_subplot(2, 3, 6) 
+    sub.fill_between([], [], [], fc='C1', ec='none', alpha=0.3, label='photometry')
+    sub.fill_between([], [], [], fc='C2', ec='none', alpha=0.6, label='spectra+photometry')
+    sub.legend(loc='upper left', handletextpad=0.3, fontsize=20)
+    sub.axis('off')
+
+    bkgd = fig.add_subplot(111, frameon=False)
+    bkgd.set_ylabel(r'$\Delta_\theta$', labelpad=15, fontsize=30) 
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+
+    fig.subplots_adjust(wspace=0.1, hspace=0.4)
 
     ffig = os.path.join(dir_doc, 'etas.pdf')
     fig.savefig(ffig, bbox_inches='tight') 
@@ -597,7 +606,7 @@ def eta_photo_l2(method='opt'):
 
     high_snr = (r_fiber < 20.5) 
 
-    proplbls = [r'\log M_*', r'\log {\rm SFR}_{1Gyr}', r'\log Z_{\rm MW}', r'\tau_{\rm ISM}']
+    proplbls = [r'\log M_*', r'\log {\rm SFR}_{\rm 1Gyr}', r'\log Z_{\rm MW}', r't_{\rm age, MW}', r'\tau_{\rm ISM}']
     lbls    = [r'$r_{\rm fiber}$', r'$r$', r'$g-r$', r'$r-z$']
     minmax  = [[17., 22.], [15., 20], [0, 1.], [0., 1.]]
     dbin    = [0.5, 0.5, 0.1, 0.1]
@@ -605,7 +614,7 @@ def eta_photo_l2(method='opt'):
     photos  = [r_fiber, r_mag, g_r, r_z]
 
     # eta as a function of galaxy properties 
-    fig = plt.figure(figsize=(20, 12))    
+    fig = plt.figure(figsize=(20, 15))    
 
     props_infer, props_truth = L2_chains('SP2')
         
@@ -645,7 +654,7 @@ def eta_photo_l2(method='opt'):
             sub.fill_between(x_prop, eta_mu - eta_sig, eta_mu + eta_sig, fc='C2', ec='none', alpha=0.5) 
             sub.scatter(x_prop, eta_mu, c='C2', s=2) 
             sub.plot(x_prop, eta_mu, c='C2')
-            if ii == 3: sub.set_xlabel(lbls[i], fontsize=25)
+            if ii == 4: sub.set_xlabel(lbls[i], fontsize=25)
             else: sub.set_xticklabels([]) 
             sub.set_xlim(minmax[i])
             if i == 0: sub.set_ylabel(r'$\Delta_{%s}$' % proplbls[ii], fontsize=30)
@@ -655,6 +664,268 @@ def eta_photo_l2(method='opt'):
     fig.subplots_adjust(wspace=0.1, hspace=0.1)
 
     ffig = os.path.join(dir_doc, 'etas_photo.pdf')
+    fig.savefig(ffig, bbox_inches='tight') 
+    return None 
+
+
+def eta_rfibmag_l2(method='opt', nmin=10): 
+    ''' calculate bias as a function of g-r, r-z color 
+    '''
+    dat_dir = '/Users/chahah/data/gqp_mc/mini_mocha/'
+    thetas = pickle.load(open(os.path.join(dat_dir, 'l2.theta.p'), 'rb'))
+    fluxes = np.load(os.path.join(dat_dir, 'mocha_p2.flux.npy'))
+
+    r_fiber = 22.5 - 2.5 * np.log10(thetas['f_fiber_meas'] * fluxes[:,1]) 
+    r_mag = 22.5 - 2.5 * np.log10(fluxes[:,1]) 
+
+    proplbls = [r'\log M_*', r'\log {\rm SFR}_{\rm 1Gyr}', r'\log Z_{\rm MW}', r't_{\rm age, MW}', r'\tau_{\rm ISM}']
+
+    # eta as a function of galaxy properties 
+    fig = plt.figure(figsize=(20, 8))
+
+    nhist, xedge, yedge = np.histogram2d(r_mag, r_fiber, bins=20, range=[(14., 22.), (16., 24.)])
+    has_gals = np.where(nhist > nmin)
+
+    color_bins = [(xedge[i], xedge[i+1], yedge[j], yedge[j+1]) for i, j in zip(has_gals[0], has_gals[1])]
+
+    props_infer, props_truth = L2_chains('SP2')
+
+    for ii, prop_infer, prop_truth in zip(range(len(props_infer)), props_infer, props_truth): 
+        print(proplbls[ii]) 
+        # get eta for different color bins 
+        
+        eta_mus         = np.zeros(nhist.shape)
+        eta_mus[:,:]    = np.nan
+        eta_sigs        = np.zeros(nhist.shape)
+        eta_sigs[:,:]   = np.nan
+
+        for i, j in zip(has_gals[0], has_gals[1]): 
+            inbin = ((r_mag > xedge[i]) & (r_mag <= xedge[i+1]) & (r_fiber > yedge[j]) & (r_fiber <= yedge[j+1])) 
+            assert np.sum(inbin) > nmin
+
+            if method == 'opt': 
+                _mu, _sig = PopInf.eta_Delta_opt(prop_infer[inbin,:] - prop_truth[inbin, None])
+            elif method == 'mcmc':  
+                _theta = PopInf.eta_Delta_mcmc(prop_infer[inbin,:] - prop_truth[inbin, None], 
+                        niter=1000, burnin=500, thin=5)
+
+            eta_mus[i, j] = _mu
+            eta_sigs[i, j] = _sig
+        
+        sub = fig.add_subplot(2, len(proplbls), ii+1) 
+
+        cs0 = sub.pcolormesh(0.5*(xedge[:-1] + xedge[1:]), 0.5*(yedge[:-1] + yedge[1:]),
+                eta_mus.T, vmin=-1, vmax=1., cmap='coolwarm_r')
+        sub.scatter(r_mag, r_fiber, c='k', s=0.1)
+
+        sub.set_xlim(15., 21.)
+        sub.set_ylim(16., 24.)
+        sub.text(15.5, 23.5, r'$%s$' % proplbls[ii], ha='left', va='top', fontsize=20)
+        sub.set_xticklabels([])
+        if ii != 0: sub.set_yticklabels([])
+
+        sub = fig.add_subplot(2, len(proplbls), len(proplbls)+ii+1) 
+
+        cs1 = sub.pcolormesh(0.5*(xedge[:-1] + xedge[1:]), 0.5*(yedge[:-1] + yedge[1:]),
+                eta_sigs.T, vmin=-1., vmax=1., cmap='coolwarm_r')
+        sub.scatter(r_mag, r_fiber, c='k', s=0.1)
+
+        sub.set_xlim(15., 21.)
+        sub.set_ylim(16., 24.)
+        if ii != 0: sub.set_yticklabels([])
+
+    fig.subplots_adjust(wspace=0.1, hspace=0.1, right=0.9)
+
+    cbar_ax = fig.add_axes([0.91, 0.55, 0.01, 0.3])
+    cbar = fig.colorbar(cs0, cax=cbar_ax)
+    cbar.ax.set_ylabel(r'$\mu_{\theta}$', labelpad=25, fontsize=25, rotation=270)
+    
+    cbar_ax = fig.add_axes([0.91, 0.15, 0.01, 0.3])
+    cbar = fig.colorbar(cs1, cax=cbar_ax, boundaries=[0, 0.25, 0.5, 0.75, 1.0])
+    cbar.ax.set_ylabel(r'$\sigma_{\theta}$', labelpad=25, fontsize=25, rotation=270)
+
+    bkgd = fig.add_subplot(111, frameon=False)
+    bkgd.set_xlabel(r'$r$ magnitude', labelpad=10, fontsize=25) 
+    bkgd.set_ylabel(r'$r_{\rm fiber}$ magnitude', labelpad=10, fontsize=25) 
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+
+    ffig = os.path.join(dir_doc, '_etas_rfibmag.png')
+    fig.savefig(ffig, bbox_inches='tight') 
+    return None 
+
+
+def eta_color_l2(method='opt', nmin=10): 
+    ''' calculate bias as a function of g-r, r-z color 
+    '''
+    dat_dir = '/Users/chahah/data/gqp_mc/mini_mocha/'
+    thetas = pickle.load(open(os.path.join(dat_dir, 'l2.theta.p'), 'rb'))
+    fluxes = np.load(os.path.join(dat_dir, 'mocha_p2.flux.npy'))
+
+    r_fiber = 22.5 - 2.5 * np.log10(thetas['f_fiber_meas'] * fluxes[:,1]) 
+    g_mag = 22.5 - 2.5 * np.log10(fluxes[:,0])
+    r_mag = 22.5 - 2.5 * np.log10(fluxes[:,1]) 
+    z_mag = 22.5 - 2.5 * np.log10(fluxes[:,2]) 
+
+    g_r = g_mag - r_mag
+    r_z = r_mag - z_mag 
+
+    high_snr = (r_fiber < 20.5) 
+
+    proplbls = [r'\log M_*', r'\log {\rm SFR}_{\rm 1Gyr}', r'\log Z_{\rm MW}', r't_{\rm age, MW}', r'\tau_{\rm ISM}']
+
+    # eta as a function of galaxy properties 
+    fig = plt.figure(figsize=(20, 8))
+
+    nhist, xedge, yedge = np.histogram2d(g_r, r_z, bins=20, range=[(0., 2.), (0., 2.)])
+    has_gals = np.where(nhist > nmin)
+
+    color_bins = [(xedge[i], xedge[i+1], yedge[j], yedge[j+1]) for i, j in zip(has_gals[0], has_gals[1])]
+
+    props_infer, props_truth = L2_chains('SP2')
+
+    for ii, prop_infer, prop_truth in zip(range(len(props_infer)), props_infer, props_truth): 
+        print(proplbls[ii]) 
+        # get eta for different color bins 
+        
+        eta_mus         = np.zeros(nhist.shape)
+        eta_mus[:,:]    = np.nan
+        eta_sigs        = np.zeros(nhist.shape)
+        eta_sigs[:,:]   = np.nan
+
+        for i, j in zip(has_gals[0], has_gals[1]): 
+            inbin = ((g_r > xedge[i]) & (g_r <= xedge[i+1]) & (r_z > yedge[j]) & (r_z <= yedge[j+1])) 
+            assert np.sum(inbin) > nmin
+
+            if method == 'opt': 
+                _mu, _sig = PopInf.eta_Delta_opt(prop_infer[inbin,:] - prop_truth[inbin, None])
+            elif method == 'mcmc':  
+                _theta = PopInf.eta_Delta_mcmc(prop_infer[inbin,:] - prop_truth[inbin, None], 
+                        niter=1000, burnin=500, thin=5)
+
+            eta_mus[i, j] = _mu
+            eta_sigs[i, j] = _sig
+        
+        sub = fig.add_subplot(2, len(proplbls), ii+1) 
+
+        cs0 = sub.pcolormesh(0.5*(xedge[:-1] + xedge[1:]), 0.5*(yedge[:-1] + yedge[1:]),
+                eta_mus.T, vmin=-1, vmax=1., cmap='coolwarm_r')
+        sub.scatter(g_r, r_z, c='k', s=0.1)
+
+        sub.set_xlim(0., 1.8)
+        sub.set_xticklabels([])
+        sub.set_ylim(0., 1.2)
+        sub.text(0.1, 1.15, r'$%s$' % proplbls[ii], ha='left', va='top', fontsize=20)
+        if ii != 0: sub.set_yticklabels([])
+
+        sub = fig.add_subplot(2, len(proplbls), len(proplbls)+ii+1) 
+
+        cs1 = sub.pcolormesh(0.5*(xedge[:-1] + xedge[1:]), 0.5*(yedge[:-1] + yedge[1:]),
+                eta_sigs.T, vmin=-1., vmax=1., cmap='coolwarm_r')
+        sub.scatter(g_r, r_z, c='k', s=0.1)
+
+        sub.set_xlim(0., 1.8)
+        sub.set_ylim(0., 1.2)
+        if ii != 0: sub.set_yticklabels([])
+
+    fig.subplots_adjust(wspace=0.1, hspace=0.1, right=0.9)
+
+    cbar_ax = fig.add_axes([0.91, 0.55, 0.01, 0.3])
+    cbar = fig.colorbar(cs0, cax=cbar_ax)
+    cbar.ax.set_ylabel(r'$\mu_{\theta}$', labelpad=25, fontsize=25, rotation=270)
+    
+    cbar_ax = fig.add_axes([0.91, 0.15, 0.01, 0.3])
+    cbar = fig.colorbar(cs1, cax=cbar_ax, boundaries=[0, 0.25, 0.5, 0.75, 1.0])
+    cbar.ax.set_ylabel(r'$\sigma_{\theta}$', labelpad=25, fontsize=25, rotation=270)
+
+    bkgd = fig.add_subplot(111, frameon=False)
+    bkgd.set_xlabel(r'$g - r$ color', labelpad=10, fontsize=25) 
+    bkgd.set_ylabel(r'$r - z$ color', labelpad=10, fontsize=25) 
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+
+    ffig = os.path.join(dir_doc, '_etas_color.png')
+    fig.savefig(ffig, bbox_inches='tight') 
+    return None 
+
+
+def eta_msfr_l2(method='opt', nmin=10): 
+    ''' calculate bias as a function of g-r, r-z color 
+    '''
+    dat_dir = '/Users/chahah/data/gqp_mc/mini_mocha/'
+
+    # eta as a function of galaxy properties 
+    fig = plt.figure(figsize=(20, 8))    
+
+    props_infer, props_truth = L2_chains('SP2')
+
+    mstar = props_truth[0,:]
+    sfr = props_truth[1,:]
+    
+    nhist, xedge, yedge = np.histogram2d(mstar, sfr, bins=20, range=[(8., 12.5), (-3., 2.)])
+    has_gals = np.where(nhist > nmin)
+
+    msfr_bins = [(xedge[i], xedge[i+1], yedge[j], yedge[j+1]) for i, j in zip(has_gals[0], has_gals[1])]
+
+    proplbls = [r'\log M_*', r'\log {\rm SFR}_{\rm 1Gyr}', r'\log Z_{\rm MW}', r't_{\rm age, MW}', r'\tau_{\rm ISM}']
+
+    for ii, prop_infer, prop_truth in zip(range(len(props_infer)), props_infer, props_truth): 
+        print(proplbls[ii]) 
+        # get eta for different color bins 
+        
+        eta_mus = np.zeros(nhist.shape)
+        eta_mus[:,:]    = np.nan
+        eta_sigs        = np.zeros(nhist.shape)
+        eta_sigs[:,:]   = np.nan
+
+        for i, j in zip(has_gals[0], has_gals[1]): 
+            inbin = ((mstar > xedge[i]) & (mstar <= xedge[i+1]) & (sfr > yedge[j]) & (sfr <= yedge[j+1])) 
+
+            if method == 'opt': 
+                _mu, _sig = PopInf.eta_Delta_opt(prop_infer[inbin,:] - prop_truth[inbin, None])
+            elif method == 'mcmc':  
+                _theta = PopInf.eta_Delta_mcmc(prop_infer[inbin,:] - prop_truth[inbin, None], 
+                        niter=1000, burnin=500, thin=5)
+
+            eta_mus[i, j] = _mu
+            eta_sigs[i, j] = _sig
+
+        sub = fig.add_subplot(2, len(proplbls), ii+1) 
+
+        cs0 = sub.pcolormesh(0.5*(xedge[:-1] + xedge[1:]), 0.5*(yedge[:-1] + yedge[1:]),
+                eta_mus.T, vmin=-1, vmax=1., cmap='coolwarm_r')
+        sub.scatter(mstar, sfr, c='k', s=0.1)
+
+        sub.set_xlim(9., 12.)
+        sub.set_xticklabels([])
+        sub.set_ylim(-3., 2.)
+        sub.text(9.1, 1.9, r'$%s$' % proplbls[ii], ha='left', va='top', fontsize=20)
+        if ii != 0: sub.set_yticklabels([])
+
+        sub = fig.add_subplot(2, len(proplbls), len(proplbls)+ii+1) 
+
+        cs1 = sub.pcolormesh(0.5*(xedge[:-1] + xedge[1:]), 0.5*(yedge[:-1] + yedge[1:]),
+                eta_sigs.T, vmin=-1., vmax=1., cmap='coolwarm_r')
+        sub.scatter(mstar, sfr, c='k', s=0.1)
+
+        sub.set_xlim(9., 12.)
+        sub.set_ylim(-3., 2.)
+        if ii != 0: sub.set_yticklabels([])
+
+    fig.subplots_adjust(wspace=0.1, hspace=0.1, right=0.9)
+
+    cbar_ax = fig.add_axes([0.91, 0.55, 0.01, 0.3])
+    cbar = fig.colorbar(cs0, cax=cbar_ax)
+    cbar.ax.set_ylabel(r'$\mu_{\theta}$', labelpad=25, fontsize=25, rotation=270)
+    
+    cbar_ax = fig.add_axes([0.91, 0.2, 0.01, 0.3])
+    cbar = fig.colorbar(cs1, cax=cbar_ax, boundaries=[0, 0.25, 0.5, 0.75, 1.0])
+    cbar.ax.set_ylabel(r'$\sigma_{\theta}$', labelpad=25, fontsize=25, rotation=270)
+
+    bkgd = fig.add_subplot(111, frameon=False)
+    bkgd.set_xlabel(r'$\log M_*$', labelpad=10, fontsize=25) 
+    bkgd.set_ylabel(r'$\log {\rm SFR}$', labelpad=10, fontsize=25) 
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+
+    ffig = os.path.join(dir_doc, '_etas_msfr.png')
     fig.savefig(ffig, bbox_inches='tight') 
     return None 
 
@@ -811,82 +1082,17 @@ def L2_chains(sample, derived_properties=True):
     properties for the chains and the corresponding true properties 
     '''
     dat_dir = '/Users/chahah/data/gqp_mc/mini_mocha/'
-    thetas = pickle.load(open(os.path.join(dat_dir, 'l2.theta.p'), 'rb'))
 
-    # read in MCMC chains 
-    if sample == 'S2': 
-        f_chain = lambda i: os.path.join(dat_dir, 'L2', 'S2.provabgs_model.%i.chain.p' % i)
-    elif sample == 'P2': 
-        f_chain = lambda i: os.path.join(dat_dir, 'L2', 'P2.provabgs.%i.chain.p' % i)
-    elif sample == 'SP2': 
-        f_chain = lambda i: os.path.join(dat_dir, 'L2', 'SP2.provabgs.%i.chain.p' % i)
-
-    
-    igals, chains = [], []
-    for i in range(100): 
-        if os.path.isfile(f_chain(i)): 
-            igals.append(i)
-            chains.append(pickle.load(open(f_chain(i), 'rb')))
-    print('%i of 100 galaxies in the mock challenge' % len(igals)) 
-    
-    # provabgs model 
-    m_nmf = Models.NMF(burst=True, emulator=True)
-    
     if derived_properties: 
-        # derived 
-        logMstar_true, logMstar_inf = [], [] 
-        logSFR_true, logSFR_inf     = [], [] 
-        logZ_MW_true, logZ_MW_inf   = [], []
-        tau_ism_true, tau_ism_inf   = [], [] 
-
-        for i, chain in zip(igals, chains): 
-            if sample != 'SP2':
-                flat_chain = UT.flatten_chain(chain['mcmc_chain'][1500:,:,:])       
-            else: 
-                flat_chain = UT.flatten_chain(chain['mcmc_chain'][1500:,:,:-1])
-
-            z_obs = thetas['redshift'][i]
-            
-            if sample == 'S2': 
-                logMstar_true.append(thetas['logM_fiber'][i])
-            else: 
-                logMstar_true.append(thetas['logM_total'][i])
-            logMstar_inf.append(flat_chain[:,0])
-            
-            if sample == 'S2':
-                logSFR_true.append(np.log10(thetas['sfr_1gyr'][i]) - (thetas['logM_total'][i] - thetas['logM_fiber'][i]))
-            else: 
-                logSFR_true.append(np.log10(thetas['sfr_1gyr'][i]))
-            logSFR_inf.append(np.log10(m_nmf.avgSFR(flat_chain, zred=z_obs, dt=1.0)))
-            
-            logZ_MW_true.append(np.log10(thetas['Z_MW'])[i])
-            logZ_MW_inf.append(np.log10(m_nmf.Z_MW(flat_chain, zred=z_obs)))
-
-            tau_ism_true.append(thetas['tau_ism'][i])
-            tau_ism_inf.append(flat_chain[:,-2])
-            
-        logMstar_true   = np.array(logMstar_true)
-        logMstar_inf    = np.array(logMstar_inf)
-
-        logSFR_true     = np.array(logSFR_true).flatten()
-        logSFR_inf      = np.array(logSFR_inf)
-
-        logZ_MW_true    = np.array(logZ_MW_true).flatten()
-        logZ_MW_inf     = np.array(logZ_MW_inf)
-
-        tau_ism_true    = np.array(tau_ism_true)
-        tau_ism_inf     = np.array(tau_ism_inf)
-
-        props_true      = np.array([logMstar_true, logSFR_true, logZ_MW_true, tau_ism_true])
-        props_inf       = np.array([logMstar_inf, logSFR_inf, logZ_MW_inf, tau_ism_inf])
-
-        return props_inf, props_true
+        f_chain = os.path.join(dat_dir, 'L2', '%s.prop_chains.npy' % sample)
+        f_truth = os.path.join(dat_dir, 'L2', '%s.prop_truths.npy' % sample)
+    
+        prop_infs = np.transpose(np.load(f_chain), (2, 0, 1))
+        prop_true = np.load(f_truth).T
+        return prop_infs, prop_true
     else:
-        flat_chains = [] 
-        for i, chain in zip(igals, chains): 
-            flat_chain = UT.flatten_chain(chain['mcmc_chain'][1500:,:,:])       
-            flat_chains.append(flat_chain)
-        return np.array(flat_chains)
+        f_chain = os.path.join(dat_dir, 'L2', '%s.flat_chains.npy' % sample)
+        return np.load(f_chain) 
 
 
 def model_prior(): 
@@ -918,13 +1124,13 @@ def model_prior():
     logmstar        = thetas[:,0]
     logssfr_1gyr    = np.log10(m_nmf.avgSFR(thetas, zred=zred, dt=1.)) - logmstar
     logz_mw         = np.log10(m_nmf.Z_MW(thetas, zred=zred))
-
+    tage_mw         = m_nmf.tage_MW(thetas, zred=zred)
     
-    lbls = [r'$\log M_*$', r'$\log {\rm SSFR}_{\rm 1 Gyr}$', r'$\log Z_{\rm MW}$']
+    lbls = [r'$\log M_*$', r'$\log {\rm SSFR}_{\rm 1 Gyr}$', r'$\log Z_{\rm MW}$', r'$t_{\rm age, MW}$']
     fig = DFM.corner(
-            np.array([logmstar, logssfr_1gyr, logz_mw]).T, 
-            range=[(7., 12.5), (-14, -8.5), (-5, -1)],
-            labels=[r'$\log M_*$', r'$\log \overline{\rm SSFR}_{\rm 1 Gyr}$', r'$\log Z_{\rm MW}$'], 
+            np.array([logmstar, logssfr_1gyr, logz_mw, tage_mw]).T, 
+            range=[(7., 12.5), (-14, -8.5), (-5, -1), (0., 13.2)],
+            labels=lbls,
             label_kwargs={'fontsize': 20}) 
 
     ffig = os.path.join(dir_doc, 'model_prior.pdf')
@@ -951,11 +1157,17 @@ if __name__=="__main__":
 
     #eta_photo_l2(method='opt') 
     #eta_photo_l2(method='mcmc') 
-    
+
+    #eta_rfibmag_l2(method='opt', nmin=10)   
+
+    #eta_color_l2(method='opt', nmin=10)
+
+    eta_msfr_l2(method='opt', nmin=10)
+
     # eta for high SNR only 
     #eta_l2_highSNR(method='opt')
 
     #_l2_photo() 
-    _l2_props()
+    #_l2_props()
 
     #model_prior()

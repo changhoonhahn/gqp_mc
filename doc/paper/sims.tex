@@ -1,10 +1,8 @@
 \section{Simulations}\label{sec:sims}
 In this Section, we describe how we construct mock observations for simulated
-galaxies from the state-of-the-art {\sc L-Galaxies} semi-analytic galaxy
-formation model.
-Our forward model for the simulated observations includes realistic noise,
-instrumental effects, and observational systematics and produces DESI-like
-photometry and spectra. 
+galaxies from the {\sc L-Galaxies} semi-analytic galaxy formation model.
+We use a forward model that includes realistic noise, instrumental effects, and
+observational systematics and produces DESI-like photometry and spectra. 
 Later, we apply Bayesian SED modeling to these mock observations and
 demonstrate that we can accurately infer the true galaxy propertries.
 
@@ -27,7 +25,7 @@ semi-analytic galaxy formation model run on subhalo merger trees from the
 Millennium~\citep{springel2005a} and Millenium-II~\citep{boylan-kolchin2009}
 $N$-body simulations. 
 Millenium-I and II provide a dynamic range of $10^{7.0} M_\odot < M_* < 10^{12}
-M_\odot$ and adopts a \cite{collaboration2014} $\Lambda$CDM cosmology.
+M_\odot$ and adopts a \cite{planckcollaboration2014a} $\Lambda$CDM cosmology.
 \lgal~includes prescriptions for gas infall and cooling, star formation, disc
 and bulge formation, stellar and black hole feedback, and the environmental
 effects of tidal and ram-pressure stripping.
@@ -62,12 +60,12 @@ using the Flexible Stellar Population Synthesis~\citep[\fsps][]{conroy2009,
 conroy2010c} model.
 % do we want to describe SPS models? 
 For \fsps, we use the MIST ischrones~\citep{paxton2011, paxton2013, paxton2015,
-choi2016, dotter2016}, the MILES spectral library~\citep{sanchez_blazquez2006},
+choi2016, dotter2016}, the MILES spectral library~\citep{sanchez-blazquez2006},
 and the \cite{chabrier2003} initial mass function (IMF). 
 
 % applying velocity dispersion to bulge and disk components separately 
 Next, we apply velocity dispersions to $L^{\rm comp.}(\lambda)$.
-For the disk, we apply a fixed $50 km/s$ velocity dispersion; for the bulge, we
+For the disk, we apply a fixed $50~km/s$ velocity dispersion; for the bulge, we
 derive its velocity dispersion using the~\cite{zahid2016} empirical relation
 that depends on the total bulge mass.
 Then, we apply dust attenuation to stellar emission in the disk component

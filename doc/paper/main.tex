@@ -49,6 +49,8 @@
 \let\oldAA\AA
 \renewcommand{\AA}{\text{\normalfont\oldAA}}
 
+\makeatletter \def\@captype{figure} \makeatother
+
 \newcommand{\specialcell}[2][c]{%
   \begin{tabular}[#1]{@{}c@{}}#2\end{tabular}}
 % text shih

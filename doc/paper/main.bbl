@@ -30,6 +30,11 @@ Baronchelli L.,  Nandra K.,   Buchner J.,  2020, \mn@doi [Monthly Notices of
 Betancourt M.~J.,  2012, \mn@doi [arXiv:1010.3436 [physics]]
   {10.1063/1.3703631}, pp 157--164
 
+\bibitem[\protect\citeauthoryear{Blanton et~al.,}{Blanton
+  et~al.}{2005}]{blanton2005}
+Blanton M.~R.,  et~al., 2005, \mn@doi [The Astronomical Journal]
+  {10.1086/429803}, 129, 2562
+
 \bibitem[\protect\citeauthoryear{{Boylan-Kolchin}, Springel, White, Jenkins  \&
   Lemson}{{Boylan-Kolchin} et~al.}{2009}]{boylan-kolchin2009}
 {Boylan-Kolchin} M.,  Springel V.,  White S. D.~M.,  Jenkins A.,   Lemson G.,
@@ -71,6 +76,24 @@ Cichocki A.,  Phan A.-H.,  2009, \mn@doi [IEICE Transactions on Fundamentals of
   Electronics Communications and Computer Sciences]
   {10.1587/transfun.E92.A.708}, 92, 708
 
+\bibitem[\protect\citeauthoryear{Coil et~al.,}{Coil et~al.}{2011}]{coil2011}
+Coil A.~L.,  et~al., 2011, \mn@doi [The Astrophysical Journal]
+  {10.1088/0004-637X/741/1/8}, 741, 8
+
+\bibitem[\protect\citeauthoryear{Collaboration et~al.,}{Collaboration
+  et~al.}{2014}]{planckcollaboration2014a}
+Collaboration P.,  et~al., 2014, \mn@doi [Astronomy \&amp; Astrophysics, Volume
+  571, id.A16, {$<$}NUMPAGES{$>$}66{$<$}/NUMPAGES{$>$} pp.]
+  {10.1051/0004-6361/201321591}, 571, A16
+
+\bibitem[\protect\citeauthoryear{Collaboration et~al.,}{Collaboration
+  et~al.}{2016a}]{desicollaboration2016}
+Collaboration D.,  et~al., 2016a, arXiv:1611.00036 [astro-ph]
+
+\bibitem[\protect\citeauthoryear{Collaboration et~al.,}{Collaboration
+  et~al.}{2016b}]{desicollaboration2016a}
+Collaboration D.,  et~al., 2016b, arXiv:1611.00037 [astro-ph]
+
 \bibitem[\protect\citeauthoryear{Conroy \& Gunn}{Conroy \&
   Gunn}{2010}]{conroy2010c}
 Conroy C.,  Gunn J.~E.,  2010, \mn@doi [The Astrophysical Journal]
@@ -87,6 +110,11 @@ Dey A.,  et~al., 2019, \mn@doi [AJ] {10.3847/1538-3881/ab089d}, 157, 168
 \bibitem[\protect\citeauthoryear{Dotter}{Dotter}{2016}]{dotter2016}
 Dotter A.,  2016, \mn@doi [The Astrophysical Journal Supplement Series]
   {10.3847/0067-0049/222/1/8}, 222, 8
+
+\bibitem[\protect\citeauthoryear{Driver et~al.,}{Driver
+  et~al.}{2011}]{driver2011}
+Driver S.~P.,  et~al., 2011, \mn@doi [Monthly Notices of the Royal Astronomical
+  Society] {10.1111/j.1365-2966.2010.18188.x}, 413, 971
 
 \bibitem[\protect\citeauthoryear{F{\'e}votte \& Idier}{F{\'e}votte \&
   Idier}{2011}]{fevotte2011}
@@ -173,6 +201,11 @@ Pillepich A.,  et~al., 2018, \mn@doi [Monthly Notices of the Royal Astronomical
 {Ruiz-Macias} O.,  et~al., 2021, \mn@doi [Monthly Notices of the Royal
   Astronomical Society] {10.1093/mnras/stab292}, 502, 4328
 
+\bibitem[\protect\citeauthoryear{{S{\'a}nchez-Bl{\'a}zquez}
+  et~al.,}{{S{\'a}nchez-Bl{\'a}zquez} et~al.}{2006}]{sanchez-blazquez2006}
+{S{\'a}nchez-Bl{\'a}zquez} P.,  et~al., 2006, \mn@doi [Monthly Notices of the
+  Royal Astronomical Society] {10.1111/j.1365-2966.2006.10699.x}, 371, 703
+
 \bibitem[\protect\citeauthoryear{Serra, Amblard, Temi, Burgarella, Giovannoli,
   Buat, Noll  \& Im}{Serra et~al.}{2011}]{serra2011}
 Serra P.,  Amblard A.,  Temi P.,  Burgarella D.,  Giovannoli E.,  Buat V.,
@@ -203,6 +236,10 @@ Springel V.,  et~al., 2018, \mn@doi [Monthly Notices of the Royal Astronomical
 \bibitem[\protect\citeauthoryear{Tacchella et~al.,}{Tacchella
   et~al.}{2021}]{tacchella2021}
 Tacchella S.,  et~al., 2021, arXiv e-prints, 2102, arXiv:2102.12494
+
+\bibitem[\protect\citeauthoryear{York et~al.,}{York et~al.}{2000}]{york2000}
+York D.~G.,  et~al., 2000, \mn@doi [The Astronomical Journal] {10.1086/301513},
+  120, 1579
 
 \bibitem[\protect\citeauthoryear{Zahid, Geller, Fabricant  \& Hwang}{Zahid
   et~al.}{2016}]{zahid2016}

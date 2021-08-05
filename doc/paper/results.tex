@@ -5,11 +5,14 @@
     Comparison between the true galaxy properties, $\theta_{\rm true}$, and
     those inferred from SED modeling of mock observations, $\hat{\theta}$. 
     From the left to right columns, we compare $\log M_*$, $\log \avgsfr$, 
-    $\log Z_{\rm MW}$, and $\tau_{\rm ISM}$. 
+    $\log Z_{\rm MW}$, $t_{\rm age, MW}$ and $\tau_{\rm ISM}$. 
     The inferred galaxy properties are derived from SED modeling of mock
     spectra (top), photometry (middle), and spectra + photometry (bottom). 
     For each simulated galaxy, we represent the marginalized posterior of
     $\theta$ with a violin plot.  %We derive unbiased and precise $\log M_*$
+    \emph{The posteriors on galaxy properties demonstrate that, overall, we can
+    derive accurate and precise constraints from joint SED modeling of DESI
+    photometry and spectra.}
     } \label{fig:prop_inf}
 \end{center}
 \end{figure}
@@ -115,16 +118,19 @@ foreman-mackey2014, baronchelli2020}.
 
 \begin{figure}
 \begin{center}
-    \includegraphics[width=\textwidth]{figs/etas.pdf} \label{fig:etas}
+    \includegraphics[width=\textwidth]{figs/etas_v2.pdf} \label{fig:etas}
     \caption{
-        The accuracy and precision of our joint SED modeling of
-        spectra+photometry, quantified using population hyperparameters
-        $\mu_{\Delta_{\theta}}$ and $\sigma_{\Delta_{\theta}}$, as a function
-        of true galaxy property (green). 
-        We plot $\mu_{\Delta_{\theta}}$ in solid line and
-        $\sigma_{\Delta_{\theta}}$ in the shaded region.
+        The accuracy and precision of galaxy property posteriors from our
+        joint SED modeling of spectra+photometry, quantified using population
+        hyperparameters $\mu_{\Delta_{\theta}}$ and $\sigma_{\Delta_{\theta}}$,
+        as a function of true galaxy property (green). 
+        We plot $\theta_{\rm true} + \mu_{\Delta_{\theta}}$ in solid line and
+        represent $\sigma_{\Delta_{\theta}}$ with the shaded region.
         We include $\{\mu_{\Delta_{\theta}}, \sigma_{\Delta_{\theta}}\}$ for SED
         modeling of photometry alone (orange) for comparison. 
+        Including DESI spectra significantly improves both the accuracy and
+        precision of the posteriors. 
+        %Moreover, $\{\mu_{\Delta_{\theta}}, \sigma_{\Delta_{\theta}}\}$ demonstrate that we can accurately and precisely infer: $\log M_*$ throughout the $M_*$ range, $\log\avgsfr$ for $\log\avgsfr > -1\,M_*/{\rm yr}$, $\log Z_{\rm MW}$. 
     }
 \end{center}
 \end{figure}
@@ -235,12 +241,11 @@ galaxy properties.
         modeling of spectra+photometry as a function of $r_{\rm fiber}$, $r$,
         $g-r$, and $r-z$.
         From the top to bottom rows, we present $\eta_\Delta$ for $\log M_*$,
-        $\avgsfr$, $\log Z_{\rm MW}$, and $\tau_{\rm ISM}$.
+        $\log\avgsfr$, $\log Z_{\rm MW}$, $t_{\rm age, MW}$ and $\tau_{\rm ISM}$.
         $r_{\rm fiber}$ and $r$ magnitudes are proxies for SNR of spectra and
         photometry. 
         $g-r$ and $r-z$ are the optical photometric colors. 
-        We find no significant dependence on SNR or color in the accuracy of
-        the inferred $\log M_*$, $\log Z_{\rm MW}$, and $\tau_{\rm ISM}$. 
+        %We find no significant dependence on SNR or color in the accuracy of the inferred $\log M_*$, $\log Z_{\rm MW}$, and $\tau_{\rm ISM}$. 
     } 
     \label{fig:systematics}
 \end{center}

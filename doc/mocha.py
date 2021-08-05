@@ -495,6 +495,7 @@ def inferred_props():
                     ha='right', va='bottom', transform=sub.transAxes, fontsize=25)
             if i != 2: sub.set_xticklabels([])
             if i == 0: sub.set_title(lbls[ii], pad=10, fontsize=25)
+            sub.set_rasterization_zorder(10)
 
     bkgd = fig.add_subplot(111, frameon=False)
     bkgd.set_xlabel(r'$\theta_{\rm true}$', fontsize=30) 
@@ -699,7 +700,7 @@ def eta_photo_l2(method='opt'):
 
     proplbls = [r'\log M_*', r'\log {\rm SFR}_{\rm 1Gyr}', r'\log Z_{\rm MW}', r't_{\rm age, MW}', r'\tau_{\rm ISM}']
     lbls    = [r'$r_{\rm fiber}$', r'$r$', r'$g-r$', r'$r-z$']
-    minmax  = [[17., 22.], [15., 20], [0, 1.8], [0., 1.2]]
+    minmax  = [[17.5, 22.], [15., 20], [0.2, 1.8], [0.1, 1.]]
     dbin    = [0.5, 0.5, 0.1, 0.1]
 
     photos  = [r_fiber, r_mag, g_r, r_z]
@@ -995,7 +996,7 @@ def eta_msfr_l2(method='opt', nmin=10):
 
         X, Y = np.meshgrid(xedge, yedge)
         cs0 = sub.pcolormesh(X, Y, #0.5*(xedge[:-1] + xedge[1:]), 0.5*(yedge[:-1] + yedge[1:]),
-                eta_mus.T, vmin=-1, vmax=1., cmap='coolwarm_r')
+                eta_mus.T, vmin=-1, vmax=1., cmap='coolwarm_r', rasterized=True)
         sub.scatter(mstar, sfr, c='k', s=0.1)
 
         sub.set_xlim(9., 12.)
@@ -1008,7 +1009,7 @@ def eta_msfr_l2(method='opt', nmin=10):
 
         X, Y = np.meshgrid(xedge, yedge)
         cs1 = sub.pcolormesh(X, Y, #0.5*(xedge[:-1] + xedge[1:]), 0.5*(yedge[:-1] + yedge[1:]),
-                eta_sigs.T, vmin=-1., vmax=1., cmap='coolwarm_r')
+                eta_sigs.T, vmin=-1., vmax=1., cmap='coolwarm_r', rasterized=True)
         sub.scatter(mstar, sfr, c='k', s=0.1)
 
         sub.set_xlim(9., 12.)
@@ -1019,15 +1020,15 @@ def eta_msfr_l2(method='opt', nmin=10):
 
     cbar_ax = fig.add_axes([0.91, 0.55, 0.01, 0.3])
     cbar = fig.colorbar(cs0, cax=cbar_ax)
-    cbar.ax.set_ylabel(r'$\mu_{\theta}$', labelpad=25, fontsize=25, rotation=270)
+    cbar.ax.set_ylabel(r'$\mu_{\Delta_\theta}$', labelpad=25, fontsize=25, rotation=270)
     
-    cbar_ax = fig.add_axes([0.91, 0.2, 0.01, 0.3])
+    cbar_ax = fig.add_axes([0.91, 0.15, 0.01, 0.3])
     cbar = fig.colorbar(cs1, cax=cbar_ax, boundaries=[0, 0.25, 0.5, 0.75, 1.0])
-    cbar.ax.set_ylabel(r'$\sigma_{\theta}$', labelpad=25, fontsize=25, rotation=270)
+    cbar.ax.set_ylabel(r'$\sigma_{\Delta_\theta}$', labelpad=25, fontsize=25, rotation=270)
 
     bkgd = fig.add_subplot(111, frameon=False)
-    bkgd.set_xlabel(r'$\log M_*$', labelpad=10, fontsize=25) 
-    bkgd.set_ylabel(r'$\log {\rm SFR}$', labelpad=10, fontsize=25) 
+    bkgd.set_xlabel(r'true $\log M_*$', labelpad=10, fontsize=25) 
+    bkgd.set_ylabel(r'true $\log \overline{\rm SFR}_{\rm 1Gyr}$', labelpad=10, fontsize=25) 
     bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
 
     ffig = os.path.join(dir_doc, 'etas_msfr.pdf')

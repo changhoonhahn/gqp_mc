@@ -11,8 +11,8 @@
     For each simulated galaxy, we represent the marginalized posterior of
     $\theta$ with a violin plot.  %We derive unbiased and precise $\log M_*$
     \emph{The posteriors on galaxy properties demonstrate that, overall, we can
-    derive accurate and precise constraints from joint SED modeling of DESI
-    photometry and spectra.}
+    derive accurate and precise constraints on certain properties from joint
+    SED modeling of DESI photometry and spectra.}
     } \label{fig:prop_inf}
 \end{center}
 \end{figure}
@@ -54,14 +54,18 @@ properties using the {\sc PROVABGS} SED modeling}.
 In more detail, we find that we infer unbiased and precise constraints on
 $M_*$ throughout the entire $M_*$ range. 
 %For spectra+photometry SED modeling, the posteriors have $\sigma_{M_*}\sim0.06$ dex.
-We also infer robust $\avgsfr$ for $\log \avgsfr > -2$ dex; below this limit,
+We also infer robust $\avgsfr$ for $\log \avgsfr > -1$ dex; below this limit,
 however, the inferred $\avgsfr$ are significantly less precise and
 overestimated the true $\avgsfr$. 
 This bias at low $\avgsfr$ is caused by model priors, which we discuss in
 further detail later in \todo{Section~\ref{sec:discuss} and
 Appendix~\ref{sec:model_priors}}. 
 $Z_{\rm MW}$ is not precisely constrained ($\sigma_{\log Z_{\rm MW}} \sim 0.1$
-dex); however, there is no strong bias in the constraints. 
+dex); however, there is no clear bias in the constraints. 
+$\tage$ is also not precisely constrained; however, there is also no clear bias
+in the constraints. 
+We note that the posteriors on $\tage$ reveal the log-spaced $\tlb$ binning
+used in our SPS model.
 Lastly, $\tau_{\rm ISM}$ is accurately inferred for simulated galaxies with
 low $\tau_{\rm ISM}$ but the accuracy declines significantly for high 
 $\tau_{\rm ISM}$ galaxies. 
@@ -79,8 +83,8 @@ SFHs and ZHs.
 Lastly, we use different dust prescriptions: \cite{mathis1983} dust attenuation  
 curve in the forward model and \cite{kriek2013} dust attenuation curve in the
 SPS model. 
-Despite these significant differences our constraints on galaxy properties are
-unbiased. 
+Despite these significant differences, our constraints on certain galaxy
+properties are unbiased and precise. 
 
 Figure~\ref{fig:prop_inf}, also highlights the advantages of jointly modeling
 spectra and photometry. 
@@ -97,8 +101,8 @@ Adding spectra, significantly increases the contribution of the likelihood and
 ameliorates this effect. 
 %Therefore, joint SED modeling of spectra and photometry 
 
-We want to examine the precision and accuracy of the inferred galaxy properties
-beyond qualitative comparisons of the posteriors. 
+Beyond quantitative comparisons of the posterior, we want to quantify the
+precision and accuracy of the inferred galaxy properties. 
 Let $\Delta_{\theta,i}$ be the discrepancy between the inferred and true
 parameters for each galaxy: $\hat{\theta}_i = \theta^{\rm true}_i +
 \Delta_{\theta,i}$.
@@ -116,25 +120,6 @@ using a hierarchical Bayesian framework~\citep[\emph{e.g.}][]{hogg2010,
 foreman-mackey2014, baronchelli2020}.
 
 
-\begin{figure}
-\begin{center}
-    \includegraphics[width=\textwidth]{figs/etas_v2.pdf} \label{fig:etas}
-    \caption{
-        The accuracy and precision of galaxy property posteriors from our
-        joint SED modeling of spectra+photometry, quantified using population
-        hyperparameters $\mu_{\Delta_{\theta}}$ and $\sigma_{\Delta_{\theta}}$,
-        as a function of true galaxy property (green). 
-        We plot $\theta_{\rm true} + \mu_{\Delta_{\theta}}$ in solid line and
-        represent $\sigma_{\Delta_{\theta}}$ with the shaded region.
-        We include $\{\mu_{\Delta_{\theta}}, \sigma_{\Delta_{\theta}}\}$ for SED
-        modeling of photometry alone (orange) for comparison. 
-        Including DESI spectra significantly improves both the accuracy and
-        precision of the posteriors. 
-        %Moreover, $\{\mu_{\Delta_{\theta}}, \sigma_{\Delta_{\theta}}\}$ demonstrate that we can accurately and precisely infer: $\log M_*$ throughout the $M_*$ range, $\log\avgsfr$ for $\log\avgsfr > -1\,M_*/{\rm yr}$, $\log Z_{\rm MW}$. 
-    }
-\end{center}
-\end{figure}
-
 Let $\{{\bfi X}_i\}$ represent the photometry or spcetrum of a galaxy
 population and $\eta_\Delta = \{\mu_{\Delta_{\theta}},
 \sigma_{\Delta_{\theta}}\}$ be the population hyperparameters.
@@ -145,15 +130,14 @@ As usual, we can expand
 p(\eta_\Delta \given \{{\bfi X_i}\}) 
     =&~\frac{p(\eta_\Delta)~p( \{{\bfi X_i}\} \given \eta_\Delta)}{p(\{{\bfi X_i}\})}\\
     =&~\frac{p(\eta_\Delta)}{p(\{{\bfi X_i}\})}\int p(\{{\bfi X_i}\} \given \{\theta_i\})~p(\{\theta_i\} \given \eta_\Delta)~{\rm d}\{\theta_i\}.
-\end{align} 
+\intertext{
 $\theta_i$ is the SPS parameters for galaxy $i$ and $p(\{{\bfi X_i}\} \given
 \{\theta_i\})$ is likelihood of the set of observations $\{{\bfi X_i}\}$ given
 the set of $\{\theta_i\}$. 
 Since the likelihoods for each of the $N$ galaxies ($p(\bfi X_i \given
 \theta_i)$) are not correlated, we can factorize and write the expression above
 as 
-\begin{align}
-p(\eta_\Delta \given \{{\bfi X_i}\}) 
+}
     =&~\frac{p(\eta_\Delta)}{p(\{{\bfi X_i}\})}\prod\limits_{i=1}^N\int p({\bfi X_i} \given \theta_i)~p(\theta_i \given \theta_\Delta)~{\rm d}\theta_i\\
     =&~\frac{p(\eta_\Delta)}{p(\{{\bfi X_i}\})}\prod\limits_{i=1}^N\int
     \frac{p(\theta_i \given {\bfi X_i})~p({\bfi X_i})}{p(\theta_i)}~p(\theta_i
@@ -179,39 +163,86 @@ $p(\theta_{i,j}) = 1$ since we use uninformative and Dirichlet priors
 Lastly, we derive $p(\eta_\Delta \given \{{\bfi X_i}\})$ by sampling the
 distribution using MCMC.
 
-In Figure~\ref{fig:etas}, we present the accuracy and precision
-($\mu_{\Delta_{\theta}}, \sigma_{\Delta_{\theta}}$) of our joint
-SED modeling of spectra and photometry (green) as a function of true galaxy
-property. 
-We use the median of $p(\eta_\Delta \given \{{\bfi X_i}\})$ for
-$\mu_{\Delta_{\theta}}$ (solid) and $\sigma_{\Delta_{\theta}}$ (shaded region).
-And in each panel, we derive $p(\eta_\Delta \given \{{\bfi X_i}\})$ for each
-property bin using the galaxies within it.
-We use bins with widths of \todo{0.2, 0.2, 0.05, and 0.1 dex} for $\log
-M_*$, $\avgsfr$, $\log Z_{\rm MW}$, and $\tau_{\rm ISM}$ respectively and only
-include bins with more than one galaxy. 
+\begin{figure}
+\begin{center}
+    \includegraphics[width=0.85\textwidth]{figs/etas_v2.pdf} \label{fig:etas}
+    \caption{
+        The accuracy and precision of galaxy property posteriors from our
+        joint SED modeling of spectra+photometry, quantified using population
+        hyperparameters $\mu_{\Delta_{\theta}}$ and $\sigma_{\Delta_{\theta}}$,
+        as a function of true galaxy property (green). 
+        We plot $\theta_{\rm true} + \mu_{\Delta_{\theta}}$ in solid line and
+        represent $\sigma_{\Delta_{\theta}}$ with the shaded region.
+        We include $\{\mu_{\Delta_{\theta}}, \sigma_{\Delta_{\theta}}\}$ for SED
+        modeling of photometry alone (orange) for comparison. 
+        Including DESI spectra significantly improves both the accuracy and
+        precision of the posteriors. 
+        %Moreover, $\{\mu_{\Delta_{\theta}}, \sigma_{\Delta_{\theta}}\}$ demonstrate that we can accurately and precisely infer: $\log M_*$ throughout the $M_*$ range, $\log\avgsfr$ for $\log\avgsfr > -1\,M_*/{\rm yr}$, $\log Z_{\rm MW}$. 
+    }
+\end{center}
+\end{figure}
 
-For $\log M_*$ and $\tau_{\rm ISM}$ we find no bias in $\mu_{\Delta_{\theta}}$
-even as a function of galaxy property. 
-On the other hand, we confirm the significant bias in $\avgsfr$ at low $\avgsfr
-< -1$ dex: inferred $\avgsfr$ is biased by $\gtrsim 0.2$ dex at the SFRs. 
-There is also a noticeable bias in $\log Z_{\rm MW}$, which was difficult to
-detect in Figure~\ref{fig:prop_inf}. 
-However, the bias is small compared to the precision ($\mu_{\Delta_{\theta}}
-\sim 0.1$ dex) and is independent of the true $\log Z_{\rm MW}$. 
+In Figure~\ref{fig:etas}, we present the accuracy ($\mu_{\Delta_{\theta}}$) and
+precision ($\sigma_{\Delta_{\theta}}$) of our joint SED modeling of spectra and
+photometry (green) as a function of true galax property. 
+In each panel, we derive $p(\eta_\Delta \given \{{\bfi X_i}\})$ for each
+property in bins of widths 0.2 dex, 0.5 dex, 0.05 dex, 0.5 Gyr, and 0.1 for
+$\log M_*$, $\avgsfr$, $\log Z_{\rm MW}$, $\tage$, and $\tau_{\rm
+ISM}$, respectively. 
+We only include bins with more than three galaxies. 
+$\mu_{\Delta_{\theta}}$ (solid) and $\sigma_{\Delta_{\theta}}$ (shaded region)
+are the median values of $p(\mu_{\Delta_{\theta}}, \sigma_{\Delta_{\theta}}
+\given \{{\bfi X_i}\})$ posterior. 
 
-The biases in $\avgsfr$ and $\log Z_{\rm MW}$ are both a consequence of our SPS
+For $\log M_*$ we find no significant bias in $\mu_{\Delta_{\log M_*}}$ --- we
+accurately infer the true $M_*$ throughout the entire $M_*$ range. 
+Also, the precision is consistent $\sigma_{\Delta_{\log M_*}} \sim 0.1$ dex
+throughout the $M_*$ range. 
+For $\log \avgsfr$, we accurately infer the true values for $\log \avgsfr > -1$
+dex.
+Below this limit, we significantly overestimate $\log \avgsfr$, consistent with
+the bias in Figure~\ref{fig:prop_inf}. 
+In fact, we find a $\log \avgsfr \sim -1$ dex lower bound for the inferred
+$\log \avgsfr$. 
+In terms of precision, we derive tight constraints $\sigma_{\Delta_{\log M_*}}
+\sim 0.1$ dex from $-1 < \log \avgsfr < 1$ dex but broader constraints
+$\sigma_{\Delta_{\log M_*}} \sim 0.25 - 0.3$ dex outside this range. 
+
+For $\log Z_{\rm MW}$, we find a noticeable $\log Z_{\rm MW}$ dependent bias 
+in the inferred values, which was difficult to detect in
+Figure~\ref{fig:prop_inf}. 
+We overestimate $\log Z_{\rm MW}$ by $\sim 0.2$ dex below $\log Z_{\rm MW} <
+-1.8$ dex and may slightly underestimate $\log Z_{\rm MW}$ at the highest
+$Z_{\rm MW}$. 
+Meanwhile, $\sigma_{\Delta_{\log Z_{\rm MW}}} \sim 0.15$ dex is constant
+throughout the $Z_{\rm MW}$ range, so the bias is small in comparison.
+For $\tage$, we derive unbiased constraints out to 
+$\tage < 8$ Gyr. 
+Beyond this limit, the log-spaced $\tlb$ binning in our SPS model
+(Section~\ref{sec:sps}) expectedly results in underestimating 
+$\tage$. 
+The precision of our $\tage$ constraints has a significant $\tage$ dependence 
+with ($\sigma_{\Delta_{\tage}} \sim 0.1$) Gyr for galaxies with young
+stellar populations ($\tage < 2$ Gyr) and significantly less precise
+constraints ($\sigma_{\Delta_{\tage}} \gtrsim 1$ Gyr) for galaxies with older
+stellar populations ($\tage > 6$ Gyr).
+Lastly, for $\tauism$ we find a significant $\tauism$ dependence bias in both
+accuracy and precision. 
+The inferred values increasingly underestimate $\tauism$ with less precise
+constraints for greater $\tauism$.
+
+The biases in $\avgsfr$, $Z_{\rm MW}$, $\tage$ are all a consequence of our SPS
 model priors (Appendix~\ref{sec:model_priors}). 
-While $\log M_*$ and $\tau_{\rm ISM}$ are directly parameters in our SPS model
-and, thus, have uniform priors.
-$\avgsfr$ and $\log Z_{\rm MW}$, however, are derived quantities so the uniform
-priors we impose on SPS parameters induce non-uniform priors $\avgsfr$ and
-$\log Z_{\rm MW}$.
+$\avgsfr$, $Z_{\rm MW}$, and $\tage$ are derived quantities; hence, the uniform
+priors we impose on SPS parameters induce non-uniform priors on them.
 For our SPS model, we impose a prior on $\log \overline{\rm SSFR}_{\rm 1 Gyr}$
 that is skewed and peaks at ${\sim}-10.4$ dex (Figure~\ref{fig:model_priors}). 
 Consequently, the posterior overestimates $\avgsfr$ at low $\avgsfr$.
-We also impose a skewed prior on $\log Z_{\rm MW}$; however, the prior is
-significantly broader so the posteriors are only slightly biased. 
+The SPS model also imposes skewed priors on $\log Z_{\rm MW}$ and $\tage$,
+which causes to overestimate $\log Z_{\rm MW}$ for low $Z_{\rm MW}$ galaxies
+and underestimate $\tage$ for galaxies with older stellar population. 
+
+\todo{explanation of $\tauism$ biases} 
 
 In Figure~\ref{fig:etas}, we also include $\{\mu_{\Delta_{\theta}},
 \sigma_{\Delta_{\theta}}\}$ for SED modeling of photometry alone (orange). 
@@ -284,6 +315,13 @@ overestimates the true $\avgsfr$.
 \begin{center}
     \includegraphics[width=\textwidth]{figs/etas_msfr.pdf} \label{fig:etas_msfr}
     \caption{
+        Accuracy and precision of the galaxy properties inferred from joint SED
+        modeling of spectrophotometry as a function of the galaxies' true $M_*$
+        and $\avgsfr$. 
+        We present $\mu_{\Delta_{\theta}}$ and $\sigma_{\Delta_{\theta}}$ in
+        ($M_*$, $\avgsfr$) bins for $\log M_*$, $\log\avgsfr$, $\log Z_{\rm
+        MW}$, $t_{\rm age, MW}$ and $\tau_{\rm ISM}$ in the top and bottom
+        panels respectively. 
     }
 \end{center}
 \end{figure}

@@ -601,6 +601,7 @@ def eta_l2_v2(method='opt'):
 
     #for ii, sample in enumerate(['S2', 'P2', 'SP2']): 
     for ii, sample, clr in zip(range(2), ['P2', 'SP2'], ['C1', 'C2']): 
+        print('--- %s ---' % sample) 
         props_infer, props_truth = L2_chains(sample)
         
         # get eta for log M*, log SFR, and log Z_MW
@@ -997,7 +998,7 @@ def eta_msfr_l2(method='opt', nmin=10):
         X, Y = np.meshgrid(xedge, yedge)
         cs0 = sub.pcolormesh(X, Y, #0.5*(xedge[:-1] + xedge[1:]), 0.5*(yedge[:-1] + yedge[1:]),
                 eta_mus.T, vmin=-1, vmax=1., cmap='coolwarm_r', rasterized=True)
-        sub.scatter(mstar, sfr, c='k', s=0.1)
+        sub.scatter(mstar, sfr, c='k', s=0.1, rasterized=True)
 
         sub.set_xlim(9., 12.)
         sub.set_xticklabels([])
@@ -1010,7 +1011,7 @@ def eta_msfr_l2(method='opt', nmin=10):
         X, Y = np.meshgrid(xedge, yedge)
         cs1 = sub.pcolormesh(X, Y, #0.5*(xedge[:-1] + xedge[1:]), 0.5*(yedge[:-1] + yedge[1:]),
                 eta_sigs.T, vmin=-1., vmax=1., cmap='coolwarm_r', rasterized=True)
-        sub.scatter(mstar, sfr, c='k', s=0.1)
+        sub.scatter(mstar, sfr, c='k', s=0.1, rasterized=True)
 
         sub.set_xlim(9., 12.)
         sub.set_ylim(-2., 2.)

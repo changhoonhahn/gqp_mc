@@ -490,6 +490,7 @@ def inferred_props():
             sub.set_ylim(minmax[ii])
             if ii == 0: sub.set_yticks([8., 9., 10., 11., 12.])
             if ii == 1: sub.set_yticks([-3., -2., -1., 0., 1., 2.])
+            if ii == 3: sub.set_yticks([0., 5., 10.]) 
             if ii == 4: sub.set_yticks([0., 0.5, 1.0, 1.5, 2.]) 
             if ii == 0: sub.text(0.95, 0.05, ['spectra', 'photometry', 'spectra+photometry'][i], 
                     ha='right', va='bottom', transform=sub.transAxes, fontsize=25)
@@ -593,7 +594,7 @@ def eta_l2(method='opt'):
 def eta_l2_v2(method='opt'):
     ''' calculate bias as a function of galaxy properties
     '''
-    lbls    = [r'$\log M_*$', r'$\log \overline{\rm SFR}_{\rm 1Gyr}$', r'$\log Z_{\rm MW}$', r'$t_{\rm age, MW}$', r'$\tau_{\rm ISM}$']
+    lbls    = [r'$\log M_*$', r'$\log \overline{\rm SFR}_{\rm 1Gyr}$', r'$\log Z_{\rm MW}$', r'$t_{\rm age, MW}$', r'$\tau_{\rm ISM}$*']
     minmax  = [[9., 12.], [-3., 2], [-2.6, -1.], [0., 11.], [0., 2.]]
 
     # eta as a function of galaxy properties 
@@ -1119,6 +1120,60 @@ def eta_l2_highSNR(method='opt'):
     return None 
 
 
+def _tauism_bulge(): 
+    ''' Figure comparing inferred tau_ism for galaxies separated by bulge
+    component contribution.
+    '''
+    dat_dir = '/Users/chahah/data/gqp_mc/mini_mocha/'
+    thetas  = pickle.load(open(os.path.join(dat_dir, 'l2.theta.p'), 'rb'))
+    
+    small_bulge = (10**(np.array(thetas['logM_bulge']) - np.array(thetas['logM_total'])) < 0.01) 
+    print('%i galaxies with small bulge' % np.sum(small_bulge))
+    print('%i galaxies with large bulge' % np.sum(~small_bulge))
+
+    props_infer, props_truth = L2_chains('SP2', derived_properties=True)
+    tau_infer = props_infer[-1]
+    tau_truth = props_truth[-1]
+
+    
+    fig = plt.figure(figsize=(6,6))    
+    sub = fig.add_subplot(111) 
+   
+    prop_bin  = np.arange(0., 2., 0.1) 
+    for i, prop_infer, prop_truth in zip(range(2), [tau_infer[small_bulge], tau_infer[~small_bulge]], [tau_truth[small_bulge], tau_truth[~small_bulge]]): 
+
+        x_prop, eta_mu, eta_sig, nbins = [], [], [], [] 
+        for ibin in range(len(prop_bin)-1): 
+            inbin = (prop_truth > prop_bin[ibin]) & (prop_truth < prop_bin[ibin+1])
+            if np.sum(inbin) > 1: 
+                nbins.append(np.sum(inbin))
+                x_prop.append(0.5 * (prop_bin[ibin] + prop_bin[ibin+1]))
+                
+                _mu, _sig = PopInf.eta_Delta_opt(prop_infer[inbin,:] - prop_truth[inbin, None])
+                eta_mu.append(_mu)
+                eta_sig.append(_sig)
+        x_prop = np.array(x_prop)
+        eta_mu = np.array(eta_mu) 
+        eta_sig = np.array(eta_sig) 
+
+        sub.fill_between(x_prop, x_prop + eta_mu - eta_sig, x_prop + eta_mu + eta_sig,
+                fc='C%i' % i, ec='none', alpha=[0.3, 0.6][i], label=['small bulge', 'large bulge'][i]) 
+        sub.scatter(x_prop, x_prop + eta_mu, c='C%i' % i, s=2) 
+        sub.plot(x_prop, x_prop + eta_mu, c='C%i' % i)
+
+    sub.plot([0., 2.], [0., 2.], c='k', ls='--')
+    sub.legend(loc='upper left', handletextpad=0.2, fontsize=25) 
+    sub.set_xlabel(r'$\tau_{\rm ISM, true}$', fontsize=25) 
+    sub.set_xlim(0., 2.)
+    sub.set_ylabel(r'$\hat{\tau_{\rm ISM}}$', fontsize=25) 
+    sub.set_ylim(0., 2.)
+    sub.set_rasterization_zorder(10)
+
+    ffig = os.path.join(dir_doc, '_tauism_bulge.png')
+    fig.savefig(ffig, bbox_inches='tight') 
+    return None 
+
+
 def _l2_photo():
     ''' check the photometric properties of the L2 catalog 
     '''
@@ -1262,7 +1317,7 @@ if __name__=="__main__":
     #eta_l2(method='opt')
     #eta_l2(method='mcmc')
 
-    #eta_l2_v2(method='opt')
+    eta_l2_v2(method='opt')
 
     #eta_photo_l2(method='opt') 
     #eta_photo_l2(method='mcmc') 
@@ -1271,10 +1326,12 @@ if __name__=="__main__":
 
     #eta_color_l2(method='opt', nmin=10)
 
-    eta_msfr_l2(method='opt', nmin=5)
+    #eta_msfr_l2(method='opt', nmin=5)
 
     # eta for high SNR only 
     #eta_l2_highSNR(method='opt')
+
+    #_tauism_bulge()
 
     #_l2_photo() 
     #_l2_props()

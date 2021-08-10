@@ -300,28 +300,35 @@ In each row, we plot $\eta_\Delta$ for a different galaxy property: $\log M_*$,
 $\avgsfr$, $\log Z_{\rm MW}$, $\tage$ and $\tauism$ (from top to bottom).
 We find no significant dependence on SNR dependence for $M_*$, $\avgsfr$,
 $\tage$, or $\tauism$. 
-On the other hand, we find $Z_{\rm MW}$ is especially overestimated at low SNR
-(faint $r_{\rm fiber} > 20$).  
-This bias at low spectra SNR, highlights the importance of including DESI
-spectra in the SED modeling. 
+On the other hand, $Z_{\rm MW}$ is significantly overestimated at low spectral
+SNR (faint $r_{\rm fiber} > 20$). 
+This highlights that DESI spectra plays a pivotal role in accurately inferring
+galaxy properties. 
+Hence, when the constraining power from the spectra is reduced, the prior on 
+$Z_{\rm MW}$ dominates the posterior and skews the constraints towards the peak
+of the prior $\log Z_{\rm MW}\sim-1.2$. 
 
+In terms of $g-r$ and $r-z$ colors, we find a slight color dependence in $M_*$:
+$\log M_*$ is marginally underestimated for red galaxies. 
+For $\avgsfr$, there is a more significant color dependence where we
+overestimate $\log\avgsfr$ by $>0.5$ dex for the reddest galaxies 
+($g-r > 1.5$ and $r-z> 0.6$).
+The constraints for these galaxies, however, are significantly less precise,
+$\sigma_{\Delta_{\log\avgsfr}} \sim 0.5$ dex, so they are not as biased as
+$\mu{\Delta_{\log\avgsfr}}$ suggests.
+We also find a significant color dependence in the $Z_{\rm MW}$ constraints,
+which is primarily driven by the color dependence in the spectral SNR ($r_{\rm
+fiber}$).  
+For $\tage$, there is no significant color dependence except at $r - z > 0.6$,
+where $\tage$ is underestimated. 
+However, this $r - z$ dependence is simply a consequence of $\tage$ being
+underestimated for $\tage > 8\,{\rm Gyr}$, which was due to the log $\tlb$
+binning (Figure~\ref{fig:etas}).
+The simulated galaxies with $r - z > 0.6$ have overall older stellar populations.
+Lastly, we find no significant color dependence on $\tauism$. 
 
-Besides $\avgsfr$, we find no significant dependence on SNR or color in the
-inferred galaxy properties. 
-We again confirm that the inferred $M_*$ and $\tau_{\rm ISM}$ values are
-unbiased.
-While the inferred $Z_{\rm MW}$ overestimate the true $Z_{\rm MW}$, the bias is
-small $\sim 0.1$ dex and, more importantly, independent of SNR or color. 
-Together with the results from Figure~\ref{fig:etas}, \emph{we conclude that with our
-SED modeling we can infer robust constraints on $M_*$, $Z_{\rm MW}$, and
-$\tau_{\rm ISM}$}.
-
-The situation is more complex for $\avgsfr$. 
-For galaxies with high SNR spectra and photometry, we find no significant bias
-in the inferred $\avgsfr$. 
-However, for $r_{\rm fiber} > 20.5$ and $r > 19$, inferred $\avgsfr$
-overestimates the true $\avgsfr$. 
-\todo{color dependence once we get to the bottom of that}  
+%As we mention earlier, the accuracy of our $Z_{\rm MW}$ constraint depends significantly on the spectral SNR ($r_{\rm fiber}$).
+%meanwhile SFR is much sharper so it's more affected by the true galaxy properties This can then transition into the accuracy and precision as a function of galaxy type. 
 
 
 \begin{figure}
@@ -338,4 +345,6 @@ overestimates the true $\avgsfr$.
     }
 \end{center}
 \end{figure}
+
+
 

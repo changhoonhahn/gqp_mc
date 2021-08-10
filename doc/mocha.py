@@ -1038,6 +1038,265 @@ def eta_msfr_l2(method='opt', nmin=10):
     return None 
 
 
+def _color_photo(nmin=10): 
+    ''' true properties as a function of color
+    '''
+    dat_dir = '/Users/chahah/data/gqp_mc/mini_mocha/'
+    thetas = pickle.load(open(os.path.join(dat_dir, 'l2.theta.p'), 'rb'))
+    fluxes = np.load(os.path.join(dat_dir, 'mocha_p2.flux.npy'))
+
+    r_fiber = 22.5 - 2.5 * np.log10(thetas['f_fiber_meas'] * fluxes[:,1]) 
+    g_mag = 22.5 - 2.5 * np.log10(fluxes[:,0])
+    r_mag = 22.5 - 2.5 * np.log10(fluxes[:,1]) 
+    z_mag = 22.5 - 2.5 * np.log10(fluxes[:,2]) 
+
+    g_r = g_mag - r_mag
+    r_z = r_mag - z_mag 
+    
+    props = [r_fiber, r_mag, g_r, r_z] 
+    proplbls = [r'r_{\rm fiber}', r'r', r'g-r', r'r-z']
+
+    # eta as a function of galaxy properties 
+    fig = plt.figure(figsize=(20, 4))
+
+    nhist, xedge, yedge = np.histogram2d(g_r, r_z, bins=20, range=[(0., 2.), (0., 2.)])
+    has_gals = np.where(nhist > nmin)
+
+    color_bins = [(xedge[i], xedge[i+1], yedge[j], yedge[j+1]) for i, j in zip(has_gals[0], has_gals[1])]
+
+    _, props_truth = L2_chains('SP2')
+
+    for ii, prop_truth in zip(range(len(props)), props): 
+        print(proplbls[ii]) 
+
+        eta_mus         = np.zeros(nhist.shape)
+        eta_mus[:,:]    = np.nan
+        for i, j in zip(has_gals[0], has_gals[1]): 
+            inbin = ((g_r > xedge[i]) & (g_r <= xedge[i+1]) & (r_z > yedge[j]) & (r_z <= yedge[j+1])) 
+            assert np.sum(inbin) > nmin
+
+            eta_mus[i, j] = np.median(prop_truth[inbin]) 
+        
+        sub = fig.add_subplot(1, len(proplbls), ii+1) 
+
+        X, Y = np.meshgrid(xedge, yedge)
+        cs0 = sub.pcolormesh(X, Y, #0.5*(xedge[:-1] + xedge[1:]), 0.5*(yedge[:-1] + yedge[1:]),
+                eta_mus.T, cmap='coolwarm_r')
+        sub.scatter(g_r, r_z, c='k', s=0.1)
+
+        sub.set_xlim(0., 1.8)
+        sub.set_ylim(0., 1.2)
+        sub.text(0.05, 0.95, r'$%s$' % proplbls[ii], ha='left', va='top', transform=sub.transAxes, fontsize=20)
+        if ii != 0: sub.set_yticklabels([])
+        sub.set_yticks([0., 0.4, 0.8, 1.2]) 
+        fig.colorbar(cs0, ax=sub)
+
+    bkgd = fig.add_subplot(111, frameon=False)
+    bkgd.set_xlabel(r'$g - r$ color', labelpad=10, fontsize=25) 
+    bkgd.set_ylabel(r'$r - z$ color', labelpad=10, fontsize=25) 
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+
+    ffig = os.path.join(dir_doc, '_color_photo.png')
+    fig.savefig(ffig, bbox_inches='tight') 
+    return None 
+
+
+def _color_trueprops(nmin=10): 
+    ''' true properties as a function of color
+    '''
+    dat_dir = '/Users/chahah/data/gqp_mc/mini_mocha/'
+    thetas = pickle.load(open(os.path.join(dat_dir, 'l2.theta.p'), 'rb'))
+    fluxes = np.load(os.path.join(dat_dir, 'mocha_p2.flux.npy'))
+
+    r_fiber = 22.5 - 2.5 * np.log10(thetas['f_fiber_meas'] * fluxes[:,1]) 
+    g_mag = 22.5 - 2.5 * np.log10(fluxes[:,0])
+    r_mag = 22.5 - 2.5 * np.log10(fluxes[:,1]) 
+    z_mag = 22.5 - 2.5 * np.log10(fluxes[:,2]) 
+
+    g_r = g_mag - r_mag
+    r_z = r_mag - z_mag 
+
+    proplbls = [r'\log M_*', r'\log \overline{\rm SFR}_{\rm 1Gyr}', r'\log Z_{\rm MW}', r't_{\rm age, MW}', r'\tau_{\rm ISM}']
+
+    # eta as a function of galaxy properties 
+    fig = plt.figure(figsize=(24, 4))
+
+    nhist, xedge, yedge = np.histogram2d(g_r, r_z, bins=20, range=[(0., 2.), (0., 2.)])
+    has_gals = np.where(nhist > nmin)
+
+    color_bins = [(xedge[i], xedge[i+1], yedge[j], yedge[j+1]) for i, j in zip(has_gals[0], has_gals[1])]
+
+    _, props_truth = L2_chains('SP2')
+
+    for ii, prop_truth in zip(range(len(props_truth)), props_truth): 
+        print(proplbls[ii]) 
+
+        eta_mus         = np.zeros(nhist.shape)
+        eta_mus[:,:]    = np.nan
+        for i, j in zip(has_gals[0], has_gals[1]): 
+            inbin = ((g_r > xedge[i]) & (g_r <= xedge[i+1]) & (r_z > yedge[j]) & (r_z <= yedge[j+1])) 
+            assert np.sum(inbin) > nmin
+
+            eta_mus[i, j] = np.median(prop_truth[inbin]) 
+        
+        sub = fig.add_subplot(1, len(proplbls), ii+1) 
+
+        X, Y = np.meshgrid(xedge, yedge)
+        cs0 = sub.pcolormesh(X, Y, #0.5*(xedge[:-1] + xedge[1:]), 0.5*(yedge[:-1] + yedge[1:]),
+                eta_mus.T, cmap='coolwarm_r')
+        sub.scatter(g_r, r_z, c='k', s=0.1)
+
+        sub.set_xlim(0., 1.8)
+        sub.set_xticklabels([])
+        sub.set_ylim(0., 1.2)
+        sub.text(0.05, 0.95, r'$%s$' % proplbls[ii], ha='left', va='top', transform=sub.transAxes, fontsize=20)
+        if ii != 0: sub.set_yticklabels([])
+        sub.set_yticks([0., 0.4, 0.8, 1.2]) 
+        fig.colorbar(cs0, ax=sub)
+
+    bkgd = fig.add_subplot(111, frameon=False)
+    bkgd.set_xlabel(r'$g - r$ color', labelpad=10, fontsize=25) 
+    bkgd.set_ylabel(r'$r - z$ color', labelpad=10, fontsize=25) 
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+
+    ffig = os.path.join(dir_doc, '_color_trueprops.png')
+    fig.savefig(ffig, bbox_inches='tight') 
+    return None 
+
+
+def _msfr_photo(nmin=3):
+    ''' calculate bias as a function of galaxy properties
+    '''
+    dat_dir = '/Users/chahah/data/gqp_mc/mini_mocha/'
+
+    thetas = pickle.load(open(os.path.join(dat_dir, 'l2.theta.p'), 'rb'))
+    fluxes = np.load(os.path.join(dat_dir, 'mocha_p2.flux.npy'))
+
+    r_fiber = 22.5 - 2.5 * np.log10(thetas['f_fiber_meas'] * fluxes[:,1]) 
+    g_mag = 22.5 - 2.5 * np.log10(fluxes[:,0])
+    r_mag = 22.5 - 2.5 * np.log10(fluxes[:,1]) 
+    z_mag = 22.5 - 2.5 * np.log10(fluxes[:,2]) 
+
+    g_r = g_mag - r_mag
+    r_z = r_mag - z_mag 
+
+    props = [r_fiber, r_mag, g_r, r_z] 
+
+    _, props_truth = L2_chains('SP2')
+
+    mstar = props_truth[0,:]
+    sfr = props_truth[1,:]
+    
+    nhist, xedge, yedge = np.histogram2d(mstar, sfr, bins=[20, 8], range=[(8., 12.5), (0., 2.)])
+    _nhist, _xedge, _yedge = np.histogram2d(mstar, sfr, bins=[20, 6], range=[(8., 12.5), (-3., 0.)])
+
+    nhist = np.concatenate([_nhist, nhist], axis=1)
+    yedge = np.concatenate([_yedge, yedge[1:]])
+
+    has_gals = np.where(nhist > nmin)
+
+    msfr_bins = [(xedge[i], xedge[i+1], yedge[j], yedge[j+1]) for i, j in zip(has_gals[0], has_gals[1])]
+
+    proplbls = [r'r_{\rm fiber}', r'r', r'g-r', r'r-z']
+
+    # eta as a function of galaxy properties 
+    fig = plt.figure(figsize=(20, 4))    
+
+    for ii, prop in zip(range(len(props)), props): 
+        print(proplbls[ii]) 
+        # get eta for different color bins 
+        
+        eta_mus = np.zeros(nhist.shape)
+        eta_mus[:,:]    = np.nan
+
+        for i, j in zip(has_gals[0], has_gals[1]): 
+            inbin = ((mstar > xedge[i]) & (mstar <= xedge[i+1]) & (sfr > yedge[j]) & (sfr <= yedge[j+1])) 
+            eta_mus[i, j] = np.median(prop[inbin])
+
+        sub = fig.add_subplot(1, len(proplbls), ii+1) 
+
+        X, Y = np.meshgrid(xedge, yedge)
+        cs0 = sub.pcolormesh(X, Y, #0.5*(xedge[:-1] + xedge[1:]), 0.5*(yedge[:-1] + yedge[1:]),
+                eta_mus.T, cmap='coolwarm_r', rasterized=True)
+        sub.scatter(mstar, sfr, c='k', s=0.1, rasterized=True)
+
+        sub.set_xlim(9., 12.)
+        sub.set_ylim(-2., 2.)
+        sub.text(0.05, 0.95, r'$%s$' % proplbls[ii], ha='left', va='top', transform=sub.transAxes, fontsize=20)
+        if ii != 0: sub.set_yticklabels([])
+        fig.colorbar(cs0, ax=sub)
+
+    bkgd = fig.add_subplot(111, frameon=False)
+    bkgd.set_xlabel(r'true $\log M_*$', labelpad=10, fontsize=25) 
+    bkgd.set_ylabel(r'true $\log \overline{\rm SFR}_{\rm 1Gyr}$', labelpad=10, fontsize=25) 
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+
+    ffig = os.path.join(dir_doc, '_msfr_photo.png')
+    fig.savefig(ffig, bbox_inches='tight') 
+    return None 
+
+
+def _msfr_trueprops(nmin=3):
+    ''' calculate bias as a function of galaxy properties
+    '''
+    dat_dir = '/Users/chahah/data/gqp_mc/mini_mocha/'
+
+
+    _, props_truth = L2_chains('SP2')
+
+    mstar = props_truth[0,:]
+    sfr = props_truth[1,:]
+
+    props = props_truth
+    
+    nhist, xedge, yedge = np.histogram2d(mstar, sfr, bins=[20, 8], range=[(8., 12.5), (0., 2.)])
+    _nhist, _xedge, _yedge = np.histogram2d(mstar, sfr, bins=[20, 6], range=[(8., 12.5), (-3., 0.)])
+
+    nhist = np.concatenate([_nhist, nhist], axis=1)
+    yedge = np.concatenate([_yedge, yedge[1:]])
+
+    has_gals = np.where(nhist > nmin)
+
+    msfr_bins = [(xedge[i], xedge[i+1], yedge[j], yedge[j+1]) for i, j in zip(has_gals[0], has_gals[1])]
+
+    proplbls = [r'\log M_*', r'\log \overline{\rm SFR}_{\rm 1Gyr}', r'\log Z_{\rm MW}', r't_{\rm age, MW}', r'\tau_{\rm ISM}']
+    # eta as a function of galaxy properties 
+    fig = plt.figure(figsize=(25, 4))    
+
+    for ii, prop in zip(range(len(props)), props): 
+        print(proplbls[ii]) 
+        # get eta for different color bins 
+        
+        eta_mus = np.zeros(nhist.shape)
+        eta_mus[:,:]    = np.nan
+
+        for i, j in zip(has_gals[0], has_gals[1]): 
+            inbin = ((mstar > xedge[i]) & (mstar <= xedge[i+1]) & (sfr > yedge[j]) & (sfr <= yedge[j+1])) 
+            eta_mus[i, j] = np.median(prop[inbin])
+
+        sub = fig.add_subplot(1, len(proplbls), ii+1) 
+
+        X, Y = np.meshgrid(xedge, yedge)
+        cs0 = sub.pcolormesh(X, Y, #0.5*(xedge[:-1] + xedge[1:]), 0.5*(yedge[:-1] + yedge[1:]),
+                eta_mus.T, cmap='coolwarm_r', rasterized=True)
+        sub.scatter(mstar, sfr, c='k', s=0.1, rasterized=True)
+
+        sub.set_xlim(9., 12.)
+        sub.set_ylim(-2., 2.)
+        sub.text(0.05, 0.95, r'$%s$' % proplbls[ii], ha='left', va='top', transform=sub.transAxes, fontsize=20)
+        if ii != 0: sub.set_yticklabels([])
+        fig.colorbar(cs0, ax=sub)
+
+    bkgd = fig.add_subplot(111, frameon=False)
+    bkgd.set_xlabel(r'true $\log M_*$', labelpad=10, fontsize=25) 
+    bkgd.set_ylabel(r'true $\log \overline{\rm SFR}_{\rm 1Gyr}$', labelpad=10, fontsize=25) 
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+
+    ffig = os.path.join(dir_doc, '_msfr_trueprops.png')
+    fig.savefig(ffig, bbox_inches='tight') 
+    return None 
+
+
 def eta_l2_highSNR(method='opt'):
     ''' calculate bias as a function of galaxy properties for high SNR galaxies
     '''
@@ -1317,7 +1576,7 @@ if __name__=="__main__":
     #eta_l2(method='opt')
     #eta_l2(method='mcmc')
 
-    eta_l2_v2(method='opt')
+    #eta_l2_v2(method='opt')
 
     #eta_photo_l2(method='opt') 
     #eta_photo_l2(method='mcmc') 
@@ -1332,6 +1591,11 @@ if __name__=="__main__":
     #eta_l2_highSNR(method='opt')
 
     #_tauism_bulge()
+
+    _color_photo()
+    #_color_trueprops()
+    #_msfr_photo()
+    #_msfr_trueprops()
 
     #_l2_photo() 
     #_l2_props()

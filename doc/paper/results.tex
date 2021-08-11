@@ -277,13 +277,26 @@ The overall bias on $Z_{\rm MW}$ is also reduced by $\sim0.3$ dex.
         Accuracy and precision of the galaxy properties inferred from joint SED
         modeling of spectra+photometry as a function of $r_{\rm fiber}$, $r$,
         $g-r$, and $r-z$.
-        From the top to bottom rows, we present $\eta_\Delta$ for $\log M_*$,
-        $\log\avgsfr$, $\log Z_{\rm MW}$, $t_{\rm age, MW}$ and $\tau_{\rm ISM}$.
         $r_{\rm fiber}$ and $r$ magnitudes are proxies for SNR of spectra and
         photometry. 
         $g-r$ and $r-z$ are the optical photometric colors. 
-        %We find no significant dependence on SNR or color in the accuracy of the inferred $\log M_*$, $\log Z_{\rm MW}$, and $\tau_{\rm ISM}$. 
-    } 
+        In the top to bottom rows, we present $\eta_\Delta$ for $\log M_*$,
+        $\log\avgsfr$, $\log Z_{\rm MW}$, $t_{\rm age, MW}$ and $\tau_{\rm ISM}$.
+        We find a significant dependence on spectral SNR in the inferred 
+        $\log \zmw$. 
+        When the spectral SNR is low ($r_{\rm fiber} > 20$), the prior on 
+        $\log \zmw$ imposed by our SPS model dominate the posterior and
+        cause us to overestimate $Z_{\rm MW}$. 
+        We find a significant color dependence on $\log\avgsfr$, $\log Z_{\rm
+        MW}$, and $\tage$. 
+        The color dependence on the $\log\zmw$ and $\tage$ constraints are
+        driven by underlying correlations with spectral SNR and true $\tage$. 
+        Meanwhile, $\log\avgsfr$ is overestimated for the reddest galaxies with
+        $r - z > 0.6$, which correspond to quiescent galaxies with $\log\avgsfr
+        < -1$ dex. 
+        For the rest, we find no significant dependence on SNR or optical
+        color. 
+    }    
     \label{fig:eta_photo}
 \end{center}
 \end{figure}
@@ -315,25 +328,26 @@ overestimate $\log\avgsfr$ by $>0.5$ dex for the reddest galaxies
 ($g-r > 1.5$ and $r-z> 0.6$).
 The constraints for these galaxies, however, are significantly less precise,
 $\sigma_{\Delta_{\log\avgsfr}} \sim 0.5$ dex, so they are not as biased as
-$\mu{\Delta_{\log\avgsfr}}$ suggests.
-We also find a significant color dependence in the $Z_{\rm MW}$ constraints,
-which is primarily driven by the color dependence in the spectral SNR ($r_{\rm
+$\mu_{\Delta_{\log\avgsfr}}$ suggests.
+We also find a significant color dependence in the $Z_{\rm MW}$ constraints.
+This is primarily driven by the color dependence in the spectral SNR ($r_{\rm
 fiber}$).  
+If we exclude galaxies with $r_{\rm fiber} > 20$, we find no significant color
+dependence and $\mu_{\Delta_{\log Z_{\rm MW}}} < 0.1$ dex.
 For $\tage$, there is no significant color dependence except at $r - z > 0.6$,
 where $\tage$ is underestimated. 
 However, this $r - z$ dependence is simply a consequence of $\tage$ being
 underestimated for $\tage > 8\,{\rm Gyr}$, which was due to the log $\tlb$
-binning (Figure~\ref{fig:etas}).
-The simulated galaxies with $r - z > 0.6$ have overall older stellar populations.
+binning (Figure~\ref{fig:etas}); the simulated galaxies with $r - z > 0.6$ in
+our sample have overall older stellar populations.
 Lastly, we find no significant color dependence on $\tauism$. 
 
 %As we mention earlier, the accuracy of our $Z_{\rm MW}$ constraint depends significantly on the spectral SNR ($r_{\rm fiber}$).
 %meanwhile SFR is much sharper so it's more affected by the true galaxy properties This can then transition into the accuracy and precision as a function of galaxy type. 
 
-
 \begin{figure}
 \begin{center}
-    \includegraphics[width=\textwidth]{figs/etas_msfr.pdf} \label{fig:etas_msfr}
+    \includegraphics[width=\textwidth]{figs/etas_msfr.pdf} 
     \caption{
         Accuracy and precision of the galaxy properties inferred from joint SED
         modeling of spectrophotometry as a function of the galaxies' true $M_*$
@@ -342,9 +356,52 @@ Lastly, we find no significant color dependence on $\tauism$.
         ($M_*$, $\avgsfr$) bins for $\log M_*$, $\log\avgsfr$, $\log Z_{\rm
         MW}$, $t_{\rm age, MW}$ and $\tau_{\rm ISM}$ in the top and bottom
         panels respectively. 
-    }
+    }\label{fig:etas_msfr}
 \end{center}
 \end{figure}
 
+To further investigate whether there are any other underlying systematic
+dependences in our constraints, we examine how the accuracy and precision of
+the inferred galaxy properties on the $M_*$-${\rm SFR}$ plane in
+Figure~\ref{fig:etas_msfr}. 
+In the top and bottom panels, we present $\mu_{\Delta_{\theta}}$ and 
+$\sigma_{\Delta_{\theta}}$ in $(\log M_*, \log\avgsfr)$ bins for 
+$\log M_*$, $\log\avgsfr$, $\log Z_{\rm MW}$, $\tage$ and $\tauism$ (left to
+right).
+We use $\log M_*$ bins of 0.225 dex width and $\log\avgsfr$ bins of width 
+0.25 dex for $\log \avgsfr > 0$ dex and 0.5 dex for $\log \avgsfr < 0$ dex. 
+We only present bins with more than 10 galaxies. 
+On the $M_*-{\rm SFR}$ plane, we can examine whether the accuracy and precision
+of the inferred properties have significant dependencies for galaxy type.
 
+Starting with $M_*$, we confirm that there is no significant bias in the
+inferred $\log M_*$ in the top panel. 
+We also find that the precision of the constraints are equal for both
+star-forming and quiescent galaxies. 
+For $\avgsfr$, Figure~\ref{fig:etas_msfr} helps further characterize the effect
+of the SPS model prior on our constraints. 
+We expectedly find a significant bias for quiescent galaxies since our
+$\log\avgsfr$ constraints have a lower bound of $-1$ dex (Figure~\ref{fig:etas}).
+We also find that $\avgsfr$ is slightly underestimated for the most massive
+($M_* > 10^{11}M_\odot$) star-forming galaxies. 
+For the rest of the galaxies, there is no significant bias in the constraints. 
+In terms of precision, we find no significant $M_*-{\rm SFR}$ dependence in our
+$\log\avgsfr$ constraints. 
 
+For $\log Z_{\rm MW}$, star-forming galaxies on the so-called ``star-forming
+sequence'' (SFS) have higher $\mu_{\Delta_{\log Z_{\rm MW}}}$.
+However, this correlation is primarily driven by the $r_{\rm fiber}$ dependence. 
+Without $r_{\rm fiber} > 20$ galaxies, we find little correlation between
+$\mu_{\Delta_{\log Z_{\rm MW}\theta}}$ and the $M_*-{\rm SFR}$ plane. 
+We find uniform $\sigma_{\Delta_{\log Z_{\rm MW}}}$ for all types of galaxies. 
+Next, for $\tage$, we do not find a clear $M_*-{\rm SFR}$ dependence. 
+However, $|\mu_{\Delta_{\tage}}|$ is larger and constraints are significantly
+less precise for quiescent galaxies. 
+This, again, is a consequence of our log-spaced $\tlb$ binning. 
+Lastly, we find unbiased and precise $\tauism$ constraints for all galaxies
+except star-forming galaxies above $M_* > 10^{11}M_\odot$ where we
+underestimate $\tauism$. 
+This is because the massive star-forming galaxies are the only ones with
+$\tauism > 1$. 
+We again emphasize that a large portion of this bias is due to the discrepancy
+in the dust prescriptions of the SPS model versus the mock observations.  

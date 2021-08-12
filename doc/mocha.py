@@ -721,6 +721,10 @@ def eta_l2_v2(method='opt'):
                         x_prop_nobulge + eta_mu_nobulge - eta_sig_nobulge, c='k', ls=':', lw=1) 
                 sub.plot(x_prop_nobulge, 
                         x_prop_nobulge + eta_mu_nobulge + eta_sig_nobulge, c='k', ls=':', lw=1) 
+                
+                print('tau_ism for no bulge') 
+                print(eta_mu_nobulge) 
+                print(eta_sig_nobulge) 
 
     sub = fig.add_subplot(2, 3, 6) 
     plt1 = sub.fill_between([], [], [], fc='C2', ec='none', alpha=0.6, zorder=10, label='spectra+photometry')

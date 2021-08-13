@@ -124,8 +124,8 @@ def BGS():
     #-------------------------------------------------------------------
     # footprint comparison 
     #-------------------------------------------------------------------
-    fig = plt.figure(figsize=(15,5))
-    gs1 = fig.add_gridspec(nrows=1, ncols=1, left=0.05, right=0.75)
+    fig = plt.figure(figsize=(15,4))
+    gs1 = fig.add_gridspec(nrows=1, ncols=1, left=0.05, right=0.65)
     sub = plt.subplot(gs1[0,0], projection='mollweide')
     #sub = fig.add_subplot(gs1[0, :7])
     #gs1 = mpl.gridspec.GridSpec(1,3, figure=fig) 
@@ -158,18 +158,20 @@ def BGS():
     #-------------------------------------------------------------------
     # n(z) comparison 
     #-------------------------------------------------------------------
-    gs2 = fig.add_gridspec(nrows=1, ncols=1, wspace=0.05, left=0.75, right=0.95)
+    gs2 = fig.add_gridspec(nrows=1, ncols=1, wspace=0.05, left=0.67, right=0.95)
     sub = plt.subplot(gs2[0,0])
     sub.hist(z_bgs, range=[0.0, 1.], color='C0', bins=100) 
     sub.hist(z_sdss, range=[0.0, 1.], color='C1', bins=100) 
-    sub.hist(np.array(gama['Z']), range=[0.0, 1.], color='r', bins=100) 
+    sub.hist(np.array(gama['Z']), weights=10.*np.ones(len(gama['Z'])),
+            range=[0.0, 1.], color='r', bins=100, alpha=0.5) 
     sub.set_xlabel('Redshift', fontsize=20) 
-    sub.set_xlim([0., 0.6])
+    sub.set_xlim([0., 0.7])
     sub.set_ylabel('dN/dz', fontsize=20) 
+    sub.set_ylim(0., 1.5e6)
 
     def _fmt(x, pos):
-        a, b = '{:.2e}'.format(x).split('e')
-        a = a.split('.')[0]
+        a, b = '{:.1e}'.format(x).split('e')
+        #a = a.split('.')[0]
         b = int(b)
         if b == 0: 
             return r'${}$'.format(a)
@@ -181,11 +183,10 @@ def BGS():
     for clr in ['C0', 'C1', 'r']: 
         _plt = sub.fill_between([0], [0], [0], color=clr, linewidth=0)
         plts.append(_plt) 
-    sub.legend(plts, ['DESI', 'SDSS', 'GAMA'], loc='upper left', handletextpad=0.2, prop={'size': 20}) 
+    sub.legend(plts, ['DESI BGS', 'SDSS', r'GAMA $\times 10$'], loc='upper right', handletextpad=0.2, prop={'size': 20}) 
     ffig = os.path.join(dir_doc, 'bgs.pdf')
     fig.savefig(ffig, bbox_inches='tight')
 
-    raise ValueError
     #-------------------------------------------------------------------
     # mstar(z) comparison 
     #-------------------------------------------------------------------
@@ -197,16 +198,15 @@ def BGS():
             c='C1', s=1, rasterized=True)
     #_sdss = sub.scatter(z_sdss, np.log10(Mstar_sdss), c='C1', s=1, rasterized=True)
 
-    sub.legend([_main, _faint], ['BGS Bright', 'BGS Faint'], loc='lower right',
+    sub.legend([_main, _faint], ['BGS Bright', '$r < 20$'], loc='lower right',
             fontsize=25, markerscale=10, handletextpad=0.)
     sub.set_xlabel('Redshift', fontsize=20)
     sub.set_xlim(0., 0.5)
     sub.set_ylabel('$\log M_*$ [$M_\odot$]', fontsize=20)
     sub.set_ylim(6, 12.5)
-    sub.text(0.97, 0.4, 'MXXL BGS mock', ha='right', va='top', 
+    sub.text(0.95, 0.43, 'MXXL sim.', ha='right', va='top', 
             transform=sub.transAxes, fontsize=25)
-    ffig = os.path.join(dir_doc, 'bgs_mstar_z.png')
-    fig.savefig(ffig, bbox_inches='tight')
+    ffig = os.path.join(dir_doc, 'bgs_mstar_z.pdf')
     fig.savefig(UT.fig_tex(ffig, pdf=True), bbox_inches='tight') 
     return None 
 
@@ -1125,6 +1125,100 @@ def eta_msfr_l2(method='opt', nmin=10):
 
     ffig = os.path.join(dir_doc, 'etas_msfr.pdf')
     fig.savefig(ffig, bbox_inches='tight') 
+    return None 
+
+
+def SFH_demo(): 
+    ''' figure that demonstrates
+    '''
+    # 0, 5 looks pretty good 
+    #igal    = 5 
+    dat_dir = '/Users/chahah/data/gqp_mc/mini_mocha/'
+
+    # read in parameters of L2 mocks 
+    thetas = pickle.load(open(os.path.join(dat_dir, 'l2.theta.p'), 'rb'))
+    lgal_sfr = thetas['sfr_1gyr'][:100] # this is because I dont' want to download 2200 mcmc chains
+    lgal_ms = thetas['logM_total'][:100]
+    lgal_logssfr = np.log10(lgal_sfr) - lgal_ms
+
+    # pickle 1 SF 1 Green Valley 1 Quiescent galaxy 
+    is_sf = (lgal_logssfr > -10.5)
+    is_g  = (lgal_logssfr < -10.5) & (lgal_logssfr > -11.0)
+    is_q  = (lgal_logssfr < -11.0)
+    print(lgal_logssfr[5]) 
+
+    i_sf    = 5 #np.random.choice(np.arange(100)[is_sf])
+    i_g     = np.random.choice(np.arange(100)[is_g]) # 92
+    i_q     = 68 # np.random.choice(np.arange(100)[is_q])
+
+    #igals = [i_sf, i_g, i_q]
+    #colrs = ['C0', 'C2', 'C1']
+    #print(igals) 
+    igals = [i_q, i_sf, i_q]
+    colrs = ['C1', 'C0']
+    
+    # plot 
+    fig = plt.figure(figsize=(12,5))
+    sub0 = fig.add_subplot(121)
+    sub1 = fig.add_subplot(122)
+    
+    for i, igal, colr in zip(range(len(igals)), igals, colrs):
+        zred = thetas['redshift'][igal]
+
+        tlb_true = thetas['t_lookback'][igal]
+        sfh_true = (thetas['sfh_disk'][igal] + thetas['sfh_bulge'][igal]) / thetas['dt'][igal] / 1e9
+
+        zh_true_disk    = thetas['Z_disk'][igal]
+        zh_true_bulge   = thetas['Z_bulge'][igal]
+        zh_mw_true      = (zh_true_disk * thetas['sfh_disk'][igal] + zh_true_bulge * thetas['sfh_bulge'][igal]) / (thetas['sfh_disk'][igal] + thetas['sfh_bulge'][igal])
+
+        # read MCMC chain 
+        chain = pickle.load(open(os.path.join(dat_dir, 'L2', 
+            'SP2.provabgs.%i.chain.p' % igal), 'rb'))
+        flat_chain = UT.flatten_chain(chain['mcmc_chain'][1500:,:,:])[:,:-1] # ignore f_fiber
+        # calculate SFHs and ZHs
+        m_nmf = Models.NMF(burst=True, emulator=True) # SPS model  
+        
+        _sfhs = [m_nmf.SFH(tt, zred=zred) for tt in flat_chain]
+
+        tlb_edges = _sfhs[0][0] # lookback time bin edges
+
+        sfhs = np.array([_sfh[1] for _sfh in _sfhs]) # star-formation histories 
+        zhs  = np.array([m_nmf.ZH(tt, zred=zred)[1] for tt in flat_chain]) # metallicity histories
+
+        # get quantiles of the SFHs and ZHs 
+        q_sfhs  = np.quantile(sfhs, [0.025, 0.16, 0.5, 0.84, 0.975], axis=0) 
+        q_zhs   = np.quantile(zhs, [0.025, 0.16, 0.5, 0.84, 0.975], axis=0) 
+        
+        sub0.plot(tlb_true, sfh_true, ls='--', c=colr)
+        sub0.fill_between(0.5*(tlb_edges[1:] + tlb_edges[:-1]), q_sfhs[0], q_sfhs[-1], 
+                alpha=0.2, color=colr, linewidth=0)
+        sub0.fill_between(0.5*(tlb_edges[1:] + tlb_edges[:-1]), q_sfhs[1], q_sfhs[-2], 
+                alpha=0.5, color=colr, linewidth=0)
+
+        sub1.plot(tlb_true, zh_mw_true, c=colr, ls='--', label='LGAL (true)')
+        sub1.fill_between(0.5*(tlb_edges[1:] + tlb_edges[:-1]), q_zhs[0], q_zhs[-1],
+                alpha=0.2, color=colr, linewidth=0)
+        sub1.fill_between(0.5*(tlb_edges[1:] + tlb_edges[:-1]), q_zhs[1], q_zhs[-2],
+                alpha=0.5, color=colr, linewidth=0, label='PROVABGS inferred')
+
+        if i == 0: sub1.legend(loc='lower left', fontsize=20, handletextpad=0.2)  
+        
+    sub0.set_ylabel(r'star formation history [$M_\odot/{\rm yr}$]', fontsize=25) 
+    sub0.set_xlim(0., 12)
+    sub0.set_yscale('log')
+
+    sub1.set_ylabel(r'metallicity history', fontsize=25) 
+    sub1.set_xlim(0., 12)
+    sub1.set_yscale('log')
+
+    bkgd = fig.add_subplot(111, frameon=False)
+    bkgd.set_xlabel(r'$t_{\rm lookback}$', labelpad=10, fontsize=30) 
+    bkgd.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+
+    fig.subplots_adjust(wspace=0.3)
+    _ffig = os.path.join(dir_doc, 'sfh_demo.pdf')
+    fig.savefig(_ffig, bbox_inches='tight') 
     return None 
 
 
@@ -2133,7 +2227,7 @@ def model_prior():
 
 
 if __name__=="__main__": 
-    #BGS()
+    BGS()
 
     #FM_photo()
     #FM_spec()
@@ -2149,7 +2243,7 @@ if __name__=="__main__":
     #eta_l2(method='opt')
     #eta_l2(method='mcmc')
 
-    eta_l2_v2(method='opt')
+    #eta_l2_v2(method='opt')
 
     #eta_photo_l2(method='opt') 
     #eta_photo_l2(method='mcmc') 
@@ -2160,6 +2254,9 @@ if __name__=="__main__":
 
     #eta_msfr_l2(method='opt', nmin=5)
 
+    #SFH_demo()
+
+    # extra figures 
     #_tauism_bulge()
     
     # high SNR only 

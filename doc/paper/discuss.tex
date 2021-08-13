@@ -7,16 +7,49 @@ on galaxy properties using our {\sc PROVABGS} SED modeling.
 \todo{reiterate and discuss advantages of spectra+photometry that emphasizes
 why BGS will be awesome}
 
-\todo{Beyond the galaxy properties we discuss in Section~\ref{sec:results}, we can also derive SFH and ZH}
-In this work, we focus on the following physical properties of galaxies: 
-$\log M_*$, $\log\avgsfr$, $\log\zmw$, $\tage$, and $\tauism$. 
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.8\textwidth]{figs/sfh_demo.pdf}
+    \caption{
+        With the {\sc PROVABGS} SPS model, we can infer posteriors on the full
+        star formation and metallicity histories from observations. 
+        We present the inferred SFH and ZH for arbitrarily chosen star-forming
+        galaxy (blue) and quiescent galaxy (orange) from our \lgal~sample.
+        The shaded region represent the 64 and 95\% confidence intervals of the
+        SFH and ZH posteriors. 
+        For comparison, we include the true SFH and ZH (dashed). 
+        The inferred SFH and ZH show good agreement with the true values;
+        however, similar to the inferred $\avgsfr$ and $\zmw$, SFH and ZH are
+        significantly impacted by priors imposed by the SPS model. 
+    } \label{fig:sfh_demo}
+\end{center}
+\end{figure}
+
+
+%\todo{Beyond the galaxy properties we discuss in Section~\ref{sec:results}, we can also derive SFH and ZH}
+In this work, we primarily focus on the following physical properties of
+galaxies: $\log M_*$, $\log\avgsfr$, $\log\zmw$, $\tage$, and $\tauism$. 
 The {\sc PROVABGS} SPS model, however, can constrain galaxy properties beyond
 these properties. 
 The SPS model employs nonparametric SFH and ZH prescriptions based on NMF bases
 and the model parameters include coefficients for these bases. 
 Posteriors on the SPS model parameters, thus, can be used to derive constraints
 on the SFH and ZH. 
-\todo{Figure demonstrating SFH and ZH constraints} 
+In Figure~\ref{fig:sfh_demo}, we present the inferred SFH and ZH of two
+simulated galaxies from our \lgal~sample: a star-forming galaxy (blue) and a
+quiescent galaxy (orange). 
+We mark the 68 and 95\% confidence intervals in the shaded regions. 
+For comparison, we include the true SFH and ZH from \lgal~(dashed).  
+The inferred SFH and ZH is able to generally recover the true histories. 
+We emphasize that current SPS models assume constant ZHs that does not vary
+over time~\citep{carnall2017, leja2019}. 
+Hence inferring ZH over time is one of the key advantages of our {\sc PROVABGS}
+SPS model. 
+Similar to the inferred $\avgsfr$ and $\zmw$, the SFH and ZH constraints are
+also impacted by the priors imposed by our SPS model. 
+We charaterize the  
+
 Of course, like the galaxy properties we present in this work, the SFH and ZH
 constraints are also subject to the priors imposed by our SPS model. 
 

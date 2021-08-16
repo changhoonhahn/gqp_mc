@@ -48,18 +48,69 @@ Hence inferring ZH over time is one of the key advantages of our {\sc PROVABGS}
 SPS model. 
 Similar to the inferred $\avgsfr$ and $\zmw$, the SFH and ZH constraints are
 also impacted by the priors imposed by our SPS model. 
-We charaterize the  
+We charaterize the impact of the prior in detail in
+Appendix~\ref{sec:model_priors}.
 
-Of course, like the galaxy properties we present in this work, the SFH and ZH
-constraints are also subject to the priors imposed by our SPS model. 
+The most significant limitation of the {\sc PROVABGS} SED modeling in
+accurately inferring the true galaxy properties is the prior on galaxy
+properties imposed by the model. 
+This prior is a major limitation for any SED modeling
+methods~\citep{carnall2017, leja2019}. 
+It is a consequence of the fact that galaxy properties are \emph{not}
+parameters of the SPS model.
+For instance, $\avgsfr$ and $\zmw$ are derived by integrating the SFH and ZH
+(Eq.~\ref{eq:prop_eqs}), which are parameterized by $\beta_1, \beta_2, \beta_3,
+\beta_4$ and $\gamma_1, \gamma_2$. 
+Hence, uniform priors on $\beta$s and $\gamma$s (Section~\ref{sec:infer} and
+Table~\ref{tab:params}) do not translate into uniform priors on $\avgsfr$ and
+$\zmw$.
+Other galaxy properties (\emph{e.g.}~$\tage$, SFH, and ZH) likewise have
+non-uniform, and undesireable, priors. 
 
+One way to address this issue  is to choose an SED model that does not impose
+extreme priors on galaxy properties and characterize the priors in detail so
+that final posteriors can be appropriately  interpreted. 
+For our {\sc PROVABGS} model, we explicitly chose our SFH prescription so that
+the prior on $\log\avgssfr$ extends the range $-12$ to $-9$ dex.
+Furthermore, in Appendix~\ref{sec:model_priors} and
+Figures~\ref{fig:model_priors} and~\ref{fig:sfh_prior}, we fully characterize
+the prior on $\avgssfr$, $\zmw$, $\tage$, SFH, and ZH.
+However, we can go beyond solely minimizing the impact of the priors. 
+With an estimate of the prior distribution, we can impose maximum-entropy
+priors in a specified distribution~\citep{handley2019}. 
+From an estimate of the prior distribution on the galaxy properties, we can
+derive a new prior on the SPS model parameters that would impose uniform priors
+on the galaxy properties. 
+In Hahn in preparation, I will demonstrate that with this new prior, we can
+infer posteriors on derived galaxy properties without being significantly
+impacted by their prior. 
+With this prior correction, we will be able to infer even more accurate
+posteriors on the physical properties of galaxies with our {\sc PROVABGS} SED
+modeling.
 
-\todo{model priors and preview of how we can correct for it}
-
-\todo{caveat paragraph} 
+In this work, we use mock observations to demonstrate that we can infer
+accurate and precise posteriors on certain galaxy properties.
+The mock observations were constructed from \lgal~and include photometry and
+spectra. 
+To generate the spectra, we scale the SED flux to model the fiber aperture
+effect --- DESI spectra only include light from a galaxy collected within the
+DESI fiber aperture (Section~\ref{sec:spec}. 
+We account for this fiber aperture effect in the {\sc PROVABGS} SED model using 
+a normalization factor, $f_{\rm fiber}$ (Section~\ref{sec:sps}). 
+In observations, however, fiber aperture effects can be wavelength dependent
+(\todo{relevant citation}). 
+\todo{reference to Marta's paper on aperture effects}. 
+A single $f_{\rm fiber}$ factor would not be sufficient for a fiber aperture
+effect with a strong wavelength dependence. 
+Other SED models use a more wavelength dependent model for flux aperture effect
+such as a Chebyschev polynomials~\citep[\emph{e.g.}][]{}. 
 \begin{itemize}
     \item caveats: flux calibration --- what was implemented versus what will
     need to be implemented in observations
+\end{itemize}
+
+
+\begin{itemize}
     \item caveats: theoretical assumptions --- isochrones and stellar
         libraries, summary of the appendix
 \end{itemize}

@@ -1,8 +1,35 @@
 \section{Discussion} \label{sec:discuss}
 We demonstrate in this work that we can derive accurate and precise posteriors
-on galaxy properties using our {\sc PROVABGS} SED modeling. 
+on specific galaxy properties using the {\sc PROVABGS} SED modeling. 
+Previous works have typically derived ``best-fit'' point estimates of galaxy
+properties by maximizing the likelihood rather than sampling the posterior
+(\tood{cite}). 
+Optimizing the likelihood requires fewer evaluations of the SPS model and thus
+take significantly less computational resources to evaluate. 
+However, the full Bayesian posteriors  have key advantages over point estimates
+of best-fit galaxy properties derived from optimization. 
+First, the maximum-likelihood point estimates do not provide uncertainties on
+the galaxy properties, which our posteriors demonstrate are significant. 
+Some works include uncertainties estimated from the few likelihood
+evaluations~\citep[\emph{e.g.}][]{moustakas2013, boquien2019}. 
+\todo{discussion of grid based methods and why MCMC is better than them.} 
 
-\todo{posterior over MAP}
+However, these methods require strong assumptions on the shape of the
+likelihood and are inacurrate when there are significant parameter
+degeneracies such as the ones in Figure~\ref{fig:posterior}: \emph{e.g.}
+between the burst parameters $f_{\rm burst}$ and SFH NMF basis coefficients
+$\{\beta_1, \beta_2, \beta_3, \beta_4\}$. 
+There are also degeneracies between the ZH and SFH NMF basis coefficients.
+These degeneracies can produce a posterior distribution with multiple modes,
+which means that different sets of SPS parameters can produce comparable fits
+to the observation (Figure~\ref{fig:posterior}). 
+Maximum likelihood methods cannot capture any of these complexities in the
+posterior distribution~\citep[\emph{e.g.}][]{boquien2019} and lead to overall
+less accurate constraints on galaxy properties.  
+Futhermore, as we discuss below, the full posterior on galaxy properties allows
+us to correct for the effects of model priors on galaxy properties. 
+It also opens the door for Bayesian hierarchical approaches.  
+
 
 \todo{reiterate and discuss advantages of spectra+photometry that emphasizes
 why BGS will be awesome}

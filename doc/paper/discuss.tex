@@ -1,99 +1,7 @@
 \section{Discussion} \label{sec:discuss}
-We demonstrate in this work that we can derive accurate and precise posteriors
-on specific galaxy properties using the {\sc PROVABGS} SED modeling. 
-We infer full Bayesian posteriors on galaxy properties, unlike many previous
-works that derive ``best-fit'' point estimates from maximizing the likelihood.
-Posteriors have crucial advantages over maximum likelihood estimates. 
-For instance, maximum likelihood estimates do \emph{not} provide uncertainties
-on the galaxy properties. 
-These uncertainties are significant, especially for properties such as $\zmw$
-(Figure~\ref{fig:prop_inf}), and ignoring them overestimates the statistical
-precision of the derived galaxy proprties. 
-Although, some maximum likelihood methods provide estimates on the
-uncertainties~\citep[\emph{e.g.}][]{moustakas2013, boquien2019}, 
-they require strong assumptions on the shape of the likelihood. 
-Hence they are inaccurate when there are significant parameter degeneracies or
-when the posterior distribution has multiple modes.
-This is the case for our SED modeling, where we find a multimodal posterior
-distribution with \emph{e.g.} degeneracies between $f_{\rm burst}$ and
-$\{\beta_1, \beta_2, \beta_3, \beta_4\}$ or between 
-$\{\gamma_1, \gamma_2\}$ and $\{\beta_1, \beta_2, \beta_3, \beta_4\}$
-(Figure~\ref{fig:posterior}). 
-Maximum likelihood methods cannot capture these
-complexities~\citep[\emph{e.g.}][]{boquien2019} and, therefore, lead
-to overall less accurate constraints on galaxy properties.  
-Furthermore, as we discuss further in this section, the posteriors on galaxy
-properties enable us to correct for the priors imposed on galaxy properties by
-our SPS model.
-They also open the door for rigorous population inference and hierarchical
-Bayesian approaches. 
-
-\todo{not sure if this belongs here} 
-In addition to the demonstrating the accuracy and precision of the inferred
-galaxy properties, our results also highlight the advantages of including
-spectra in SED modeling. 
-Galaxy spectra provide precise spectroscopic redshifts, which is essential for
-deriving meaningful constraints on galaxy properties. 
-However, beyond providing redshift, we find that spectra provide substantial
-statistical power for constraining galaxy galaxy properties. 
-For instance, including spectra in the SED modeling significantly reduces the
-bias of our $\zmw$ and $\tage$ constraints (Figure~\ref{fig:etas}). 
-It also reduces the lower bound on the inferred $\avgsfr$. 
-In fact, without spectra, we are dominated by priors on $\avgsfr$ and cannot
-robustly infer galaxy properties of quiescent galaxies with $\log\avgsfr > 0$
-dex.
-We emphasize that all of these benefits come from spectra with the SNR of BGS,
-which is observing during bright time. 
-With ${>}10$ million galaxy spectra of BGS, {\sc PROVABGS} will go beyond other
-galaxy surveys provide a unprecedented statistically powerful value-added
-galaxy catalog. 
-
-\begin{figure}
-\begin{center}
-\includegraphics[width=0.7\textwidth]{figs/sfh_demo.pdf}
-    \caption{
-        With the {\sc PROVABGS} SPS model, we can infer posteriors on the full
-        star formation and metallicity histories from observations. 
-        We present the inferred SFH and ZH for arbitrarily chosen star-forming
-        galaxy (blue) and quiescent galaxy (orange) from our \lgal~sample.
-        The shaded region represent the 64 and 95\% confidence intervals of the
-        SFH and ZH posteriors. 
-        For comparison, we include the true SFH and ZH (dashed). 
-        The inferred SFH and ZH show good agreement with the true values;
-        however, similar to the inferred $\avgsfr$ and $\zmw$, SFH and ZH are
-        significantly impacted by priors imposed by the SPS model. 
-    } \label{fig:sfh_demo}
-\end{center}
-\end{figure}
-
-
-%\todo{Beyond the galaxy properties we discuss in Section~\ref{sec:results}, we can also derive SFH and ZH}
-In this work, we primarily focus on the following physical properties of
-galaxies: $\log M_*$, $\log\avgsfr$, $\log\zmw$, $\tage$, and $\tauism$. 
-The {\sc PROVABGS} SPS model, however, can constrain galaxy properties beyond
-these properties. 
-The SPS model employs nonparametric SFH and ZH prescriptions based on NMF bases
-and the model parameters include coefficients for these bases. 
-Posteriors on the SPS model parameters, thus, can be used to derive constraints
-on the SFH and ZH. 
-In Figure~\ref{fig:sfh_demo}, we present the inferred SFH and ZH of two
-simulated galaxies from our \lgal~sample: a star-forming galaxy (blue) and a
-quiescent galaxy (orange). 
-We mark the 68 and 95\% confidence intervals in the shaded regions. 
-For comparison, we include the true SFH and ZH from \lgal~(dashed).  
-The inferred SFH and ZH is able to generally recover the true histories. 
-We emphasize that current SPS models assume constant ZHs that does not vary
-over time~\citep{carnall2017, leja2019}. 
-Hence inferring ZH over time is one of the key advantages of our {\sc PROVABGS}
-SPS model. 
-Similar to the inferred $\avgsfr$ and $\zmw$, the SFH and ZH constraints are
-also impacted by the priors imposed by our SPS model. 
-We charaterize the impact of the prior in detail in
-Appendix~\ref{sec:model_priors}.
-
 The most significant limitation of the {\sc PROVABGS} SED modeling in
-accurately inferring the true galaxy properties is the prior on galaxy
-properties imposed by the model. 
+inferring the true galaxy properties is the prior on galaxy properties imposed
+by the model. 
 The effect of such priors is  a major limitation for any SED modeling
 methods~\citep{carnall2017, leja2019}. 
 It is a consequence of the fact that galaxy properties are \emph{not}
@@ -115,7 +23,8 @@ the prior on $\log\avgssfr$ extends the range $-12$ to $-9$ dex.
 Furthermore, in Appendix~\ref{sec:model_priors} and
 Figures~\ref{fig:model_priors} and~\ref{fig:sfh_prior}, we fully characterize
 the prior on $\avgssfr$, $\zmw$, $\tage$, SFH, and ZH.
-However, we can go beyond solely minimizing the impact of the priors. 
+However, we can go beyond minimizing the impact of the priors and use
+maximum-entropy 
 With an estimate of the prior distribution, we can impose maximum-entropy
 priors in a specified distribution~\citep{handley2019}. 
 From an estimate of the prior distribution on the galaxy properties, we can
@@ -160,31 +69,112 @@ $3600 - 5930$, $5660 - 7720$, and $7470 - 9800 \AA$.
 After sky subtraction, flux calibration is performed on each channel of the
 spectra by matching physical stellar models to spectra of spectrohotometric
 standard stars observed in the same exposure. 
-\todo{some concrete number about how well flux calibration works}. 
-Despite the overall excellent performance of DESI flux calibration, since the
-calibration is performed for each channel seaparately, inaccuracies can imprint
-a wavelength dependent residual. 
+Since the calibration is performed for each channel seaparately, imperfections
+can imprint a wavelength dependent residual. 
+However, in \todo{some concrete statement about how well flux calibration works
+from SV paper}.
+%Despite the overall excellent performance of DESI flux calibration, 
 In Ramos \etal~(in preparation), we examine the fiber aperture effect and
 wavelength dependent imprints on DESI spectra using BGS spectra from the DESI
 Survey Validataion data and MaNGA observations. 
 \todo{some statement about how we will devise a correction or marginalization
 accordingly}. 
 We note that the {\sc PROVABGS} SED modeling pipline already includes flux
-calibration models beyond a single $f_{\rm fiber}$. 
-It can also easily be extended to include more sophisticated models such as a
-Chebyschev polynomial flux calibration model used in other SED
-models~\citep[\emph{e.g.}][]{carnall2017, tacchella2021}. 
+calibration models beyond a single $f_{\rm fiber}$ and can easily be extended
+to include more sophisticated models~\citep[\emph{e.g.} Chebyschev
+polynomial][]{carnall2017, tacchella2021}. 
 
-\begin{itemize}
-    \item caveats: theoretical assumptions --- isochrones and stellar
-        libraries, summary of the appendix
-\end{itemize}
+\todo{paragraph on how we handle theoretical assumptions --- isochrones and
+stellar libraries, summary of the appendix}
 
-\todo{PROVABGS discussion  paragraph} 
-\begin{itemize}
-\item despite the caveats, this work demonstrates that the galaxy
-    properties inferred will be robust and awesome. Paragraph that mentions
-    the extension of all the previous science applicatoins 
-\item paragraph that discusses the new science applications with the
-    posteriors. 
-\end{itemize}
+\todo{Nevertheless,} we demonstrate with the mock challenge that we can derive
+accurate and precise constraints on specific galaxy properties using the {\sc
+PROVABGS} SED modeling. 
+The {\sc PROVABGS} catalog will have a number of key advantages over other
+value-added galaxy catalogs. 
+First, {\sc PROVABGS} will provide full Bayesian posteriors on galaxy
+properties intead of ``best-fit'' point estimates from maximizing the
+likelihood. 
+Posterior distributions are essential for accurately estimating uncertainties
+on galaxy properties.  
+As we find earlier, these uncertainties are significant, especially for
+properties such as $\zmw$ (Figure~\ref{fig:prop_inf}), and ignoring them
+overestimates the statistical precision of the derived galaxy proprties. 
+
+Furthermore, the {\sc PROVABGS} posteriors will be derived from MCMC sampling
+rather than grid-based methods often used in the
+past~\citep[\emph{e.g.}][]{dacunha2008, moustakas2013, boquien2019}.
+As a result, they can accurately estimate posterior distributions with
+significant parameter degeneracies or multiple modes (peaks). 
+For instance, in the posterior of Figure~\ref{fig:posterior} we find
+degeneracies between $f_{\rm burst}$ and $\{\beta_1, \beta_2, \beta_3,
+\beta_4\}$ and between $\{\gamma_1, \gamma_2\}$ and $\{\beta_1, \beta_2,
+\beta_3, \beta_4\}$; the posterior is also multi-modal. 
+Accurately posteriors are especially important in order to use maximum-entropy
+proirs to correct for the model priors on galaxy properties discussed earlier. 
+Also, grid-based methods scale exponentially with the number of SPS parameters
+so they quickly become infeasible as the dimensionality of SPS models increase.  
+Meanwhile, MCMC scales approximately linearly with the number of parameters. 
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.7\textwidth]{figs/sfh_demo.pdf}
+    \caption{
+        With the {\sc PROVABGS} SPS model, we can infer posteriors on the full
+        star formation and metallicity histories from observations. 
+        We present the inferred SFH and ZH for arbitrarily chosen star-forming
+        galaxy (blue) and quiescent galaxy (orange) from our \lgal~sample.
+        The shaded region represent the 64 and 95\% confidence intervals of the
+        SFH and ZH posteriors. 
+        For comparison, we include the true SFH and ZH (dashed). 
+        The inferred SFH and ZH show good agreement with the true values;
+        however, similar to the inferred $\avgsfr$ and $\zmw$, SFH and ZH are
+        significantly impacted by priors imposed by the SPS model. 
+    } \label{fig:sfh_demo}
+\end{center}
+\end{figure}
+%\todo{Beyond the galaxy properties we discuss in Section~\ref{sec:results}, we can also derive SFH and ZH}
+In this work, we primarily focus on the following physical properties of
+galaxies: $\log M_*$, $\log\avgsfr$, $\log\zmw$, $\tage$, and $\tauism$. 
+The {\sc PROVABGS} SPS model, however, can constrain galaxy properties beyond
+these properties. 
+The SPS model employs nonparametric SFH and ZH prescriptions based on NMF bases
+and the model parameters include coefficients for these bases. 
+Posteriors on the SPS model parameters, thus, can be used to derive constraints
+on the SFH and ZH. 
+In Figure~\ref{fig:sfh_demo}, we present the inferred SFH and ZH of two
+simulated galaxies from our \lgal~sample: a star-forming galaxy (blue) and a
+quiescent galaxy (orange). 
+We mark the 68 and 95\% confidence intervals in the shaded regions. 
+For comparison, we include the true SFH and ZH from \lgal~(dashed).  
+The inferred SFH and ZH is able to generally recover the true histories. 
+We emphasize that current SPS models assume constant ZHs that does not vary
+over time~\citep{carnall2017, leja2019}. 
+Hence inferring ZH over time is one of the key advantages of our {\sc PROVABGS}
+SPS model. 
+Similar to the inferred $\avgsfr$ and $\zmw$, the SFH and ZH constraints are
+also impacted by the priors imposed by our SPS model. 
+We charaterize the impact of the prior in detail in
+Appendix~\ref{sec:model_priors}.
+
+Another key advantage of {\sc PROVABGS} is that it will infer galaxy
+properties from joint SED modeling of photometry \emph{and spectra}. 
+Our results illustrate the advantages of including spectra in SED modeling. 
+Galaxy spectra provide substantial statistical power for constraining galaxy
+galaxy properties. 
+In addition to overall tightening the constraints, the statistical power of
+galaxy spectra is essential for mitigating the effect of the model priors. 
+For instance, including spectra in the SED modeling significantly reduces the
+bias of our $\zmw$ and $\tage$ constraints (Figure~\ref{fig:etas}). 
+It also reduces the lower bound on the inferred $\avgsfr$. 
+In fact, without spectra, we are dominated by priors on $\avgsfr$ and cannot
+robustly infer galaxy properties of quiescent galaxies with $\log\avgsfr > 0$
+dex.
+%We emphasize that all of these benefits come from spectra with the SNR of BGS, which is observing during bright time. 
+
+With over $10$ million DESI BGS galaxy spectra, {\sc PROVABGS} will provide a
+value-added galaxy catalog with unprecedented statistical power. 
+\todo{Paragraph that mentions the extension of all the previous science
+applicatoins.}
+
+\todo{paragraph that discusses the new science applications with the posteriors.}

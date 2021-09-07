@@ -26,6 +26,12 @@ Alsing J.,  et~al., 2019, arXiv:1911.11778 [astro-ph]
 Baronchelli L.,  Nandra K.,   Buchner J.,  2020, \mn@doi [Monthly Notices of
   the Royal Astronomical Society] {10.1093/mnras/staa2684}, 498, 5284
 
+\bibitem[\protect\citeauthoryear{Behroozi, Wechsler, Hearin  \&
+  Conroy}{Behroozi et~al.}{2019}]{behroozi2019}
+Behroozi P.,  Wechsler R.~H.,  Hearin A.~P.,   Conroy C.,  2019, \mn@doi
+  [Monthly Notices of the Royal Astronomical Society] {10.1093/mnras/stz1182},
+  p.~1134
+
 \bibitem[\protect\citeauthoryear{Betancourt}{Betancourt}{2012}]{betancourt2012}
 Betancourt M.~J.,  2012, \mn@doi [arXiv:1010.3436 [physics]]
   {10.1063/1.3703631}, pp 157--164
@@ -46,6 +52,12 @@ Boquien M.,  Burgarella D.,  Roehlly Y.,  Buat V.,  Ciesla L.,  Corre D.,
 {Boylan-Kolchin} M.,  Springel V.,  White S. D.~M.,  Jenkins A.,   Lemson G.,
   2009, \mn@doi [Monthly Notices of the Royal Astronomical Society]
   {10.1111/j.1365-2966.2009.15191.x}, 398, 1150
+
+\bibitem[\protect\citeauthoryear{Brinchmann, Charlot, White, Tremonti,
+  Kauffmann, Heckman  \& Brinkmann}{Brinchmann et~al.}{2004}]{brinchmann2004}
+Brinchmann J.,  Charlot S.,  White S. D.~M.,  Tremonti C.,  Kauffmann G.,
+  Heckman T.,   Brinkmann J.,  2004, \mn@doi [Monthly Notices of the Royal
+  Astronomical Society] {10.1111/j.1365-2966.2004.07881.x}, 351, 1151
 
 \bibitem[\protect\citeauthoryear{Caplar \& Tacchella}{Caplar \&
   Tacchella}{2019}]{caplar2019}
@@ -310,6 +322,11 @@ Tacchella S.,  et~al., 2021, arXiv e-prints, 2102, arXiv:2102.12494
 \bibitem[\protect\citeauthoryear{Tinker, Wetzel  \& Conroy}{Tinker
   et~al.}{2011}]{tinker2011}
 Tinker J.,  Wetzel A.,   Conroy C.,  2011, preprint, 1107, arXiv:1107.5046
+
+\bibitem[\protect\citeauthoryear{Tinker, Wetzel, Conroy  \& Mao}{Tinker
+  et~al.}{2017}]{tinker2017}
+Tinker J.~L.,  Wetzel A.~R.,  Conroy C.,   Mao Y.-Y.,  2017, \mn@doi [Monthly
+  Notices of the Royal Astronomical Society] {10.1093/mnras/stx2066}, 472, 2504
 
 \bibitem[\protect\citeauthoryear{Treu, Auger, Koopmans, Gavazzi, Marshall  \&
   Bolton}{Treu et~al.}{2010}]{treu2010}

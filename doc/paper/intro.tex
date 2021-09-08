@@ -2,17 +2,19 @@
 % galaxy evolution with big data 
 Large galaxy surveys have been transformational for our understanding of galaxy
 evolution. 
-With surveys such as the Sloan Digital Sky Survey~\citep[SDSS][]{york2000},
-Galaxy and Mass Assembly survey~\citep[GAMA][]{driver2011}, and 
-PRIsm MUlti-object Survey~\citep[PRIMUS][]{coil2011}, 
+With surveys such as the Sloan Digital Sky Survey~\citep[SDSS;][]{york2000},
+Galaxy and Mass Assembly survey~\citep[GAMA;][]{driver2011}, and 
+PRIsm MUlti-object Survey~\citep[PRIMUS;][]{coil2011}, 
 we have now established the global trends of galaxies in the local universe. 
 For instance, population statistiscs, such as the stellar mass
-function~\citep{} or quiescent fraction~\citep{}, and their evolution are now 
-well understood. 
+function~\citep{li2009, marchesini2009, moustakas2013} or quiescent
+fraction~\citep{kauffmann2003a, blanton2003, baldry2006, taylor2009}, and their
+evolution are now well understood. 
 Many global scaling relations of galaxy propreties such as the mass-metallicity
-relation~\citep{} or
-the ``star formation sequence'' of star forming galaxies~\citep{} have also
-been firmly established by these observations. 
+relation~\citep{tremonti2004} or
+the ``star formation sequence'' of star forming galaxies~\citep{noeske2007,
+daddi2007, salim2007, speagle2014} have also been firmly established by these
+observations. 
 However, despite their importance in building our current understanding, these
 empirical relations on their own do not directly shed light on how galaxies
 form and evolve. 
@@ -31,12 +33,11 @@ of galaxy properties to derive insights into physical processes, such as the
 timescale of star formation quenching~\citep{wetzel2013, hahn2017, tinker2017}. 
 Predicted distributions of galaxy properties of large-scale cosmological 
 hydrodyanmical simulations can also be compared to 
-observations~\citep[\emph{e.g.}][]{genel2014, somerville2015, dave2017,
-trayford2017, donnari2020, dickey2021}.
-%(e.g., Genel et al. 2014; Torrey et al. 2014; Vogelsberger et al. 2014; Schaye et al. 2015; Somerville & Dav ́e 2015; Sparre et al. 2015; Dav ́e et al. 2017; Pillepich et al. 2018a; Nel- son et al. 2018; Trayford et al. 2017; Donnari et al. 2019, 2020a,b).
+observations~\citep[\emph{e.g.}][]{genel2014, somerville2015a, dave2017a,
+trayford2017, dickey2021, donnari2021}.
 Advances in machine learning techniques for accelerating and emulating
-hydrodynamical simulations~\citep{} will enable such comparisons to explore a
-broad range of galaxy formation models.
+hydrodynamical simulations~\citep{villaescusa-navarro2021} will enable such
+comparisons to explore a broad range of galaxy formation models.
 Soon we will be able to compare detailed galaxy formation models directly
 against observations and explore the parameter spaces of the models. 
 What all of these approaches share is that they require more statistically
@@ -74,17 +75,16 @@ LS optical sources~\citep{meisner2017, meisner2017a}.
     During bright time, DESI will measure the spectra of ${\sim}10$ million
     galaxies out to $z{\sim}0.6$ with the Bright Galaxy Survey (BGS).
     {\em Left}: BGS (blue) will cover ${\sim}2\times$ the SDSS footprint
-    (orange; ${\sim}7000~{\rm deg}^2$) and ${\sim}45\times$ the GAMA footprint
-    (red; ${\sim}300~{\rm deg}^2$).
-    {\em Right}: We present the redshift distribution of DESI BGS as predicted
-    by the MXXL simulation (blue).  
+    (orange) and ${\sim}45\times$ the GAMA footprint (red).
+    {\em Right}: We present the redshift distribution of BGS as predicted by
+    the MXXL simulation (blue). 
     We include the redshift distribution of SDSS (orange) and GAMA multiplied
     by $10\times$ (red) for comparison. 
     BGS will be two orders of magnitude deeper than the SDSS main galaxy sample
     and deeper than GAMA.
     BGS will provide spectra for a magnitude limited sample of ${\sim}10$
     million galaxies down to $r < 19.5$ (BGS Bright) and a deeper sample of
-    ${\sim 4}$ million galaxies as faint as $r < 20.175$ (BGS Faint).
+    ${\sim 5}$ million galaxies as faint as $r < 20.175$ (BGS Faint).
 }
 \label{fig:bgs}
 \end{center}
@@ -148,50 +148,67 @@ provides spectral properties (\emph{e.g.} emission line
 luminosities).
 Despite being released over a decade ago, these VACs are still widely used
 today~\citep[\emph{e.g.}][]{alpaslan2021, odonnell2021, trevisan2021}. 
-Accompanying the BGS observations, the DESI Galaxy Quasar Physics working group
-will produce the PRObabilistic Valued-Added Bright Galaxy Survey (PROVABGS)
-catalog. 
-PROVABGS will exploit the latest developments to infer galaxy properties from
-DESI observations and maximize the scientific impact of BGS. 
+Accompanying the BGS observations, the DESI Galaxy Quasar Physics (GQP) working
+group will produce the PRObabilistic Valued-Added Bright Galaxy Survey
+(PROVABGS) catalog. 
 
-For all ${\sim}10$ million BGS galaxies, PROVABGS will provide full posterior
+For all ${>}10$ million BGS galaxies, PROVABGS will provide full posterior
 probability distributions of physical properties such as stellar mass ($M_*$),
-star formation rate (SFR), metallicity, and stellar age. 
+star formation rate (SFR), metallicity ($Z$), and stellar age ($\tage$). 
 These properties will be inferred from both the LS photometry and DESI
 spectroscopy using a state-of-the-art Bayesian modeling of the galaxy spectral
 energy distribution (SED). 
-With these properties, PROVABGS will enable direct extension of previous works
-to the more complete and statistically powerful spectroscopic galaxy sample. 
-For instance, $M_*$ values will be used to measure the stellar mass function
-down to \todo{$M_* \sim 10^{8}M_\odot$} (Hahn\etal~in prep.). 
-$M_*$ and SFR will also be used to more precisely measure the star forming
-sequence.
-Detailed galaxy environment studies will be 
+PROVABGS will enable conventional analyses to be extended to a more
+statistically powerful spectroscopic galaxy sample. 
+Population statistics such as the stellar mass function or the star formation
+sequence will be measured with higher precision than previously possible and
+for a wider range of galaxies (Figure~\ref{fig:bgs_mstar}). 
+The high completeness and simple selection function of the BGS Bright sample
+will also facilitate  comparisons to empirical models or galaxy formation
+simulations with new approaches. 
 
-Moreover, instead of point estimates of galaxy properties, PROVABGS will
-provide full posterior distributions. 
-\todo{provabgs introduces a new frontier of low signal-to-noise statistically
-powerful sample that will require}
+Moreover, PROVABGS will provide more accurate measurements of galaxy properties
+from full posterior distributions, rather than point estimates. 
+Posteriors more accurately estimate the uncertainties on the galaxy property
+measurements and any degeneracies among them. 
+Hence, PROVABGS will enable a new level of statistical robustness in galaxy
+evolution studies.
+The PROVABGS posteriors will also open the door for Bayesian Hierarchical
+approaches.
+For instance, we can combine posteriors of galaxies to conduct principled
+population inference. 
+Beyond mitigating biases, this will allow us to more fully exploit the 
+observations since we can robustly include galaxies with less tightly
+constrained properties.  
+Little explored low signal-to-noise regimes that can be probed with this
+approach may shed light on galaxy evolution.
+Hierarchical inference can also improve the statistical power of BGS through
+Bayesian shrinkage: the joint posterior of the galaxy sample can be used as the
+prior to shrink the uncertainties on the properties of individual galaxies. 
+With all these advantages, PROVABGS will provide a VAC that fully exploits the
+DESI observations and maximizes the scientific impact of BGS. 
 
-%Increasingly sophisticated statistical studies of the overall population of galaxies as a function of mass, cosmic time, and environment have provided a basic picture of the formation and evolution of galaxies
+In this paper, we present the mock challenge for PROVABGS conducted by the GQP
+working group. 
+We present the state-of-the-art SED modeling that will be used to infer the
+galaxy properties of BGS galaxies and construct the PROVABGS. 
+We use an SED model with non-parametric prescriptions for galaxy star formation
+and metallicity histories and accelerate the parameter inference using neural
+emulators. 
+Moreover, we validate our SED modeling on realistic mock BGS observations
+constructed using the {\sc L-Galaxies} semi-analytic
+model~\citep{henriques2015} and DESI survey simulations. 
+By applying our SED model on mock observations, where we know the true galaxy
+properties, we demonstrate that we can accurately infer galaxy properties for
+PROVABGS and highlight the advantages of jointly analyzing photometric and
+spectroscopic observations. 
+Furthermore, we characterize, in detail, the limitations of our SED modeling so
+that future studies using PROVABGS can use this work as a key reference in
+interpreting their results. 
 
-\todo{Why do we need a mock challenge? i.e. what are the goals of this paper?}
-We want to test and cement our methodology specifically for our GQP 
-analysis before SV data comes out. 
-As part of the survey preparation, we have all the tools to accurately 
-forward model observations. 
-\todo{details on some of the specific tools and what we're able to simulate: 
-realistic spectroscopy. realistic photometry. realistic spectro-photometry} 
-All of this gives us a rare opportunity to test our methodology on bespoke
-simulations. 
-
-\todo{overview of the paper} 
-A mock challenge is also great for testing new methodology.
-BGS is a bright time survey and will push the boundaries of low SNR 
-spectra. But if we can find a way to  infer robust galaxy properties the 
-statistical payout is awesome. \todo{Something also about LRGs} 
-We're also trying to robustly fit spectra and photometry simultaneously. 
-This has been done before (\todo{citations}) but not extensively tested 
-on simulations. 
-
-
+In Section~\ref{sec:sims}, we describe the {\sc L-Galaxies} semi-analytic
+model and how we use them to construct mock BGS observations. 
+We then present the SED model, our Bayesian parameter inference framework with
+neural emulators, and the mock challenge in Section~\ref{sec:methods}. 
+We present the results of the mock challenge in Section~\ref{sec:results} and
+discuss their implications in Section~\ref{sec:discuss}. 

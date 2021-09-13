@@ -74,7 +74,7 @@
 
 \begin{document} \sloppy\sloppypar\frenchspacing 
 
-\title{The DESI PRObabilistic Value-Added Bright Galaxy Survey (PROVA-BGS) Mock Challenge} 
+\title{The DESI PRObabilistic Value-Added Bright Galaxy Survey (PROVABGS) Mock Challenge} 
 %\date{\texttt{DRAFT~---~\githash~---~\gitdate~---~NOT READY FOR DISTRIBUTION}}
 
 \newcounter{affilcounter}
@@ -83,27 +83,48 @@
 \affil{Department of Astrophysical Sciences, Princeton University, Peyton Hall, Princeton NJ 08544, USA} 
 
 \author{Gyubin Kwon}
-\author{Malgorzata Siudek} 
 \author{Rita Tojeiro}
+\author{Malgorzata Siudek} 
 \author{GQP WG}
 
 \begin{abstract}
-    In this project, we present the methodology for inferring physical
-    properties of galaxies from joint SED fitting of the DESI optical
-    photometry and spectroscopy. We construct realistic forward modeled DESI
-    data from star formation and chemical enrichment histories of galaxies in
-    the {\sc L-Galaxies} semi-analytic model and the {\sc Illustris TNG}
-    hydrodynamic simulations. Then, using these mock observations, we
-    demonstrate that the stellar mass and SFR posteriors from our SED fitting
-    are consistent with constraints from other SED fitting methods in the
-    literature and, more importantly, the input stellar masses and SFRs from
-    the simulations. The SED fitting we present and validate in this project
-    will be used to construct the PRObabilistic Value-Added Bright Galaxy
-    Survey (PROVABGS) from DESI observations. 
+    The PRObabilistic Value-Added Bright Galaxy Survey (PROVABGS) will provide
+    measurements of galaxy properties, such as stellar mass ($M_*$), star
+    formation rate (SFR), stellar metallicity ($Z_{\rm MW}$), and stellar age
+    ($t_{\rm age, MW}$), for ${>}10$ million galaxies of the DESI Bright Galaxy
+    Survey.
+    Full posterior distributions of the galaxy properties will be inferred
+    using state-of-the-art Bayesian SED modeling of DESI spectroscopy and
+    Legacy Surveys photometry.
+    In this work, we present the SED model, the Bayesian inference framework,
+    and all the methodology of PROVABGS. 
+    Furthermore, we construct realistic synthetic DESI spectra and photometry
+    using galaxies in the {\sc L-Galaxies} semi-analytic model, based on their
+    star formation and chemical enrichment histories, and apply the PROVABGS
+    SED modeling on the mock observations.
+    Afterwards, we compare the galaxy properties that we infer to the true
+    galaxy properties of the simulation using a hierarchical Bayesian framework
+    to quantiy accuracy and precision. 
+    Overall, we accurately infer the true $M_*$, SFR, $Z_{\rm MW}$, and 
+    $t_{\rm age, MW}$ of the simulated galaxies. 
+    However, we find that priors on galaxy properties induced by the SED model
+    have a significant impact on the posteriors. 
+    We characterize the priors in detail and quantify that they impose a 
+    ${\rm SFR} > 10^{-1} M_\odot/{\rm yr}$ lower bound on SFR, a ${\sim}0.3$
+    dex bias on $\log Z_{\rm MW}$ for galaxies with low spectral
+    signal-to-noise, and $t_{\rm age, MW} < 8\,{\rm Gyr}$ upper bound on
+    stellar age. 
+    We also demonstrate that a joint analysis of spectrophotometry
+    significantly improves the constraints on galaxy properties over photometry
+    alone and is necessary to mitigate the impact of the priors. 
+    With the methodology presented and validated in this work, PROVABGS will
+    maximize information extracted from DESI observation and provide a galaxy
+    catalog that will extend current galaxy studies to new regimes and unlock 
+    new probabilistic analyses.
 \end{abstract}
 
 \keywords{
-keyword1 -- keyword2 -- keyword3
+    cosmology: observations -- galaxies: evolution -- galaxies: statistics 
 }
 
 % --- intro ---  
@@ -121,6 +142,8 @@ keyword1 -- keyword2 -- keyword3
 
 \section*{Acknowledgements}
 It's a pleasure to thank
+    Adam Carnall, 
+    Kartheik Iyer, 
     Joel Leja, 
     Jenny Greene, 
     Peter Melchior

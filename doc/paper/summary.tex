@@ -1,5 +1,69 @@
 \section{Summary}
-DESI is great. 
+Over the next five years, DESI will measure spectra for ${>}30$ million
+galaxies, including ${>}10$ million galaxies in BGS during bright time.
+In addition, each DESI galaxy will also have optical photometry from the Legacy
+Survey. 
+This upcoming dataset offers a unique opportunity to leverage its statistical
+power for galaxy evolution and maximize its scientific impact. 
+For instance, having measured galaxy properties for such a statistically
+powerful sample of galaxies would enable us to measure population statistics
+and empirical relations of galxaies with unprecedented precision. 
+It would also enable more complete and precise comparisons between observations
+and galaxy formation models, which will shed light into the physical processes
+of galaxy evolution.
+To exploit this opportunity, we will construct the PRObabilistic Value-Added
+Bright Galaxy Survey (PROVABGS), where we will apply state-of-the-art Bayesian
+SED modeling to jointly analyze DESI spectroscopy and LS photometry. 
+PROVBGS will provide full posterior distributions of galaxy properties, such as
+stellar mass ($M_*$), star formation rate (SFR), stellar metallicity 
+($Z_{\rm MW}$), and stellar age ($\tage$), for ${>}10$ million BGS galaxies.
 
-Also advertise science papers with specific focus on mock
-challenge science papers.
+
+In this work, we present and validate the SED model, Bayesian inference
+framework, and other methods that will be used to construct PROVABGS.
+We use \todo{2239} galaxies in the {\sc L-Galaxies} semi-analytic model to
+construct realistic synthetic DESI spectra and photometry.  
+We build SEDs using stellar population synthesis based on the star formation
+and chemical enrichment histories of the simulated galaxies.
+Then we simulate the SEDs using the forward modeling pipeline used in the BGS
+survey design.  
+Afterwards, we apply the PROVABGS SED modeling on the mock DESI observations to
+derive posteriors on $M_*$, $\avgsfr$, $\zmw$, and $\tage$. 
+From the posteriors and the population inference we conduct to quantify the
+accuracy and precision, we find: 
+\begin{itemize}
+    \item Overall we derive posteriors on galaxy properites that are in good
+        agreement with the true properties of the simulated galaxies. 
+        Furthermore, with posteriors rather than point estimates we accurately
+        estimate the uncertainties on the galaxy properties. 
+        We infer posteriors with the following levels of precision: 
+        $\sigma_{M_*}\sim0.1$dex, $\sigma_{\log\avgsfr}\sim0.1$dex, 
+        $\sigma_{\log\zmw}\sim0.15$dex, and $\sigma_{\tage}\sim0.5$ Gyr. 
+        Our results also demonstrate that we successfully marginalize over the
+        effect of dust and other nuisance parameters. 
+    \item Like any SED model, the PROVABGS SED model also imposes significantly
+        non-uniform priors on galaxy properties. 
+        We find that these priors impose a lower bound on $\avgsfr$ of 
+        $\avgsfr > 10^{-1}M_\odot/{\rm yr}$. 
+        It also biases $\zmw$ by ${\sim}0.3$dex for observations with low
+        spectral signal-to-noise and imposes an upper bound of $\tage < 8$ Gyr
+        on $\tage$. 
+        We characterize the priors in detail so that constraints on galaxy
+        properties can be interpreted in future use of PROVABGS. 
+    \item We compare the posteriors derived from DESI spectrophotometry to
+        those derived from photometry alone. 
+        We find that including spectra substantially improves the constraints
+        on galaxy properties. 
+        In fact, including spectra is {\em essential} for mitigating the impact
+        of the SED model priors. 
+        For example, with photometry alone, the priors impose a more
+        restrictive $\avgsfr > 1 M_\odot/{\rm yr}$ lower bound. 
+\end{itemize}
+\todo{impact of PROVABGS} 
+
+paragraph summarizing the limitations but in a hopeful way. 
+
+Paragraph listing all the follow up papers: 
+Prior correction paper,
+Marta's aperture correction paper,
+announce the PROVABGS-SV paper 

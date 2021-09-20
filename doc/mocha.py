@@ -2226,8 +2226,14 @@ def model_prior():
     return None 
 
 
+def Nmock(): 
+    props_infer, props_truth = L2_chains('SP2')
+    print(props_infer.shape)
+    return None 
+
 if __name__=="__main__": 
-    BGS()
+    #Nmock()
+    #BGS()
 
     #FM_photo()
     #FM_spec()
@@ -2243,7 +2249,7 @@ if __name__=="__main__":
     #eta_l2(method='opt')
     #eta_l2(method='mcmc')
 
-    #eta_l2_v2(method='opt')
+    eta_l2_v2(method='opt')
 
     #eta_photo_l2(method='opt') 
     #eta_photo_l2(method='mcmc') 

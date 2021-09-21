@@ -41,24 +41,26 @@ m_nmf = Models.NMF(burst=True, emulator=True)
 # declare flux calibration 
 m_fluxcalib = FluxCalib.constant_flux_factor
 
+isort = np.argsort(wave_obs)
+
 def run_mcmc(i_obs): 
     fchain_npy  = os.path.join(dat_dir, 'L2', 'SP2.provabgs.%i.chain.npy' % i_obs)
     fchain_p    = os.path.join(dat_dir, 'L2', 'SP2.provabgs.%i.chain.p' % i_obs)
 
-    #if os.path.isfile(fchain_npy) and os.path.isfile(fchain_p): 
-    #    return None 
+    if os.path.isfile(fchain_npy) and os.path.isfile(fchain_p): 
+        return None 
 
     # set prior 
     prior = Infer.load_priors([
         Infer.UniformPrior(7., 12.5, label='sed'),
         Infer.FlatDirichletPrior(4, label='sed'),   # flat dirichilet priors
         Infer.UniformPrior(0., 1., label='sed'), # burst fraction
-        Infer.LogUniformPrior(0., 13.27, label='sed'), # tburst
-        Infer.LogUniformPrior(4.5e-5, 4.5e-2, label='sed'), # log uniform priors on ZH coeff
-        Infer.LogUniformPrior(4.5e-5, 4.5e-2, label='sed'), # log uniform priors on ZH coeff
+        Infer.UniformPrior(1e-2, 13.27, label='sed'), # tburst
+        Infer.LogUniformPrior(4.5e-5, 1.5e-2, label='sed'), # log uniform priors on ZH coeff
+        Infer.LogUniformPrior(4.5e-5, 1.5e-2, label='sed'), # log uniform priors on ZH coeff
         Infer.UniformPrior(0., 3., label='sed'),        # uniform priors on dust1
         Infer.UniformPrior(0., 3., label='sed'),        # uniform priors on dust2
-        Infer.UniformPrior(-3., 1., label='sed'),    # uniform priors on dust_index
+        Infer.UniformPrior(-2., 1., label='sed'),    # uniform priors on dust_index
         Infer.GaussianPrior(theta['f_fiber_meas'][i_obs], theta['f_fiber_sigma'][i_obs]**2, label='flux_calib') # flux calibration 
     ])
 
@@ -67,9 +69,9 @@ def run_mcmc(i_obs):
 
     # run MCMC
     zeus_chain = desi_mcmc.run(
-        wave_obs=wave_obs,
-        flux_obs=flux_obs[i_obs],
-        flux_ivar_obs=ivar_obs[i_obs],
+        wave_obs=wave_obs[isort],
+        flux_obs=flux_obs[i_obs][isort],
+        flux_ivar_obs=ivar_obs[i_obs][isort],
         bands='desi', # g, r, z
         photo_obs=photo_obs[i_obs], 
         photo_ivar_obs=ivar_photo_obs[i_obs], 

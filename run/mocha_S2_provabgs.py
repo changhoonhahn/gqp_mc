@@ -40,32 +40,34 @@ prior = Infer.load_priors([
     Infer.UniformPrior(7., 12.5, label='sed'),
     Infer.FlatDirichletPrior(4, label='sed'),   # flat dirichilet priors
     Infer.UniformPrior(0., 1., label='sed'), # burst fraction
-    Infer.LogUniformPrior(0., 13.27, label='sed'), # tburst
-    Infer.LogUniformPrior(4.5e-5, 4.5e-2, label='sed'), # log uniform priors on ZH coeff
-    Infer.LogUniformPrior(4.5e-5, 4.5e-2, label='sed'), # log uniform priors on ZH coeff
+    Infer.UniformPrior(1e-2, 13.27, label='sed'), # tburst
+    Infer.LogUniformPrior(4.5e-5, 1.5e-2, label='sed'), # log uniform priors on ZH coeff
+    Infer.LogUniformPrior(4.5e-5, 1.5e-2, label='sed'), # log uniform priors on ZH coeff
     Infer.UniformPrior(0., 3., label='sed'),        # uniform priors on dust1
     Infer.UniformPrior(0., 3., label='sed'),        # uniform priors on dust2
-    Infer.UniformPrior(-3., 1., label='sed')     # uniform priors on dust_index
+    Infer.UniformPrior(-2., 1., label='sed')     # uniform priors on dust_index
 ])
+
+isort = np.argsort(wave_obs)
 
 
 def run_mcmc(i_obs): 
-    fchain_npy  = os.path.join(dat_dir, 'L2', 'S2.provabgs_model.%i.chain.npy' % i_obs)
-    fchain_p    = os.path.join(dat_dir, 'L2', 'S2.provabgs_model.%i.chain.p' % i_obs)
+    fchain_npy  = os.path.join(dat_dir, 'L2', 'S2.provabgs.%i.chain.npy' % i_obs)
+    fchain_p    = os.path.join(dat_dir, 'L2', 'S2.provabgs.%i.chain.p' % i_obs)
 
-    #if os.path.isfile(fchain_npy) and os.path.isfile(fchain_p): 
-    #    return None 
+    if os.path.isfile(fchain_npy) and os.path.isfile(fchain_p): 
+        return None 
     
     # desi MCMC object
     desi_mcmc = Infer.desiMCMC(model=m_nmf, prior=prior)
 
     # run MCMC
     zeus_chain = desi_mcmc.run(
-        wave_obs=wave_obs,
-        flux_obs=flux_obs[i_obs],
-        flux_ivar_obs=ivar_obs[i_obs],
+        wave_obs=wave_obs[isort],
+        flux_obs=flux_obs[i_obs][isort],
+        flux_ivar_obs=ivar_obs[i_obs][isort],
         zred=z_obs[i_obs],
-        vdisp=0., # 25 is roughly the median of the L-Galaxies mock 
+        vdisp=0., # no dispersion in the bulge, 50 in the disk... for LGal
         sampler='zeus',
         nwalkers=30,
         burnin=0,

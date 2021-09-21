@@ -1,76 +1,76 @@
 \section{Summary}
 Over the next five years, DESI will measure spectra for ${>}30$ million
 galaxies, including ${>}10$ million galaxies in BGS during bright time.
-Each DESI galaxy will also have optical photometry from the Legacy Survey. 
+Each DESI galaxy will also have optical photometry from the Legacy Surveys. 
 BGS, which will extend out to $z\sim0.6$, will provide a $r < 19.5$
-magnitude-limited sample of ${\sim}10$ galaxies spanning a wide range of galaxy
-properties with high completeness and ${>}95\%$ redshift efficiency. 
+magnitude-limited sample of ${\sim}10$ million galaxies spanning a wide range
+of galaxy properties with high completeness and ${>}95\%$ redshift efficiency.
 It will also include a sample of fainter galaxies down to $r < 20.175$ selected
 based on a fiber magnitude and color. 
 This upcoming dataset offers a unique opportunity to leverage its statistical
 power for galaxy evolution and maximize its scientific impact. 
-For instance, having measured galaxy properties for such a statistically
-powerful sample of galaxies would enable us to measure population statistics
-and empirical relations of galxaies with unprecedented precision. 
+Accurate galaxy properties for such a galaxy sample, for instance,  would
+enable us to measure population statistics and empirical relations of galxaies
+with unprecedented precision. 
 It would also enable more complete and precise comparisons between observations
 and galaxy formation models, which will shed light into the physical processes
 of galaxy evolution.
 To exploit this opportunity, we will construct the PRObabilistic Value-Added
-Bright Galaxy Survey (PROVABGS), where we will apply state-of-the-art Bayesian
-SED modeling to jointly analyze DESI spectroscopy and LS photometry. 
+Bright Galaxy Survey (PROVABGS) catalog, where we will apply state-of-the-art
+Bayesian SED modeling to jointly analyze DESI spectroscopy and LS photometry. 
 PROVBGS will provide full posterior distributions of galaxy properties, such as
 stellar mass ($M_*$), star formation rate (SFR), stellar metallicity 
-($Z_{\rm MW}$), and stellar age ($\tage$), for ${>}10$ million BGS galaxies.
+($Z_{\rm MW}$), and stellar age ($\tage$), for all ${>}10$ million BGS galaxies.
 
 In this work, we present and validate the SED model, Bayesian inference
-framework, and other methods that will be used to construct PROVABGS.
-We use \todo{2239} galaxies in the {\sc L-Galaxies} semi-analytic model to
-construct realistic synthetic DESI spectra and photometry.  
-We build SEDs using stellar population synthesis based on the star formation
-and chemical enrichment histories of the simulated galaxies.
-Then we simulate the SEDs using the forward modeling pipeline used in the BGS
+framework, and other methodology that will be used to construct PROVABGS.
+We use 2,123 galaxies in the {\sc L-Galaxies} semi-analytic model to construct
+realistic synthetic DESI spectra and photometry.  
+We build SEDs using SPS based on the star formation and chemical enrichment
+histories of the simulated galaxies.
+Then, we simulate the SEDs using the forward modeling pipeline used in the BGS
 survey design.  
 Afterwards, we apply the PROVABGS SED modeling on the mock DESI observations to
 derive posteriors on $M_*$, $\avgsfr$, $\zmw$, and $\tage$. 
-From the posteriors and the population inference we conduct to quantify the
+From the posteriors and the population inference we conduct to quantify
 accuracy and precision, we find: 
 \begin{itemize}
-    \item Overall we derive posteriors on galaxy properites that are in good
+    \item Overall, we derive posteriors on galaxy properties that are in good
         agreement with the true properties of the simulated galaxies. 
         Furthermore, with posteriors rather than point estimates we accurately
         estimate the uncertainties on the galaxy properties. 
         We infer posteriors with the following levels of precision: 
-        $\sigma_{M_*}\sim0.1$dex, $\sigma_{\log\avgsfr}\sim0.1$dex, 
-        $\sigma_{\log\zmw}\sim0.15$dex, and $\sigma_{\tage}\sim0.5$ Gyr. 
+        $\sigma_{M_*}\sim0.1$ dex, $\sigma_{\log\avgsfr}\sim0.1$ dex, 
+        $\sigma_{\log\zmw}\sim0.15$ dex, and $\sigma_{\tage}\sim0.5$ Gyr. 
         Our results also demonstrate that we successfully marginalize over the
         effect of dust and other nuisance parameters. 
     \item Like any SED model, the PROVABGS SED model also imposes significantly
         non-uniform priors on galaxy properties. 
         We find that these priors impose a lower bound on $\avgsfr$ of 
         $\avgsfr > 10^{-1}M_\odot/{\rm yr}$. 
-        It also biases $\zmw$ by ${\sim}0.3$dex for observations with low
-        spectral signal-to-noise and imposes an upper bound of $\tage < 8$ Gyr
-        on $\tage$. 
+        It also biases $\zmw$ by ${\sim}0.3$ dex for observations with low
+        spectral signal-to-noise and imposes an upper bound of $\tage < 8$ Gyr. 
         We characterize the priors in detail so that constraints on galaxy
-        properties can be interpreted in future use of PROVABGS. 
+        properties can be interpreted in future studies that will use PROVABGS.
     \item We compare the posteriors derived from DESI spectrophotometry to
         those derived from photometry alone. 
         Including DESI spectra substantially improves the constraints on galaxy
         properties. 
-        In fact, jointly analyzing spectra is {\em essential} for mitigating
+        Moreover, jointly analyzing spectra is {\em essential} for mitigating
         the impact of the SED model priors. 
         For example, with photometry alone, the priors impose a more
-        restrictive $\avgsfr > 1 M_\odot/{\rm yr}$ lower bound. 
+        restrictive $\avgsfr > 1 M_\odot/{\rm yr}$ lower bound and bias $\zmw$
+        ${\sim}0.5$ dex.
 \end{itemize}
 
 We demonstrate with our mock challenge that we will derive accurate and precise
-constraints on galaxy properties in PROVABGS. 
+constraints on specific galaxy properties in PROVABGS. 
 Beyond $M_*$, $\avgsfr$, $\zmw$, and $\tage$, which we focus on in this work, 
 PROVABGS will also constrain star formation and metallicity histories. 
-With galaxy properties of over ${>}10$ BGS galaxies, current galaxy studies
-will be able to use the PROVABGS catalog to exploit the statistical power of
-BGS for the most precise measurements of various galaxy relations. 
-Furthermore, since the BGS samples span a wide range of galaxies, PROVABGS will
+With galaxy properties of over ${>}10$ million BGS galaxies, current galaxy
+studies will be able to use the PROVABGS catalog to exploit the statistical
+power of BGS for the most precise measurements of various galaxy relations.
+Since the BGS samples span a wide range of galaxies, PROVABGS will
 also enable galaxy studies to investigate less explored regimes, such as the
 low mass galaxy populations. 
 PROVABGS will be a fully probabilistic catalog with posteriors for all the
@@ -78,8 +78,9 @@ properties that accurately capture their uncertainties.
 With these posteriors, we can also conduct more rigorous statistical analyses
 using new techinques such as population inference and Bayesian hierarchical
 inference.
-We use one such method, population inference, to estimate the overall accuracy
-and precision of our galaxy property constraints. 
+We demonstrate one such an approach in this work by using population inference,
+to estimate the overall accuracy and precision of our galaxy property
+constraints. 
 These methods will not only improve the accuracy of our analyses but will allow
 us to fully exploit the statistical power of DESI observations. 
 
@@ -94,11 +95,11 @@ assumptions.
 Lastly, we find that the most significant limitation to deriving accurate
 galaxy properties comes from the prior imposed by the SED model. 
 We will address this limitation and present a method to impose uniform priors
-on galaxy properties in the upcoming Hahn~\etal~(in prep.). 
+on galaxy properties in Hahn~(in prep.). 
 
 DESI has started its main 5 year operation. 
-Already, as part of survey validation, DESI has collected \todo{X} spectra of
-BGS galaxies that will be released in the Survey Validation Data Assembly
+Already, as part of survey validation, DESI has collected over 150,000 spectra
+of BGS galaxies that will be released in the Survey Validation Data Assembly
 (SVDA). 
 The SVDA release will also be accompanied by papers describing the data
 reduction pipeline, redshift fitting algorithm, fiber assignment, survey

@@ -11,8 +11,9 @@ demonstrate that we can accurately infer the true galaxy propertries.
 \includegraphics[width=\textwidth]{figs/fm_photo.pdf}
 \caption{{\em Left}: We forward model DESI $g$, $r$, and $z$ photometry (red)
     for our simulated galaxies (Section~\ref{sec:lgal}) by convolving their
-    SEDs (dotted) with the broadband filters (dashed) and then applying an 
-    empirical noise model based on BGS objects in LS (Section~\ref{sec:photo}).
+    SEDs (black dotted) with the broadband filters (dashed) and then applying
+    an empirical noise model based on BGS objects in LS
+    (Section~\ref{sec:photo}).
     {\em Right}: The $g-r$ and $r-z$ color distribution of the forward modeled
     \lgal~photometry is in good agreement with the color distribution of LS BGS
     objects (black contours).} \label{fig:photo}
@@ -29,8 +30,9 @@ M_\odot$ and adopts a \cite{planckcollaboration2014a} $\Lambda$CDM cosmology.
 \lgal~includes prescriptions for gas infall and cooling, star formation, disc
 and bulge formation, stellar and black hole feedback, and the environmental
 effects of tidal and ram-pressure stripping.
-AGN feedback, which prevents hot gas from cooling, is the major mechanism for
-quenching star formation in massive galaxies.
+Feedback from active galactic nuclei (AGN), which prevents hot gas from
+cooling, is the major mechanism for quenching star formation in massive
+galaxies.
 \lgal~model parameters are calibrated against the observed stellar mass
 functions and passive (quiescent) fractions at four different redshifts from 
 $z = 3$ to 0.
@@ -56,10 +58,10 @@ ${\rm SFH}^{\rm comp.}_i$ and $Z^{\rm comp.}_i$ are the star formation rate and
 metallicity of the bulge or disk component in lookback time bin $i$. 
 $\Delta t_i$ is the width of the bin. 
 $L_{\rm SSP}$ corresponds to the luminosity of the SSP, which we calculate
-using the Flexible Stellar Population Synthesis~\citep[\fsps][]{conroy2009,
+using the Flexible Stellar Population Synthesis~\citep[\fsps;][]{conroy2009,
 conroy2010c} model.
 % do we want to describe SPS models? 
-For \fsps, we use the MIST ischrones~\citep{paxton2011, paxton2013, paxton2015,
+For \fsps, we use the MIST isochrones~\citep{paxton2011, paxton2013, paxton2015,
 choi2016, dotter2016}, the MILES spectral library~\citep{sanchez-blazquez2006},
 and the \cite{chabrier2003} initial mass function (IMF). 
 
@@ -76,8 +78,8 @@ Stellar emission from stars younger than $30{\rm Myr}$ are further attenuated
 with a uniform dust screen and a wavelength dependent optical depth.
 %\todo{@rita further details and citations for the mixed-screen model}
 No dust attenuation is applied to the bulge component.
-We use the same dust attenuation as the dust prescription in
-\cite{henriques2015} uses to construct galaxy colors. 
+We use the same dust attenuation as the dust prescription \cite{henriques2015}
+uses to construct galaxy colors. 
 %\todo{@rita how come?}
 % this is consistent with the L-Galaxies paper taht constructed colors
 
@@ -95,8 +97,8 @@ flux constructed for an arbitrary \lgal~galaxy (black).
 \subsection{Forward Modeling DESI Photometry} \label{sec:photo} 
 In this section, we describe how we construct realistic LS-like photometry
 from the SEDs of simulated galaxies described in the last section.
-First, we convolve the SEDs with the broadband filters of the Legacy Survey to
-generate broadband photometric fluxes: 
+First, we convolve the SEDs with the broadband filters of the LS to generate
+broadband photometric fluxes: 
 \begin{equation} \label{eq:photo}
     f_X = \int f_{\rm SED}(\lambda) R_X(\lambda) {\rm d}\lambda.
 \end{equation}
@@ -116,8 +118,8 @@ deviation $\sigma_X$:
 Finally, we impose the target selection criteria of BGS~\citep[][Hahn~\etal~in
 prep.]{ruiz-macias2021}.
 In the left panel of Figure~\ref{fig:photo}, we overplot the forward
-modeled photometry (red) on top of the SED flux (black) for an arbitrary \lgal
-galaxy. 
+modeled photometry (red) on top of the SED flux (black) for an arbitrary
+\lgal~galaxy. 
 For reference, we also plot $R_X$ for the $g$, $r$, and $z$ bands of LS in
 blue, orange, and green, respectively. 
 On the right panel, we compare the $g - r$ versus $r - z$ color distribution
@@ -198,7 +200,7 @@ rates of observed BGS spectra in DESI survey validation observations
 (Hahn~\etal~in prep.).
 In Figure~\ref{fig:spec}, we present the forward modeled BGS spectrum of an
 arbitrary \lgal~galaxy (solid). 
-We mark the spectrum from each arm of the tree DESI spectrographs separately 
+We mark the spectrum from each arm of the three DESI spectrographs separately 
 (blue, orange, green).
 For reference, we include the full SED (dotted) and fiber fraction scaled SED
 (dashed) of the galaxy. 

@@ -27,11 +27,11 @@ posteriors as we discuss in detail in Section~\ref{sec:results}.
 Beyond mitigating the effect of the priors, we can impose uniform prior (or any
 other desired prior distribution) on the derived galaxy properties by adjusting
 the priors on the SED model parameters. 
-\cite{handley2019} recently demonstrated that maximum-entorpy priors can be
+\cite{handley2019} recently demonstrated that maximum-entropy priors can be
 used for this purpose to impose uniform priors on the inferred sum of neutrino
 masses in cosmological analyses. 
 In an accompanying paper, Hahn (in prep.), I will demonstrate that
-maximum-entroy priors can also be used in Bayesian SED modeling to
+maximum-entropy priors can also be used in Bayesian SED modeling to
 correct for the impact of priors on infer posteriors on derived galaxy
 properties. 
 
@@ -62,7 +62,7 @@ have a strong wavelength dependence.
 
 Flux calibration performed on DESI spectra can also induce wavelength dependent
 residuals. 
-DESI spectra is measured using three-arm spectrographs that split the spectra
+DESI spectra are measured using three-arm spectrographs that split the spectra
 into three $b$, $r$, and $z$ channels with overlapping wavelength ranges: 
 $3600 - 5930$, $5660 - 7720$, and $7470 - 9800 \AA$.  
 After sky subtraction, flux calibration is performed on each channel of the
@@ -74,11 +74,12 @@ can imprint a wavelength dependent residual.
 %Despite the overall excellent performance of DESI flux calibration, 
 In a subsequent paper, Ramos \etal~(in prep.), we examine the fiber aperture
 effect and wavelength dependent imprints on DESI spectra using BGS
-spectra from the DESI Survey Validataion data and MaNGA observations. 
+spectra from the DESI Survey Validation data and observations from the Mapping
+Nearby Galaxies at APO (MaNGA) survey. 
 Using galaxy properties derived using the {\sc PROVABGS} pipeline for spectra
 from integrated field unit MaNGA observations, we will present aperture
 corrections that can be applied on derived BGS galaxy properties. 
-We also note that the {\sc PROVABGS} SED modeling pipline already includes flux
+We also note that the {\sc PROVABGS} SED modeling pipeline already includes flux
 calibration models beyond a single $f_{\rm fiber}$ and can easily be extended
 to include more sophisticated models~\citep[\emph{e.g.} Chebyschev
 polynomial][]{carnall2017, tacchella2021}. 
@@ -112,7 +113,7 @@ on galaxy properties.
 As we find earlier, these uncertainties are significant, especially for
 properties such as $\zmw$ (Figure~\ref{fig:prop_inf}). 
 Ignoring the uncertainties dramatically overestimates the statistical precision
-of the derived galaxy proprties and can significantly bias any galaxy study.
+of the derived galaxy properties and can significantly bias any galaxy study.
 %We also note that the maximum-entropy method, mentioned earlier, to correct for the effect of priors on derived galaxy properties requires full posterior distributions.
 
 Furthermore, the {\sc PROVABGS} posteriors will be derived from MCMC sampling
@@ -226,7 +227,7 @@ Furthermore, with the {\sc PROVABGS} posteriors we can infer fully
 probabilistic galaxy population statistics, which will allow us to robustly
 probe even the lowest signal-to-noise regime.
 A probabilistic SMF of BGS, for example, will provide accurate constraints on
-the low mass end (${\sim}10^{7} M_\odot$; Figure~\ref{fig:bgs_mstar}), which
-has important implications for both galaxy evolution and cosmology. 
+the low mass end down to ${\sim}10^{7} M_\odot$ (Figure~\ref{fig:bgs_mstar}),
+which has important implications for both galaxy evolution and cosmology. 
 With all of the applications listed above, {\sc PROVABGS} will enable us to
 fully extract the statistical power of ${\sim}10$ million BGS galaxies.

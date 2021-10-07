@@ -121,7 +121,7 @@ the same number of bins.
 At every $\tlb$ bin $i$, we evaluate the luminosity of a SSP with ${\rm
 ZH}(t_i)$, where $t_i$ is the center of $\tlb$ bin, and total stellar mass
 calculated by resampling the SFH in Eq.~\ref{eq:sfh}. 
-We use \fsps~to evaluate the SSP luminosities and use the MIST ischrones, MILES
+We use \fsps~to evaluate the SSP luminosities and use the MIST isochrones, MILES
 spectral library, and the \cite{chabrier2003} IMF (same as in
 Section~\ref{sec:sed}).  
 Since we use MIST isochrones, we impose a minimum and maximum limit to ${\rm
@@ -208,7 +208,7 @@ To model DESI photometry, we convolve the model flux with the LS broadband
 filters as in Eq.~\ref{eq:photo}.
 To model DESI spectra, we first apply Gaussian velocity dispersion. 
 In this work, we keep velocity dispersion fixed at 0km/s but in practice
-velocity disperion can be set as a free parameter. 
+velocity dispersion can be set as a free parameter. 
 Then the broadened flux is resampled into the wavelength binning of the
 observed DESI spectra, which has spectral resolution $R = 2000 - 5000$ over
 $3600 < \lambda < 9800\AA$. 
@@ -330,7 +330,7 @@ Deriving the posterior distribution from a joint SED modeling of photometry and
 spectra, with the emulator, takes \todo{0.5 CPU hours}. 
 In principle, since our emulator uses a PCA NN, we can further expedite our
 paremeter inference using more efficient sampling methods that exploit gradient
-information, such as Hamlitonian Monte Carlo.  
+information, such as Hamiltonian Monte Carlo.  
 We will explore further speed ups to our SED modeling in future works. 
 
 In Figure~\ref{fig:posterior} we present the posterior distribution of our 12

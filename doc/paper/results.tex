@@ -60,12 +60,12 @@ This bias at low $\avgsfr$ is caused by model priors, which we discuss in
 further detail later in Section~\ref{sec:discuss} and
 Appendix~\ref{sec:model_priors}. 
 Both $Z_{\rm MW}$ and $\tage$ are not precisely constrained; however, we do not
-find clearn biases in the constraints. 
+find clear biases in the constraints. 
 For $\tage$, the posteriors are less precise for galaxies with older stellar
 populations and they reveal the log-spaced $\tlb$ binning used in our
 SPS model for $\tage > 6$ Gyr.
 Lastly, $\tauism$ is overall accurately inferred for galaxies with low
-$\tauism$ but appears to be underestimated for for high $\tauism$.
+$\tauism$ but appears to be underestimated for high $\tauism$.
 
 The overall constraints on galaxy properties for the mock observations is
 especially encouraging due to the significant differences in the forward
@@ -117,7 +117,7 @@ We can infer $\mu_{\Delta_{\theta}}$ and $\sigma_{\Delta_{\theta}}$ using a
 hierarchical Bayesian framework~\citep[\emph{e.g.}][]{hogg2010,
 foreman-mackey2014, baronchelli2020}.
 
-Let $\{{\bfi X}_i\}$ represent the photometry or spcetrum of a galaxy
+Let $\{{\bfi X}_i\}$ represent the photometry or spectrum of a galaxy
 population and $\eta_\Delta = \{\mu_{\Delta_{\theta}},
 \sigma_{\Delta_{\theta}}\}$ represent the population hyperparameters.
 Our goal is to constrain $\eta_\Delta$ from $\{{\bfi X}_i\}$ --- \emph{i.e.}
@@ -272,7 +272,7 @@ $\avgsfr$, $\log Z_{\rm MW}$, $\tage$ and $\tauism$ (from top to bottom).
 \end{center}
 \end{figure}
 
-Lastly, in Figure~\ref{fig:etas_msfr}, we investigate whether there are any
+Lastly, in Figure~\ref{fig:etas_msfr}, we investigate whether there is any
 underlying dependence in the inferred galaxy properties on the  
 $M_*$-${\rm SFR}$ plane. 
 In the top and bottom panels, we present $\mu_{\Delta_{\theta}}$ and 
@@ -293,9 +293,9 @@ There is no significant dependence in $\mu_{\Delta_{\theta}}$ and
 $\sigma_{\Delta_{\theta}}$ with true $\log M_*$ throughout the $M_*$ range. 
 This means that we accurately infer the true $M_*$ throughout ${\sim}10^{9} -
 10^{12} M_\odot$  with uniform precision of $\sigma_{\Delta_{\log M_*}} \sim 0.1$ dex. 
-We also find no significant dependence on SNR dependence for $M_*$ ---
-neither $r_{\rm fiber}$ nor $r$ magnitudes significantly affect
-$\mu_{\Delta_{\log M_*}}$ and $\sigma_{\Delta_{\log M_*}}$.
+We also find no significant dependence on SNR for $M_*$ --- neither $r_{\rm
+fiber}$ nor $r$ magnitudes significantly affect $\mu_{\Delta_{\log M_*}}$ and
+$\sigma_{\Delta_{\log M_*}}$.
 There is a noticeable correlation with $g-r$ and $r-z$ color, which also
 appears in the $M_*-{\rm SFR}$ plane. 
 However, this correlation is small compared to the precision of our inferred
@@ -329,7 +329,7 @@ $\log\avgsfr$ by $\mu_{\Delta_{\log\avgsfr}}>0.5$ dex for the reddest galaxies
 The constraints for these galaxies are also significantly less precise:
 $\sigma_{\Delta_{\log\avgsfr}} \sim 0.5$ dex. 
 The bias is also apparent in Figure~\ref{fig:etas_msfr}: there is significant
-bias in the inferrd for quiescent galaxies where we overestimate $\avgsfr$. 
+bias in the inferred for quiescent galaxies where we overestimate $\avgsfr$. 
 $\avgsfr$ is also slightly underestimated for the most massive ($M_* >
 10^{11}M_\odot$) star-forming galaxies. 
 These biases are consequences of our SPS model priors.
@@ -343,7 +343,7 @@ quiescent galaxies) and underestimates $\avgsfr$ at the highest $\avgsfr$. \\
 % log Z_MW  
 \noindent \underline{\emph{Inferred $\log\zmw$}}:  
 Unlike in Figure~\ref{fig:prop_inf}, $\eta_\Delta$ in Figure~\ref{fig:etas}
-clearly reveal the accuracy and precision of the posteriors on $\log\zmw$. 
+clearly reveals the accuracy and precision of the posteriors on $\log\zmw$. 
 We find that $\mu_{\Delta_{\theta}}$ depends significantly on the true $\zmw$: 
 inferred $\log\zmw$ is overestimated by ${\sim}0.2$ dex below $\log\zmw <
 -2$ dex and slightly underestimated at the highest $\log\zmw > -1.6$ dex.
@@ -352,7 +352,7 @@ Similar to $\avgsfr$, the bias in inferred $\zmw$ is a consequence of our SPS
 model priors. 
 The prior skews $\log\zmw$ constraints towards the peak of the prior at
 $\log\zmw\sim-1.5$. 
-Figure~\ref{fig:etas}, also include $\eta_\Delta$ for posteriors derived from
+Figure~\ref{fig:etas} also includes $\eta_\Delta$ for posteriors derived from
 photometry alone (orange). 
 This demonstrates that including DESI spectra substantially improves the
 accuracy of the $\log\zmw$ constraints --- spectra reduces the overall bias on
@@ -397,7 +397,7 @@ less precise for galaxies with older stellar populations below the star-forming 
 
 \noindent \underline{\emph{Inferred $\tauism$}}:  
 Lastly, we find that both the accuracy and precision of our $\tauism$ depend
-significant only the true $\tauism$ value. 
+significant only on the true $\tauism$ value. 
 The inferred constraints increasingly underestimate $\tauism$ with lower
 precision for greater $\tauism$.
 The bias is due to discrepancies between the dust prescriptiosn of SPS model
@@ -413,7 +413,7 @@ marginalize over the effect of dust.
 Another reason for the biased $\tauism$ constraints is that we only attenuate
 the stellar emission in the disk component of the simulated galaxies and not
 the bulge component (Section~\ref{sec:sed}).
-The true $\tauism$ is the optical depth for the disk componenet while our
+The true $\tauism$ is the optical depth for the disk component while our
 $\tauism$ constraints correspond to the optical depth of dust attenuation
 for the entire galaxies, a quantity that will be lower than the true $\tauism$
 depending on how much the bulge contributes to the SED. 

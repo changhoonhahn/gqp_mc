@@ -292,6 +292,9 @@ $m^{\rm photo}$ and $m^{\rm spec}$ represent SPS model for photometry and
 spectroscopy. 
 $\sigma^{\rm photo}$ and $\sigma^{\rm spec}$ respresent the uncertainties on
 the measured photometry and spectrum. 
+In calculating $\mathcal{L}^{\rm spec}$, we exclude 40\AA wavelength range
+surrounding the OII, H$\beta$, OIII, and H$\alpha$ emission lines since our SED
+model does not model gas emissions.
 We consider the photometry indepedent from the spectrum so we combine the
 likelihoods when jointly modeling the spectrophotometry: 
 \begin{equation}
@@ -349,3 +352,6 @@ On the left, we compare the $g$, $r$, $z$ band magnitudes; on the right, we
 compare the DESI spectroscopy. 
 We find excellent agreement between the best-fit SPS model and mock
 observations.
+The entire PROVABGS SED modeling pipeline, which includes the neural emulators
+and parameter inference framework, is publicly available at
+\href{https://github.com/changhoonhahn/provabgs/}{https://github.com/changhoonhahn/provabgs/}. 

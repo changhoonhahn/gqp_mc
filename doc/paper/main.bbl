@@ -119,6 +119,11 @@ Cichocki A.,  Phan A.-H.,  2009, \mn@doi [IEICE Transactions on Fundamentals of
   Electronics Communications and Computer Sciences]
   {10.1587/transfun.E92.A.708}, 92, 708
 
+\bibitem[\protect\citeauthoryear{Ciesla, Elbaz  \& Fensch}{Ciesla
+  et~al.}{2017}]{ciesla2017}
+Ciesla L.,  Elbaz D.,   Fensch J.,  2017, \mn@doi [Astronomy and Astrophysics]
+  {10.1051/0004-6361/201731036}, 608, A41
+
 \bibitem[\protect\citeauthoryear{Coil et~al.,}{Coil et~al.}{2011}]{coil2011}
 Coil A.~L.,  et~al., 2011, \mn@doi [The Astrophysical Journal]
   {10.1088/0004-637X/741/1/8}, 741, 8
@@ -379,6 +384,12 @@ Serra P.,  Amblard A.,  Temi P.,  Burgarella D.,  Giovannoli E.,  Buat V.,
 Simha V.,  Weinberg D.~H.,  Conroy C.,  Dave R.,  Fardal M.,  Katz N.,
   Oppenheimer B.~D.,  2014, arXiv e-prints, p. arXiv:1404.0402
 
+\bibitem[\protect\citeauthoryear{Smith, Cole, Baugh, Zheng, Angulo, Norberg  \&
+  Zehavi}{Smith et~al.}{2017}]{smith2017}
+Smith A.,  Cole S.,  Baugh C.,  Zheng Z.,  Angulo R.,  Norberg P.,   Zehavi I.,
+   2017, \mn@doi [Monthly Notices of the Royal Astronomical Society]
+  {10.1093/mnras/stx1432}, 470, 4646
+
 \bibitem[\protect\citeauthoryear{Somerville \& Dav{\'e}}{Somerville \&
   Dav{\'e}}{2015}]{somerville2015a}
 Somerville R.~S.,  Dav{\'e} R.,  2015, \mn@doi [Annual Review of Astronomy and
@@ -415,6 +426,11 @@ Tacchella S.,  et~al., 2021, arXiv e-prints, 2102, arXiv:2102.12494
   et~al.}{2009}]{taylor2009}
 Taylor E.~N.,  et~al., 2009, \mn@doi [The Astrophysical Journal]
   {10.1088/0004-637X/694/2/1171}, 694, 1171
+
+\bibitem[\protect\citeauthoryear{Thorne et~al.,}{Thorne
+  et~al.}{2021}]{thorne2021}
+Thorne J.~E.,  et~al., 2021, \mn@doi [Monthly Notices of the Royal Astronomical
+  Society] {10.1093/mnras/stab1294}, 505, 540
 
 \bibitem[\protect\citeauthoryear{Tinker, Wetzel  \& Conroy}{Tinker
   et~al.}{2011}]{tinker2011}

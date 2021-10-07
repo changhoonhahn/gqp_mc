@@ -217,7 +217,7 @@ def FM_photo():
     from speclite import filters as specFilter
 
     # read forward modeled Lgal photometry
-    photo, meta = Data.Photometry(sim='lgal', noise='legacy', lib='fsps', sample='mini_mocha')
+    photo, meta = Data.Photometry(sim='lgal', noise='legacy', lib='fsps')
     flux_g = photo['flux'][:,0] * 1e-9 * 1e17 * UT.c_light() / 4750.**2 * (3631. * UT.jansky_cgs())
     flux_r = photo['flux'][:,1] * 1e-9 * 1e17 * UT.c_light() / 6350.**2 * (3631. * UT.jansky_cgs())
     flux_z = photo['flux'][:,2] * 1e-9 * 1e17 * UT.c_light() / 9250.**2 * (3631. * UT.jansky_cgs()) # convert to 10^-17 ergs/s/cm^2/Ang
@@ -226,7 +226,7 @@ def FM_photo():
     ivar_z = photo['ivar'][:,2] * (1e-9 * 1e17 * UT.c_light() / 9250.**2 * (3631. * UT.jansky_cgs()))**-2. # convert to 10^-17 ergs/s/cm^2/Ang
 
     # read noiseless Lgal spectroscopy 
-    specs, _ = Data.Spectra(sim='lgal', noise='none', lib='fsps', sample='mini_mocha') 
+    specs, _ = Data.Spectra(sim='lgal', noise='none', lib='fsps') 
     # read in photometric bandpass filters 
     filter_response = specFilter.load_filters('decam2014-g', 'decam2014-r', 'decam2014-z', 'wise2010-W1', 'wise2010-W2')
     wave_eff = [filter_response[i].effective_wavelength.value for i in range(len(filter_response))]
@@ -250,7 +250,7 @@ def FM_photo():
     sub.set_ylabel('flux [$10^{-17} erg/s/cm^2/A$]', fontsize=20) 
     sub.set_ylim(0., 1.4*(specs['flux_unscaled'][0].max()))
     sub.legend([_plt_sed, _plt_photo, _plt_filter], 
-            ['LGal SED',  'forward modeled photometry', 'broadband filter response'], 
+            ['LGAL SED',  'forward modeled photometry', 'broadband filter response'], 
             loc='upper right', handletextpad=0.2, fontsize=15) 
     
     # Legacy imaging target photometry DR8
@@ -280,7 +280,7 @@ def FM_photo():
     sub.errorbar(photo_g - photo_r, photo_r - photo_z, 
             xerr=np.sqrt(sigma_g**2 + sigma_r**2),
             yerr=np.sqrt(sigma_r**2 + sigma_z**2),
-            fmt='.C3', markersize=5)#, label='forward modeled DESI photometry') 
+            fmt='.C3', markersize=1)#, label='forward modeled DESI photometry') 
     sub.set_xlabel('$g-r$', fontsize=20) 
     sub.set_xlim(0., 2.) 
     sub.set_xticks([0., 1., 2.]) 
@@ -297,32 +297,34 @@ def FM_photo():
 def FM_spec():
     ''' plot illustrating the forward model for spectroscopy 
     '''
+    igal = 1 
     # read noiseless Lgal spectroscopy 
-    spec_s, meta    = Data.Spectra(sim='lgal', noise='none', lib='fsps', sample='mini_mocha') 
-    spec_bgs, _     = Data.Spectra(sim='lgal', noise='bgs', lib='fsps', sample='mini_mocha') 
+    spec_s, meta    = Data.Spectra(sim='lgal', noise='none', lib='fsps') 
+    spec_bgs, _     = Data.Spectra(sim='lgal', noise='bgs', lib='fsps') 
     
     fig = plt.figure(figsize=(12,4))
     sub = fig.add_subplot(111) 
     
     for i, band in enumerate(['b', 'r', 'z']): 
         if band == 'b': 
-            _plt, = sub.plot(spec_bgs['wave_%s' % band], spec_bgs['flux_%s' % band][0],
-                c='C%i' % i, lw=0.25) 
+            _plt, = sub.plot(spec_bgs['wave_%s' % band], 
+                    spec_bgs['flux_%s' % band][igal], c='C%i' % i, lw=0.25) 
         else: 
-            sub.plot(spec_bgs['wave_%s' % band], spec_bgs['flux_%s' % band][0],
+            sub.plot(spec_bgs['wave_%s' % band], 
+                    spec_bgs['flux_%s' % band][igal],
                 c='C%i' % i, lw=0.25) 
     
-    _plt_lgal, = sub.plot(spec_s['wave'], spec_s['flux'][0,:], c='k', ls='--', lw=1) 
-    _plt_lgal0, = sub.plot(spec_s['wave'], spec_s['flux_unscaled'][0,:], c='k', ls=':', lw=1) 
+    _plt_lgal, = sub.plot(spec_s['wave'], spec_s['flux'][igal,:], c='k', ls='--', lw=1) 
+    _plt_lgal0, = sub.plot(spec_s['wave'], spec_s['flux_unscaled'][igal,:], c='k', ls=':', lw=1) 
     
     leg = sub.legend(
             [_plt, _plt_lgal, _plt_lgal0], 
-            ['forward modeled spectrum', 'fiber fraction scaled SED', 'LGal SED'],
+            ['forward modeled spectrum', 'fiber fraction scaled SED', 'LGAL SED'],
             loc='upper right', handletextpad=0.3, fontsize=17) 
     sub.set_xlabel('wavelength [$A$]', fontsize=20) 
     sub.set_xlim(3500, 1.05e4)
     sub.set_ylabel('flux [$10^{-17} erg/s/cm^2/A$]', fontsize=20) 
-    sub.set_ylim(0., 3.*(spec_s['flux_unscaled'][0].max()))
+    sub.set_ylim(0., 15)#3.*(spec_s['flux_unscaled'][0].max()))
 
     ffig = os.path.join(dir_doc, 'fm_spec.pdf')
     fig.savefig(ffig, bbox_inches='tight') 
@@ -788,7 +790,7 @@ def eta_photo_l2(method='opt'):
 
         return np.array(x_prop), np.array(eta_mu), np.array(eta_sig)
 
-    proplbls = [r'\log M_*', r'\log {\rm SFR}_{\rm 1Gyr}', r'\log Z_{\rm MW}', r't_{\rm age, MW}', r'\tau_{\rm ISM}\ast']
+    proplbls = [r'\log M_*', r'\log {\rm SFR}_{\rm 1Gyr}', r'\log Z_{\rm MW}', r't_{\rm age, MW}', r'\tau_{\rm ISM}']
     lbls    = [r'$r_{\rm fiber}$', r'$r$', r'$g-r$', r'$r-z$']
     minmax  = [[17.5, 22.], [15., 20], [0.2, 1.8], [0.1, 1.]]
     dbin    = [0.5, 0.5, 0.1, 0.1]
@@ -2235,8 +2237,8 @@ if __name__=="__main__":
     #Nmock()
     #BGS()
 
-    #FM_photo()
-    #FM_spec()
+    FM_photo()
+    FM_spec()
     
     #_NMF_bases() 
 
@@ -2249,7 +2251,7 @@ if __name__=="__main__":
     #eta_l2(method='opt')
     #eta_l2(method='mcmc')
 
-    eta_l2_v2(method='opt')
+    #eta_l2_v2(method='opt')
 
     #eta_photo_l2(method='opt') 
     #eta_photo_l2(method='mcmc') 

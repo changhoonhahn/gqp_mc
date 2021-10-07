@@ -14,12 +14,12 @@ to describe the wide range of SFHs in observations while not being too flexible
 that it can describe any SFH at the expense of constraining power.  
 If the model SFH is not flexible enough to describe actual SFHs of galaxies,
 then unbiased galaxy properties cannot be inferred using the SPS model. 
-For instance, most SPS models~(\emph{e.g.} CIGALE,~\citealt{serra2011};
-BAGPIPES,~\citealt{carnall2017}) use parametric SFH such as the exponentially
-declining $\tau$-model.
+For instance, most SPS models~(\emph{e.g.} CIGALE,~\citealt{serra2011,
+boquien2019}; BAGPIPES,~\citealt{carnall2017}) use parametric SFH such as the
+exponentially declining $\tau$-model.
 Such functional forms, however, produce biased estimates of galaxy properties
 (\emph{e.g.} $M_*$ and SFR) when used to fit mock observations of simulated 
-galaxies~\citep{simha2014, pacifici2015, carnall2018}.
+galaxies~\citep{simha2014, pacifici2015, ciesla2017, carnall2018}.
 On the other hand, many non-parametric forms of the SFH are overly flexible
 and allow unphysical SFHs~\citep{leja2019}, which unncessarily increases 
 parameter degeneracies and discards constraining power. 
@@ -77,7 +77,8 @@ Another key part of an SPS model is the ZH, or chemical enrichment history.
 Current SPS models mostly assume a ZH that does not vary over
 time~\citep{carnall2017, leja2019}. 
 Since galaxies do not have constant metallicities throughout their history,
-this assumption can significantly bias the inferred galaxy properties. 
+this assumption can significantly bias the inferred galaxy
+properties~\citep{thorne2021}. 
 Instead, for our ZH, we take a similar approach to the SFH and use NMF basis
 functions:
 \begin{equation}

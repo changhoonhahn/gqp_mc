@@ -2194,11 +2194,11 @@ def model_prior():
         Infer.FlatDirichletPrior(4, label='sed'),   # flat dirichilet priors
         Infer.UniformPrior(0., 1., label='sed'), # burst fraction
         Infer.UniformPrior(1e-2, 13.27, label='sed'), # tburst
-        Infer.LogUniformPrior(4.5e-5, 4.5e-2, label='sed'), # log uniform priors on ZH coeff
-        Infer.LogUniformPrior(4.5e-5, 4.5e-2, label='sed'), # log uniform priors on ZH coeff
+        Infer.LogUniformPrior(4.5e-5, 1.5e-2, label='sed'), # log uniform priors on ZH coeff
+        Infer.LogUniformPrior(4.5e-5, 1.5e-2, label='sed'), # log uniform priors on ZH coeff
         Infer.UniformPrior(0., 3., label='sed'),        # uniform priors on dust1
         Infer.UniformPrior(0., 3., label='sed'),        # uniform priors on dust2
-        Infer.UniformPrior(-3., 1., label='sed')    # uniform priors on dust_index
+        Infer.UniformPrior(-2., 1., label='sed')    # uniform priors on dust_index
     ])
 
     # declare SPS model  
@@ -2212,16 +2212,25 @@ def model_prior():
     thetas = prior.transform(_thetas)
     
     logmstar        = thetas[:,0]
-    logssfr_1gyr    = np.log10(m_nmf.avgSFR(thetas, zred=zred, dt=1.)) - logmstar
+    logsfr_1gyr     = np.log10(m_nmf.avgSFR(thetas, zred=zred, dt=1.))
+    logssfr_1gyr    = logsfr_1gyr - logmstar
     logz_mw         = np.log10(m_nmf.Z_MW(thetas, zred=zred))
     tage_mw         = m_nmf.tage_MW(thetas, zred=zred)
     
+    #lbls = [r'$\log M_*$', r'$\log {\rm SFR}_{\rm 1 Gyr}$', r'$\log Z_{\rm MW}$', r'$t_{\rm age, MW}$']
+    #fig = DFM.corner(
+    #        np.array([logmstar, logsfr_1gyr, logz_mw, tage_mw]).T, 
+    #        range=[(7., 12.5), (-5, 4.), (-5, -1), (0., 13.2)],
+    #        labels=lbls,
+    #        label_kwargs={'fontsize': 20},
+    #        levels=[0.68, 0.95])#, smooth=True) 
     lbls = [r'$\log M_*$', r'$\log {\rm SSFR}_{\rm 1 Gyr}$', r'$\log Z_{\rm MW}$', r'$t_{\rm age, MW}$']
     fig = DFM.corner(
             np.array([logmstar, logssfr_1gyr, logz_mw, tage_mw]).T, 
             range=[(7., 12.5), (-14, -8.5), (-5, -1), (0., 13.2)],
             labels=lbls,
-            label_kwargs={'fontsize': 20}) 
+            label_kwargs={'fontsize': 20},
+            levels=[0.68, 0.95])#, smooth=True) 
 
     ffig = os.path.join(dir_doc, 'model_prior.pdf')
     fig.savefig(ffig, bbox_inches='tight')
@@ -2237,8 +2246,8 @@ if __name__=="__main__":
     #Nmock()
     #BGS()
 
-    FM_photo()
-    FM_spec()
+    #FM_photo()
+    #FM_spec()
     
     #_NMF_bases() 
 
@@ -2284,4 +2293,4 @@ if __name__=="__main__":
     #_l2_photo() 
     #_l2_props()
 
-    #model_prior()
+    model_prior()

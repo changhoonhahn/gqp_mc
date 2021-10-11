@@ -24,15 +24,16 @@ galaxy properties for PROVABGS.
 We apply our SED modeling to the mock observables of 2,123 \lgal~galaxies.
 From the posterior distributions of the SPS parameters, we derive the following
 physical galaxy properties: stellar mass ($M_*$), SFR averaged over 1 Gyr
-($\avgsfr$), mass-weighted stellar metallicity ($Z_{\rm MW}$), and diffuse-dust
-optical depth ($\tau_{\rm ISM}$).
-$M_*$ and $\tau_{\rm ISM}$ are both SPS model parameters, while $\avgsfr$ and
-$Z_{\rm MW}$ are derived as 
+($\avgsfr$), mass-weighted stellar metallicity ($Z_{\rm MW}$), mass-weighted
+stellar age ($\tage$), and diffuse-dust optical depth ($\tau_{\rm ISM}$).
+$M_*$ and $\tau_{\rm ISM}$ are both SPS model parameters, while $\avgsfr$, 
+$Z_{\rm MW}$, and $\tage$ are derived as 
 \begin{equation} \label{eq:prop_eqs}
     \avgsfr = \frac{\int\limits_{t_{\rm age} - {\rm 1 Gyr}}^{t_{\rm age}}{\rm
-    SFH}(t)\,{\rm d}t}{{\rm 1 Gyr}} \quad{\rm and}\quad
+    SFH}(t)\,{\rm d}t}{{\rm 1 Gyr}}, \quad
     Z_{\rm MW} = \frac{\int\limits_0^{t_{\rm age}}{\rm SFH}(t)\,{\rm
-    ZH}(t)\,{\rm d}t}{M_*}.
+    ZH}(t)\,{\rm d}t}{M_*}, \quad{\rm and}\quad
+    \tage = \frac{\int\limits_0^{t_{\rm age}}{\rm SFH}(t)\,t\,{\rm d}t}{M_*}.
 \end{equation} 
 
 In Figure~\ref{fig:prop_inf}, we compare the galaxy properties inferred from

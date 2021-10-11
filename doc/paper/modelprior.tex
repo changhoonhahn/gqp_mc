@@ -1,14 +1,87 @@
 \section{SPS Model Priors} \label{sec:model_priors}
+SED models impose undesireable non-uniform priors on galaxy properties that
+significantly impact their ability to infer unbiased galaxy properties such as
+$\avgsfr$, $\zmw$, and $\tage$. 
+For the PROVABGS SED modeling we present in this work, model imposed priors
+place a lower bound on $\avgsfr$, biases $\zmw$ for observations with low
+spectral SNR, and places an upper bound of $\tage < 8$ Gyr.
+Given their significant impact, we quantify and characterize the model imposed
+prior in further detail below. 
+
+% explanation of how the parameters are derived 
+Model imposed priors are a consequence of the fact that many of the galaxy
+properties of interest are not explicit parameters of the SPS model. 
+Out of the properties we focus on in this work, only $M_*$ is a parameter in
+our SPS model. 
+$M_*$ determines the overall amplitude of the SED. 
+Meanwhile, $\avgsfr$ is derived from integrating, over the range 
+$t_{\rm age} - 1\,{\rm Gyr} < t < t_{\rm age}$, the SFH, which is itself a
+derived quantity from the SED model parameters $\{\beta_1, \beta_2, \beta_3,
+\beta_4 \}$, $f_{\rm burst}$, $t_{\rm burst}$, and $M_*$ (Eq.~\ref{eq:nmf}
+and~\ref{eq:sfh}).
+$\zmw$ is an even more complicatedly derived quantity that involves integrating
+the product of the SFH and ZH, and hence depends on $\{\beta_1, \beta_2,
+\beta_3, \beta_4 \}$, $f_{\rm burst}$, $t_{\rm burst}$, and $\{\gamma_1,
+\gamma_2\}$ (Eq.~\ref{eq:prop_eqs}).
+$\tage$ is similarly derived by integrating the SFH by age. 
+All of these derived properties are further impacted by the fixed log-spaced
+$\tlb$ binning (Section~\ref{sec:sps}) since the integrals are evaluated
+discretely. 
+
 \begin{figure}
 \begin{center}
 \includegraphics[width=0.75\textwidth]{figs/model_prior.pdf}
     \caption{
-    Priors imposed by our SPS model on $\log M_*$, 
-    $\log \overline{\rm SSFR}_{\rm 1 Gyr}$, and $\log Z_{\rm MW}$ at $z=0.1$. 
+    Priors imposed by our SPS model on galaxy properties $\log M_*$, $\log
+    \overline{\rm SSFR}_{\rm 1 Gyr}$, $\log Z_{\rm MW}$, and $\tage$ at
+    $z=0.1$. 
+    Out of the galaxy properites, only $\log M_*$ is a parameter in our SPS
+    model.
+    The other properties are derived from the model parameters. 
+    Hence, even when we impose uninformative priors on the model parameters as
+    in Table~\ref{tab:params}, we do not impose uniform priors on the galaxy
+    properties. 
+    In fact, for $\avgssfr$, $\zmw$, and $\tage$, our SPS model imposes
+    significantly skewed distributions that explain the biases and bounds we
+    find in the galaxy property posteriors.  
+    All SPS models impose undesireable priors on galaxy properties. 
+    By characterizing the prior distribution above, we provide a way to
+    interpret the posteriors on galaxy properties for PROVABGS and disentangle
+    the effect of the prior. 
     }\label{fig:model_prior}
 \end{center}
 \end{figure}
+% present the figure and describe in detail how we derive the figure. 
+We further illustrate and quantify the model imposed priors on the galaxy
+properties in Figure~\ref{model_prior}. 
+We present the probability distribution of the model imposed prior on 
+$\log M_*$, $\log\avgssfr$, $\log\zmw$, and $\tage$ for galaxies at $z=0.1$.
+The prior distribution is derived by first sampling SPS parameters from prior
+specified in Table~\ref{tab:params}, $\theta'\sim p(\theta)$, and then deriving
+the galaxy properties for each $\theta'$ using Eq.~\ref{eq:prop_eqs}. 
+We present $\log\avgssfr = \log(\avgsfr/M_*)$ instead of $\log\avgsfr$ to
+remove the correlation with $M_*$.  
+The contours mark the 68 and 95\% of the distribution. 
+We note that the prior distribution depends slightly on redshift since it
+determines $\tage$; we only show $z=0.1$ for simplicity. 
 
+% characterize the prior distribution 
+We confirm that the prior on $\log M_*$ is uniform as we specify in
+Table~\ref{tab:params}. 
+For the other parameters, however, the model imposed prior is \emph{not} a uniform distribution. 
+For $\avgssfr$, the prior is a skewed distribution that spans $-13.5 < \log
+\avgssfr < -9$ dex with two modes.
+The secondary peak near -9 dex is a consequence of the starburst component that
+we include in the SFH. 
+By definition $\avgssfr$ cannot exceed $10^{-9}\,yr^{-1}$. 
+For $\log\zmw$ and $\tage$, the marginalized priors are also skewed
+distributions that peak near -1.6 dex and 6 Gyr, respectively.
+Furthermore, for $\tage$, the prior reveals the imprint of the log-spaced 
+$\tlb$ bins (see $\tage$ versus $\log\avgssfr$ panel).
+As we discuss in the main text, the shape of the model imposed prior on
+$\avgssfr$, $\zmw$, and $\tage$ explains the limitations of the posteriors we
+derive from our SED modeling: the lower bound on $\avgsfr$, biases in $\zmw$,
+and the $\tage$ upper bound (Section~\ref{sec:discuss}).
 
 \begin{figure}
 \begin{center}
@@ -18,3 +91,18 @@
     }\label{fig:sfh_prior}
 \end{center}
 \end{figure}
+\todo{paragraph describing model prior on SFH}
+
+
+We emphasize that all SPS models impose undesirable priors on galaxy
+properties. 
+And \emph{any} deviation of the priors on galaxy properties from a uniform
+distribution impacts the posteriors on the galaxy properties. 
+For our PROVABGS SED model, we characterize the model imposed prior in 
+Figures~\ref{fig:model_prior} and~\ref{fig:sfh_prior}.
+This allows us to interpret the posteriors of galaxy properties for PROVABGS
+and qualitatively disentangle the effect of the prior. 
+In an accompanying work (Hahn in prep.), I will demonstrate that
+maximum-entropy priors can be used to substantially mitigate the impact of
+model impose priors on the posteriors of galaxy properties
+(see Section~\ref{sec:discuss}). 

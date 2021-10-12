@@ -2237,6 +2237,61 @@ def model_prior():
     return None 
 
 
+def model_prior_SFH(): 
+    ''' figure illustrating model priors 
+    '''
+    # prior  on SPS parameters
+    prior = Infer.load_priors([
+        Infer.UniformPrior(1., 1., label='sed'),
+        Infer.FlatDirichletPrior(4, label='sed'),   # flat dirichilet priors
+        Infer.UniformPrior(0., 1., label='sed'), # burst fraction
+        Infer.UniformPrior(1e-2, 13.27, label='sed'), # tburst
+        Infer.LogUniformPrior(4.5e-5, 1.5e-2, label='sed'), # log uniform priors on ZH coeff
+        Infer.LogUniformPrior(4.5e-5, 1.5e-2, label='sed'), # log uniform priors on ZH coeff
+        Infer.UniformPrior(0., 3., label='sed'),        # uniform priors on dust1
+        Infer.UniformPrior(0., 3., label='sed'),        # uniform priors on dust2
+        Infer.UniformPrior(-2., 1., label='sed')    # uniform priors on dust_index
+    ])
+
+    # declare SPS model  
+    m_nmf = Models.NMF(burst=True, emulator=True)
+    
+    n_sample = 10000 # draw n_sample samples from the prior
+    zred = 0.1
+    
+    # sample prior and evaluate SSFR and Z_MW 
+    _thetas = np.array([prior.sample() for i in range(n_sample)])
+    thetas = prior.transform(_thetas)
+    
+    tlb_edges, _ = m_nmf.SFH(thetas[0], zred=zred)
+    sfhs = np.array([m_nmf.SFH(tt, zred=zred)[1] for tt in thetas]) 
+
+
+    fig = plt.figure(figsize=(10,5))
+    sub = fig.add_subplot(121)
+    
+    for i in range(sfhs.shape[1]):
+        lll, ll, l, m, h, hh, hhh = np.quantile(sfhs[:,i], 
+                [0.005, 0.025, 0.16, 0.5, 0.84, 0.975, 0.995])
+        sub.fill_between([tlb_edges[i], tlb_edges[i+1]], 
+                [lll, lll], [hhh, hhh], color='C0', alpha=0.1, linewidth=0)
+        sub.fill_between([tlb_edges[i], tlb_edges[i+1]], 
+            [ll, ll], [hh, hh], color='C0', alpha=0.25, linewidth=0)
+        sub.fill_between([tlb_edges[i], tlb_edges[i+1]], 
+                [l, l], [h, h], color='C0', alpha=0.5, linewidth=0)
+        sub.plot([tlb_edges[i], tlb_edges[i+1]], [m, m], c='C0', ls='-')
+
+    sub.set_ylabel(r'specific-SFH [${\rm yr}^{-1}$]', fontsize=25) 
+    sub.set_yscale('log')
+    sub.set_xlabel(r'$t_{\rm lookback}$', fontsize=25)
+    sub.set_xlim(0, m_nmf.cosmo.age(zred).value)
+    sub.text(0.95, 0.95, r'$z=0.1$', ha='right', va='top', transform=sub.transAxes, fontsize=25)
+
+    ffig = os.path.join(dir_doc, 'model_prior_sfh.pdf')
+    fig.savefig(ffig, bbox_inches='tight')
+    return None 
+
+
 def Nmock(): 
     props_infer, props_truth = L2_chains('SP2')
     print(props_infer.shape)
@@ -2293,4 +2348,5 @@ if __name__=="__main__":
     #_l2_photo() 
     #_l2_props()
 
-    model_prior()
+    #model_prior()
+    model_prior_SFH()

@@ -1224,6 +1224,63 @@ def SFH_demo():
     return None 
 
 
+def eta_demo(method='opt'):
+    ''' demonstration of population inference 
+    '''
+    import seaborn as sns
+
+    props_infer, props_truth = L2_chains('SP2')
+
+    logM_infer = props_infer[0]
+    logM_truth = props_truth[0]
+   
+
+    veryclose = np.argsort(np.abs(logM_truth - 10.7))[:7]
+    inbin = (logM_truth > 10.6) & (logM_truth < 10.8)
+    mu, sig = PopInf.eta_Delta_opt(logM_infer[inbin,:] - logM_truth[inbin, None])
+    print(mu, sig) 
+
+    mu_wrong1 = np.mean(np.mean(logM_infer[inbin,:] - logM_truth[inbin, None], axis=1))
+    sig_wrong1 = np.mean(np.std(logM_infer[inbin,:] - logM_truth[inbin, None], axis=1))
+    print(mu_wrong1, sig_wrong1) 
+    
+    mu_wrong2 = np.mean((logM_infer[inbin,:] - logM_truth[inbin, None]).flatten())
+    sig_wrong2 = np.std((logM_infer[inbin,:] - logM_truth[inbin, None]).flatten())
+    print(mu_wrong2, sig_wrong2) 
+
+    def gaussian(x, mu, sig):
+        return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
+
+    # eta as a function of galaxy properties 
+    fig = plt.figure(figsize=(8, 6))
+    sub = fig.add_subplot(111)
+
+    for _logM_infer in logM_infer[veryclose,:]: 
+        sns.kdeplot(_logM_infer, 
+                bw_adjust=2., 
+                linewidth=1,
+                ax=sub) 
+
+    xlin = np.linspace(-1., 1., 100)
+    sub.plot(xlin + 10.7, 6 * gaussian(xlin, mu, sig), c='k', ls='--', lw=3,
+            label=r'$\mathcal{N}(\mu_{\Delta_\theta}, \sigma_{\Delta_\theta})$')
+    #sub.plot(xlin + 10.7, 6 * gaussian(xlin, mu_wrong1, sig_wrong1), c='k', ls=':', lw=1)
+    #sub.plot(xlin + 10.7, 6 * gaussian(xlin, mu_wrong2, sig_wrong2), c='k', ls='-.', lw=1)
+    sub.axvline(10.7, color='k', linewidth=0.5, linestyle=':')
+    
+    sub.text(0.95, 0.95, r'$M_* \sim 10^{10.7} M_\odot$', ha='right', va='top', transform=sub.transAxes, fontsize=25)
+    sub.legend(loc='upper left', handletextpad=0., fontsize=25)
+    sub.set_xlabel(r'$\log M_*$', fontsize=25) 
+    sub.set_xlim(10.2, 11.2) 
+    sub.set_ylabel(r'$p(\log M_*)$', fontsize=25) 
+    sub.set_yticks([])
+    sub.set_yticklabels([])
+    ffig = os.path.join(dir_doc, 'etas_demo.pdf')
+    fig.savefig(ffig, bbox_inches='tight') 
+    return None 
+
+
+
 # --- high SNR ---
 def eta_l2_highSNR(method='opt'):
     ''' calculate bias as a function of galaxy properties
@@ -2349,4 +2406,6 @@ if __name__=="__main__":
     #_l2_props()
 
     #model_prior()
-    model_prior_SFH()
+    #model_prior_SFH()
+
+    eta_demo(method='opt')

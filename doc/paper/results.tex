@@ -124,7 +124,7 @@ population and $\eta_\Delta = \{\mu_{\Delta_{\theta}},
 Our goal is to constrain $\eta_\Delta$ from $\{{\bfi X}_i\}$ --- \emph{i.e.}
 to infer $p(\eta_\Delta \given \{{\bfi X}_i\})$.
 We expand 
-\begin{align}
+\begin{align}\label{eq:popinf}
 p(\eta_\Delta \given \{{\bfi X_i}\}) 
     =&~\frac{p(\eta_\Delta)~p( \{{\bfi X_i}\} \given \eta_\Delta)}{p(\{{\bfi X_i}\})}\\
     =&~\frac{p(\eta_\Delta)}{p(\{{\bfi X_i}\})}\int p(\{{\bfi X_i}\} \given \{\theta_i\})~p(\{\theta_i\} \given \eta_\Delta)~{\rm d}\{\theta_i\}.
@@ -149,6 +149,7 @@ p(\eta_\Delta \given \{{\bfi X_i}\})
 }
     \approx&~p(\eta_\Delta)\prod\limits_{i=1}^N\frac{1}{S_i}\sum\limits_{j=1}^{S_i}
     \frac{p(\theta_{i,j} \given \eta_\Delta)}{p(\theta_{i,j})}.
+    \label{eq:popinf2}
 \end{align} 
 $S_i$ is the number of posterior samples and $\theta_{i,j}$ is the $j^{\rm th}$
 sample of galaxy $i$.

@@ -1,0 +1,65 @@
+\section{Population Inference} \label{sec:hyper}
+% restatement/high level explanation of what we do
+We quantify the accuracy and precision of the galaxy properties from our SED
+modeling using population hyperparameters $\eta_{\Delta} =
+\{\mu_{\Delta_\theta}, \sigma_{\Delta_\theta}\}$ (Section~\ref{sec:results}). 
+These hyperparameters describe the distribution of the difference between the
+inferred and true parameters, $\Delta_{\theta}$, assuming that the distribution
+has a Gaussian functional form (Eq.~\ref{eq:eta_gauss}). 
+The $\eta_\Delta$ values we present in this work are MAP estimates of
+$p(\eta_\Delta | \{ X_i \})$, the probability distribution of hyperparameters
+given all of the observations in the galaxy population. 
+They are inferred using population inference as described in the main text and
+Eqs~\ref{eq:popinf} - \ref{eq:popinf2}.
+We use this approach because our approach for quantifying the accuracy and
+precision has a number of key advantages over other methods. 
+
+For instance, a naive way to quantify the accuracy and precision would be to
+estimate the median and standard deviations of individual posteriors then
+averaging them. 
+This assumes that each individual posterior is close to a Gaussian. 
+As we later demonstrate, this is an incorrect assumption that reduces the
+posterior distrubtion to point estimates. 
+Another approach would be to stack the posteriors by summing up all of the
+individual posteriors. 
+Neither of these approaches mathematically estimate the distribution we are
+actually interested in estimating: $p(\eta_\Delta | \{ X_i \})$. 
+Moreover, both approaches are biased (\cite{malz2020} recently demonstrated
+this in the context of combining photometric redshift posteriors). 
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.45\textwidth]{figs/etas_demo.pdf}
+    \caption{
+    The $\log M_*$ distribution described by the accuracy and precision
+    hyperparameters: $p(\log M_* | \mu_{\Delta_\theta},
+    \sigma_{\Delta_\theta})$ (black dashed).
+    The hyperparameters are MAP estimates of $p( \mu_{\Delta_\theta}, 
+    \sigma_{\Delta_\theta} | \{ X_i \})$ derived from population inference of
+    galaxies with $10.6 < \log M_* < 10.8$
+    (Eq.~\ref{eq:popinf}-\ref{eq:popfin2}). 
+    We include for comparison individual $\log M_*$ posteriors of several
+    galaxies with $M_* \sim 10^{10.7} M_\odot$ for comparison.   
+    The individual posteriors have a wide variety of shapes, which can bias 
+    naive estimates of their accuracy and precision. 
+    The comparison illustrates that 
+    $p(\log M_* | \mu_{\Delta_\theta}, \sigma_{\Delta_\theta})$ provides a
+    robust estimate of the overall accuracy and precision of the inferred
+    posteriors. 
+    }\label{fig:eta_demo}
+\end{center}
+\end{figure}
+We illustrate the population inference approach in Figure~\ref{fig:eta_demo} 
+where we present the distribution of $\log M_*$ described by the accuracy and
+precision hyperparameters derived for galaxies with $10.6 < \log M_* < 10.8$
+(black dashed). 
+For comparison, we plot posteriors of $\log M_*$ for several individual
+galaxies with $\log M_* \sim 10.7$.  
+There is significant variation in the individual posteriors and many of them
+are not well described by a Gaussian distribution. 
+This variation is an expected consequence of noise in the observables and
+MCMC sampling.  
+We note that estimating the accuracy and precision by stacking the posteriors,
+for instance, significantly underestimates the precision.  
+Meanwhile, the accuracy and precision hyperparameters capture the overall
+accuracy and precision of the individual posteriors. 

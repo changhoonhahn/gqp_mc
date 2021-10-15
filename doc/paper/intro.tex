@@ -171,17 +171,19 @@ Posteriors estimate the uncertainties on the galaxy property measurements and
 any degeneracies among them more accurately. 
 This will enable a new level of statistical robustness in galaxy evolution
 studies.
-The PROVABGS posteriors will also open the door for Bayesian Hierarchical
-approaches.
-For instance, we can combine posteriors of galaxies to conduct principled
-population inference. 
-Beyond mitigating biases, this will allow us to more fully exploit the 
-observations since we can robustly include galaxies with less tightly
-constrained properties.  
+%Beyond mitigating biases, the PROVABGS posteriors will also open the door for Bayesian Hierarchical approaches.
+For instance, we can combine individual posteriors of galaxies to conduct
+principled population inference.
+That means, given observations, $\{X_i\}$, of a set of galaxies we can
+correctly derive the distribution of their physical properties, $\theta$ ---
+$p(\theta | \{ X_i \})$.
+This will enable us to \emph{fully} exploit the observations since we can
+robustly include galaxies with less tightly constrained properties.  
 Little explored low signal-to-noise regimes that can be probed with this
 approach may shed new light on galaxy evolution.
-Hierarchical inference can also improve the statistical power of BGS through
-Bayesian shrinkage: the joint posterior of the galaxy sample can be used as the
+The PROVABGS posteriors will also open the door for Bayesian Hierarchical
+approaches, which can improve the statistical power of BGS through Bayesian
+shrinkage: the joint posterior of the galaxy sample can be used as the
 prior to shrink the uncertainties on the properties of individual galaxies. 
 With these advantages, PROVABGS will provide a VAC that fully exploits the
 DESI observations and maximizes the scientific impact of BGS. 

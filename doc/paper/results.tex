@@ -26,7 +26,7 @@ From the posterior distributions of the SPS parameters, we derive the following
 physical galaxy properties: stellar mass ($M_*$), SFR averaged over 1 Gyr
 ($\avgsfr$), mass-weighted stellar metallicity ($Z_{\rm MW}$), mass-weighted
 stellar age ($\tage$), and diffuse-dust optical depth ($\tau_{\rm ISM}$).
-$M_*$ and $\tau_{\rm ISM}$ are both SPS model parameters, while $\avgsfr$, 
+$M_*$ and $\tau_{\rm ISM}$ are SPS model parameters, while $\avgsfr$, 
 $Z_{\rm MW}$, and $\tage$ are derived as 
 \begin{equation} \label{eq:prop_eqs}
     \avgsfr = \frac{\int\limits_{t_{\rm age} - {\rm 1 Gyr}}^{t_{\rm age}}{\rm
@@ -39,8 +39,8 @@ $Z_{\rm MW}$, and $\tage$ are derived as
 In Figure~\ref{fig:prop_inf}, we compare the galaxy properties inferred from
 SED modeling the mock observations, $\hat{\theta}$, to the true (input) galaxy
 properties, $\theta_{\rm true}$, of the simulated galaxies.
-In each column, we compare $\log M_*$, $\log \avgsfr$, $\log Z_{\rm MW}$,
-$\tage$, and $\tauism$ from left to right.  
+From left to right, we compare $\log M_*$, $\log \avgsfr$, $\log Z_{\rm MW}$,
+$\tage$, and $\tauism$ in each column.  
 The inferred properties in the top, middle, and bottom rows are derived from
 SED modeling of spectra, photometry, and spectrophotometry, respectively.
 In each panel, we plot $\hat{\theta}$ using a violin plot, where the width
@@ -48,7 +48,7 @@ of the marker represents the marginalized posterior distribution of $\theta$.
 We note that in the comparison with SED modeling spectra only, we do not
 include $f_{\rm fiber}$ so the true stellar mass in this case corresponds to
 $f_{\rm fiber} \times M_*$. 
-\emph{Overall, the comparison demonstrates that we can robustly infer galaxy
+The comparison demonstrates that \emph{overall we robustly infer galaxy
 properties using the {\sc PROVABGS} SED modeling}. 
 
 In more detail, we find that we infer unbiased and precise constraints on
@@ -72,24 +72,24 @@ The overall constraints on galaxy properties for the mock observations is
 especially encouraging due to the significant differences in the forward
 model used to generate the observations and the SPS model used in the SED
 modeling. 
-First, the SFHs in the mock observations are taken directly from \lgal~simulation
-outputs while the SFH parameterization in the SPS model is based on NMF bases fit
-to IllustrisTNG galaxy SFHs.
+First, the SFHs and ZHs in the mock observations are taken directly from
+\lgal~simulation outputs while the SFH and ZH parameterization in the SPS model
+is based on NMF bases fit to Illustris galaxies.
 Second, in the forward model, we construct the SED of the bulge and disk
 components of the simulated galaxies separately: the components have separate
 SFHs and ZHs. 
 The SPS model treats all galaxies as having one component. 
-Lastly, we use different dust prescriptions: \cite{mathis1983} dust attenuation  
-curve in the forward model and \cite{kriek2013} dust attenuation curve in the
-SPS model. 
+Lastly, we use different dust prescriptions: \cite{mathis1983} dust
+attenuation curve in the forward model and \cite{kriek2013} dust attenuation
+curve in the SPS model. 
 Despite these significant differences, our constraints on certain galaxy
 properties are unbiased and precise. 
 
 Figure~\ref{fig:prop_inf}, also highlights the advantages of jointly modeling
 spectra and photometry. 
-Comparing the constraints from spectrophotometry versus photometry alone, we
-find that including spectra significantly tightens the constraints for all
-properties. 
+Comparing the constraints from spectrophotometry (bottom) versus photometry
+alone (middle), we find that including spectra significantly tightens the
+constraints for all properties. 
 In addition, including spectra also appears to reduce biases of the
 constraints. 
 For instance, with only photometry, we derive significantly more biased
@@ -153,7 +153,6 @@ p(\eta_\Delta \given \{{\bfi X_i}\})
 \end{align} 
 $S_i$ is the number of posterior samples and $\theta_{i,j}$ is the $j^{\rm th}$
 sample of galaxy $i$.
-In practice,
 $p(\theta_{i,j} \given \eta_\Delta) = p(\Delta_{\theta,i,j} \given
 \eta_\Delta)$ is a Gaussian distribution and, hence, easy to evaluate. 
 $p(\theta_{i,j}) = 1$ since we use uninformative and Dirichlet priors
@@ -181,15 +180,13 @@ detail in Appendix~\ref{sec:hyper}.
         Including DESI spectra significantly improves both the accuracy and
         precision of the inferred galaxy properties. 
         $\log\avgsfr$, $\log Z_{\rm MW}$, and $\tage$ constraints are
-        significantly impacted by  priors imposed by our SPS model
+        significantly impacted by  priors imposed by the SPS model
         (Appendix~\ref{sec:model_priors}).
         Discrepancies in the dust prescriptions between our SPS model and the
         mock observations drive the bias in $\tauism$.
-        Nevertheless, \emph{
-            we accurately and precisely infer: 
-            $\log M_*$ for all $M_*$, $\log\avgsfr$ above $\log\avgsfr > -1\,{\rm
-            dex}$, and $\tage$ below $8\,{\rm Gyr}$.
-        }
+        Nevertheless, \emph{we accurately and precisely infer: $\log M_*$ for
+        all $M_*$, $\log\avgsfr$ above $\log\avgsfr > -1\,{\rm dex}$, and 
+        $\tage$ below $8\,{\rm Gyr}$.}
         } \label{fig:etas}
 \end{center}
 \end{figure}
@@ -197,13 +194,12 @@ detail in Appendix~\ref{sec:hyper}.
 In Figure~\ref{fig:etas}, we present the accuracy ($\mu_{\Delta_{\theta}}$) and
 precision ($\sigma_{\Delta_{\theta}}$) of our joint SED modeling of spectra and
 photometry (green) as a function of true galaxy property. 
+$\mu_{\Delta_{\theta}}$ (solid) and $\sigma_{\Delta_{\theta}}$ (shaded region)
+are the MAP values of $p(\eta_\Delta \given \{{\bfi X_i}\})$ posterior. 
 In each panel, we derive $p(\eta_\Delta \given \{{\bfi X_i}\})$ for 
 $\log M_*$, $\avgsfr$, $\log Z_{\rm MW}$, $\tage$, and $\tauism$ in bins of
 widths 0.2 dex, 0.5 dex, 0.05 dex, 0.5 Gyr, and 0.1, respectively. 
 We only include bins with more than ten galaxies. 
-$\mu_{\Delta_{\theta}}$ (solid) and $\sigma_{\Delta_{\theta}}$ (shaded region)
-are the MAP values of $p(\mu_{\Delta_{\theta}}, \sigma_{\Delta_{\theta}}
-\given \{{\bfi X_i}\})$ posterior. 
 For comparison, we include $\eta_\Delta$ for SED modeling of photometry alone
 (orange).
 We also include $\eta_\Delta$ for $\log\zmw$ of galaxies with $r_{\rm fiber} >
@@ -225,8 +221,8 @@ without bulges (black dotted), which we discuss later.
         We find a significant dependence on spectral SNR in the inferred 
         $\log \zmw$. 
         When the spectral SNR is low ($r_{\rm fiber} > 20$), the prior on 
-        $\log \zmw$ imposed by our SPS model dominate the posterior and
-        cause us to overestimate $Z_{\rm MW}$. 
+        $\log \zmw$ imposed by the SPS model dominate the posterior and
+        cause overestimates of $Z_{\rm MW}$. 
         We find a significant color dependence on $\log\avgsfr$, $\log Z_{\rm
         MW}$, and $\tage$. 
         For $\log\zmw$ and $\tage$, the dependence is driven by underlying
@@ -285,7 +281,11 @@ We use $\log M_*$ bins of width 0.225 dex and $\log\avgsfr$ bins of width
 0.25 dex for $\log \avgsfr > 0$ dex and 0.5 dex for $\log \avgsfr < 0$ dex. 
 We only present bins with more than 10 galaxies. 
 On the $M_*-{\rm SFR}$ plane, we can examine whether the accuracy and precision
-of the inferred properties have significant dependencies for galaxy type.\\ 
+of the inferred properties have significant dependencies for galaxy type. 
+
+Based on Figures~\ref{fig:etas}, \ref{fig:eta_photo}, and~\ref{fig:etas_msfr},
+we draw the following conclusions on the accuracy and precision of the inferred
+posteriors for each galaxy property:\\
 
 % log M*
 \noindent \underline{\emph{Inferred $\log M_*$}}: 
@@ -293,8 +293,8 @@ Overall, we infer accurate and precise $\log M_*$ from the {\sc PROVABGS} SED
 modeling. 
 There is no significant dependence in $\mu_{\Delta_{\theta}}$ and
 $\sigma_{\Delta_{\theta}}$ with true $\log M_*$ throughout the $M_*$ range. 
-This means that we accurately infer the true $M_*$ throughout ${\sim}10^{9} -
-10^{12} M_\odot$  with uniform precision of $\sigma_{\Delta_{\log M_*}} \sim 0.1$ dex. 
+We accurately infer the true $M_*$ throughout ${\sim}10^{9}$- $10^{12} M_\odot$
+with uniform precision of $\sigma_{\Delta_{\log M_*}}{\sim}0.1$ dex. 
 We also find no significant dependence on SNR for $M_*$ --- neither $r_{\rm
 fiber}$ nor $r$ magnitudes significantly affect $\mu_{\Delta_{\log M_*}}$ and
 $\sigma_{\Delta_{\log M_*}}$.
@@ -313,9 +313,8 @@ ${\sim} 0.1$ dex precision.
 In fact, we find a $\log \avgsfr \sim -1$ dex lower bound for the inferred
 $\log \avgsfr$.
 Below this limit, we significantly overestimate $\log \avgsfr$, consistent with
-the bias in Figure~\ref{fig:prop_inf}. 
-At $\log\avgsfr < -1$ dex, the constraints are also significantly broader with
-$\sigma_{\Delta_{\log M_*}}{\sim}0.25 - 0.3$ dex.
+the bias in Figure~\ref{fig:prop_inf}, and the constraints are also
+significantly broader with $\sigma_{\Delta_{\log M_*}}{\sim}0.25 - 0.3$ dex.
 Comparing $\mu_{\Delta_{\theta}}$ and $\sigma_{\Delta_{\theta}}$ from
 spectrophotometry versus from only photometry, we confirm that including
 spectra significantly improves the accuracy and tightens the $\log\avgsfr$
@@ -326,7 +325,7 @@ ${\sim}1$ dex --- an order of magnitude.
 We find no significant correlation between the accuracy and precision of
 $\avgsfr$ with spectral or photometric SNR.
 Meanwhile, there is a more significant color dependence where we overestimate
-$\log\avgsfr$ by $\mu_{\Delta_{\log\avgsfr}}>0.5$ dex for the reddest galaxies
+$\log\avgsfr$ by $\mu_{\Delta_{\log\avgsfr}}{>}0.5$ dex for the reddest galaxies
 ($g-r > 1.5$ and $r-z> 0.6$).
 The constraints for these galaxies are also significantly less precise:
 $\sigma_{\Delta_{\log\avgsfr}} \sim 0.5$ dex. 
@@ -335,10 +334,11 @@ bias in the inferred for quiescent galaxies where we overestimate $\avgsfr$.
 $\avgsfr$ is also slightly underestimated for the most massive ($M_* >
 10^{11}M_\odot$) star-forming galaxies. 
 These biases are consequences of our SPS model priors.
-$\avgsfr$ is a derived quantity; hence, the uniform priors we impose on SPS
-parameters induce non-uniform priors on them.
+$\avgsfr$ is a derived quantity; hence, the uninformative priors we impose on
+SPS parameters induce non-uniform priors on them.
 Our SPS model imposes a prior on $\log \overline{\rm SSFR}_{\rm 1 Gyr}$
-that is skewed and peaks at ${\sim}-10.4$ dex (Appendix~\ref{sec:model_priors}, Figure~\ref{fig:model_prior}). 
+that is skewed towards the peaks at $\sim$-10.4 dex
+(Appendix~\ref{sec:model_priors}, Figure~\ref{fig:model_prior}). 
 Consequently, the posterior overestimates $\avgsfr$ at low $\avgsfr$ (red,
 quiescent galaxies) and underestimates $\avgsfr$ at the highest $\avgsfr$. \\
 
@@ -355,27 +355,27 @@ model priors.
 The prior skews $\log\zmw$ constraints towards the peak of the prior at
 $\log\zmw\sim-1.5$. 
 Figure~\ref{fig:etas} also includes $\eta_\Delta$ for posteriors derived from
-photometry alone (orange). 
-This demonstrates that including DESI spectra substantially improves the
-accuracy of the $\log\zmw$ constraints --- spectra reduces the overall bias on
-$\zmw$ by $\sim0.3$ dex. 
+photometry alone (orange), which demonstrates that including DESI spectra
+substantially improves the accuracy of the $\log\zmw$ constraints.
+Spectra reduces the overall bias on $\zmw$ by $\sim$0.3 dex. 
 The improvement comes from the likelihood contribution from DESI spectra
 reducing the relative contribution of the prior on the posterior. 
 
-In Figure~\ref{fig:eta_photo}, we find that the posteriors overestimate
-$\log\zmw$ at $r_{\rm fiber} > 20$. 
-These correspond to mock observations with low spectral SNR and further
-underscore the constraining power of DESI spectra. 
-Low spectral SNR means that the contribution of the likelihood from the spectra
-is reduced so the prior on $\log\zmw$ has a larger effect. 
+This is also why we find that the posteriors overestimate $\log\zmw$ at 
+$r_{\rm fiber} > 20$ in Figure~\ref{fig:eta_photo}.
+These correspond to mock observations with low spectral SNR where the
+contribution of the likelihood from the spectra is reduced and the prior on
+$\log\zmw$ has a larger effect.
 The color dependence of $\mu_{\Delta_\theta}$ for $\zmw$ in
 Figure~\ref{fig:eta_photo} is also a consequence of this spectral SNR
 dependence; so is the $M_*-{\rm SFR}$ dependence (Figure~\ref{fig:etas_msfr}).
 If we exclude galaxies with low spectral SNR, both the color and $M_*-{\rm
 SFR}$  dependences are substantially reduced.
-More quantitatively, we present $\eta_\Delta$ for only $r_{\rm fiber} < 20$
-galaxies in Figure~\ref{fig:etas} (black dot-dashed) where we infer $\log\zmw$
-with $\mu_{\Delta_\theta}<0.15$ dex and $\sigma_{\Delta_\theta}\sim0.1$. \\
+For only $r_{\rm fiber} < 20$ we infer $\log\zmw$ with
+$\mu_{\Delta_\theta}<0.15$ dex and $\sigma_{\Delta_\theta}\sim0.1$
+(Figure~\ref{fig:etas}; black dot-dashed). 
+The posteriors on $\zmw$ further underscore the constraining power of DESI
+spectra. \\
 
 % t_age, MW 
 \noindent \underline{\emph{Inferred $\tage$}}:  
@@ -384,7 +384,7 @@ on $\tage$ out to $\tage < 8$ Gyr.
 Below this limit, we infer $\tage$ with $\sigma_{\Delta_\theta}{\sim}0.5$ Gyr.
 For galaxies with older stellar populations above this limit, the log-spaced
 $\tlb$ binning in our SPS model (Section~\ref{sec:sps}) expectedly
-underestimates $\tage$ constraints with larger uncertainties 
+underestimates $\tage$ constraints and produces larger uncertainties 
 ($\sigma_{\Delta_{\tage}} \gtrsim 1$ Gyr). 
 Meanwhile, we find no significant SNR or color dependence in
 Figure~\ref{fig:eta_photo}. 
@@ -409,10 +409,6 @@ model than in the forward model.
 This places a strict limit on how accurately we can derive $\tauism$.
 We intentially introduce this discrepancy since we do not know the ``true''
 attenuation curve of observed galaxies in practice. 
-Hence, with the discrepancy we test whether the {\sc PROVABGS} SPS modeling can
-marginalize over the effect of dust and derive robust constraints on the other
-galaxy properties.
-
 Another reason for the biased $\tauism$ constraints is that we only attenuate
 the stellar emission in the disk component of the simulated galaxies and not
 the bulge component (Section~\ref{sec:sed}).
@@ -420,6 +416,10 @@ The true $\tauism$ is the optical depth for the disk component while our
 $\tauism$ constraints correspond to the optical depth of dust attenuation
 for the entire galaxies, a quantity that will be lower than the true $\tauism$
 depending on how much the bulge contributes to the SED. 
+Hence, with these discrepancy we test whether the {\sc PROVABGS} SPS modeling
+can marginalize over the effect of dust and derive robust constraints on the
+other galaxy properties.
+
 Despite the discrepancies, we find no significant SNR or color dependence on
 the accuracy and precision of $\tauism$ constraints
 (Figure~\ref{fig:eta_photo}). 
@@ -438,41 +438,3 @@ We emphasize that the primary goal of dust prescription in our SPS model is to
 marginalize out the effect of dust. 
 Based on the accuracy and precision of the constraints on other galaxy
 properties, the {\sc PROVABGS} SPS model achieves this objective.  
-
-%For $\avgsfr$, Figure~\ref{fig:etas_msfr} helps further characterize the effect
-%of the SPS model prior on our constraints. 
-%We expectedly find a significant bias for quiescent galaxies since our
-%$\log\avgsfr$ constraints have a lower bound of $-1$ dex (Figure~\ref{fig:etas}).
-%We also find that $\avgsfr$ is slightly underestimated for the most massive
-%($M_* > 10^{11}M_\odot$) star-forming galaxies. 
-%For the rest of the galaxies, there is no significant bias in the constraints. 
-%In terms of precision, we find no significant $M_*-{\rm SFR}$ dependence in our
-%$\log\avgsfr$ constraints. 
-
-
-%The biases in $\avgsfr$, $Z_{\rm MW}$, $\tage$ are all a consequence of our SPS
-%model priors (Appendix~\ref{sec:model_priors}). 
-%$\avgsfr$, $Z_{\rm MW}$, and $\tage$ are derived quantities; hence, the uniform
-%priors we impose on SPS parameters induce non-uniform priors on them.
-%For our SPS model, we impose a prior on $\log \overline{\rm SSFR}_{\rm 1 Gyr}$
-%that is skewed and peaks at ${\sim}-10.4$ dex (Figure~\ref{fig:model_priors}). 
-%Consequently, the posterior overestimates $\avgsfr$ at low $\avgsfr$.
-%The SPS model also imposes skewed priors on $\log Z_{\rm MW}$ and $\tage$,
-%which causes to overestimate $\log Z_{\rm MW}$ for low $Z_{\rm MW}$ galaxies
-%and underestimate $\tage$ for galaxies with older stellar population. 
-
-%The biases in $\avgsfr$, $Z_{\rm MW}$, $\tage$ are all a consequence of our SPS
-%model priors (Appendix~\ref{sec:model_priors}). 
-%$\avgsfr$, $Z_{\rm MW}$, and $\tage$ are derived quantities; hence, the uniform
-%priors we impose on SPS parameters induce non-uniform priors on them.
-%For our SPS model, we impose a prior on $\log \overline{\rm SSFR}_{\rm 1 Gyr}$
-%that is skewed and peaks at ${\sim}-10.4$ dex (Figure~\ref{fig:model_priors}). 
-%Consequently, the posterior overestimates $\avgsfr$ at low $\avgsfr$.
-%The SPS model also imposes skewed priors on $\log Z_{\rm MW}$ and $\tage$,
-%which causes to overestimate $\log Z_{\rm MW}$ for low $Z_{\rm MW}$ galaxies
-%and underestimate $\tage$ for galaxies with older stellar population. 
-
-
-
-%As we mention earlier, the accuracy of our $Z_{\rm MW}$ constraint depends significantly on the spectral SNR ($r_{\rm fiber}$).
-%meanwhile SFR is much sharper so it's more affected by the true galaxy properties This can then transition into the accuracy and precision as a function of galaxy type. 

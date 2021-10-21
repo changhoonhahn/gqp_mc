@@ -128,20 +128,6 @@ Ciesla L.,  Elbaz D.,   Fensch J.,  2017, \mn@doi [Astronomy and Astrophysics]
 Coil A.~L.,  et~al., 2011, \mn@doi [The Astrophysical Journal]
   {10.1088/0004-637X/741/1/8}, 741, 8
 
-\bibitem[\protect\citeauthoryear{Collaboration et~al.,}{Collaboration
-  et~al.}{2014}]{planckcollaboration2014a}
-Collaboration P.,  et~al., 2014, \mn@doi [Astronomy \&amp; Astrophysics, Volume
-  571, id.A16, {$<$}NUMPAGES{$>$}66{$<$}/NUMPAGES{$>$} pp.]
-  {10.1051/0004-6361/201321591}, 571, A16
-
-\bibitem[\protect\citeauthoryear{Collaboration et~al.,}{Collaboration
-  et~al.}{2016a}]{desicollaboration2016}
-Collaboration D.,  et~al., 2016a, arXiv:1611.00036 [astro-ph]
-
-\bibitem[\protect\citeauthoryear{Collaboration et~al.,}{Collaboration
-  et~al.}{2016b}]{desicollaboration2016a}
-Collaboration D.,  et~al., 2016b, arXiv:1611.00037 [astro-ph]
-
 \bibitem[\protect\citeauthoryear{Conroy}{Conroy}{2013}]{conroy2013}
 Conroy C.,  2013, \mn@doi [Annual Review of Astronomy and Astrophysics]
   {10.1146/annurev-astro-082812-141017}, 51, 393
@@ -155,6 +141,14 @@ Conroy C.,  Gunn J.~E.,  2010, \mn@doi [The Astrophysical Journal]
   et~al.}{2009}]{conroy2009}
 Conroy C.,  Gunn J.~E.,   White M.,  2009, \mn@doi [The Astrophysical Journal]
   {10.1088/0004-637X/699/1/486}, 699, 486
+
+\bibitem[\protect\citeauthoryear{{DESI Collaboration}}{{DESI
+  Collaboration}}{2016a}]{desicollaboration2016}
+{DESI Collaboration} 2016a, arXiv:1611.00036 [astro-ph]
+
+\bibitem[\protect\citeauthoryear{{DESI Collaboration}}{{DESI
+  Collaboration}}{2016b}]{desicollaboration2016a}
+{DESI Collaboration} 2016b, arXiv:1611.00037 [astro-ph]
 
 \bibitem[\protect\citeauthoryear{Daddi et~al.,}{Daddi et~al.}{2007}]{daddi2007}
 Daddi E.,  et~al., 2007, \mn@doi [The Astrophysical Journal] {10.1086/521818},
@@ -196,6 +190,11 @@ F{\'e}votte C.,  Idier J.,  2011, arXiv:1010.1763 [cs]
   Morton}{{Foreman-Mackey} et~al.}{2014}]{foreman-mackey2014}
 {Foreman-Mackey} D.,  Hogg D.~W.,   Morton T.~D.,  2014, \mn@doi [The
   Astrophysical Journal] {10.1088/0004-637X/795/1/64}, 795, 64
+
+\bibitem[\protect\citeauthoryear{Ge, Mao, Lu, Cappellari  \& Yan}{Ge
+  et~al.}{2019}]{ge2019}
+Ge J.,  Mao S.,  Lu Y.,  Cappellari M.,   Yan R.,  2019, \mn@doi [Monthly
+  Notices of the Royal Astronomical Society] {10.1093/mnras/stz418}, 485, 1675
 
 \bibitem[\protect\citeauthoryear{Genel et~al.,}{Genel et~al.}{2014}]{genel2014}
 Genel S.,  et~al., 2014, \mn@doi [Monthly Notices of the Royal Astronomical
@@ -270,6 +269,10 @@ Leja J.,  Carnall A.~C.,  Johnson B.~D.,  Conroy C.,   Speagle J.~S.,  2019,
 Li C.,  White S. D.~M.,  2009, \mn@doi [Monthly Notices of the Royal
   Astronomical Society] {10.1111/j.1365-2966.2009.15268.x}, 398, 2177
 
+\bibitem[\protect\citeauthoryear{Malz \& Hogg}{Malz \& Hogg}{2020}]{malz2020}
+Malz A.~I.,  Hogg D.~W.,  2020, How to Obtain the Redshift Distribution from
+  Probabilistic Redshift Estimates
+
 \bibitem[\protect\citeauthoryear{Marchesini, {van Dokkum},
   F{\"o}rster~Schreiber, Franx, Labb{\'e}  \& Wuyts}{Marchesini
   et~al.}{2009}]{marchesini2009}
@@ -302,9 +305,9 @@ Moustakas J.,  et~al., 2013, \mn@doi [The Astrophysical Journal]
   {10.1088/0004-637X/767/1/50}, 767, 50
 
 \bibitem[\protect\citeauthoryear{Nelson et~al.,}{Nelson
-  et~al.}{2018}]{nelson2018}
-Nelson D.,  et~al., 2018, \mn@doi [Monthly Notices of the Royal Astronomical
-  Society] {10.1093/mnras/stx3040}, 475, 624
+  et~al.}{2015}]{nelson2015}
+Nelson D.,  et~al., 2015, \mn@doi [Astronomy and Computing]
+  {10.1016/j.ascom.2015.09.003}, 13, 12
 
 \bibitem[\protect\citeauthoryear{Noeske et~al.,}{Noeske
   et~al.}{2007}]{noeske2007}
@@ -339,10 +342,11 @@ Paxton B.,  et~al., 2013, \mn@doi [The Astrophysical Journal Supplement Series]
 Paxton B.,  et~al., 2015, \mn@doi [The Astrophysical Journal Supplement Series]
   {10.1088/0067-0049/220/1/15}, 220, 15
 
-\bibitem[\protect\citeauthoryear{Pillepich et~al.,}{Pillepich
-  et~al.}{2018}]{pillepich2018}
-Pillepich A.,  et~al., 2018, \mn@doi [Monthly Notices of the Royal Astronomical
-  Society] {10.1093/mnras/stx2656}, 473, 4077
+\bibitem[\protect\citeauthoryear{{Planck Collaboration}}{{Planck
+  Collaboration}}{2014}]{planckcollaboration2014a}
+{Planck Collaboration} 2014, \mn@doi [Astronomy \&amp; Astrophysics, Volume
+  571, id.A16, {$<$}NUMPAGES{$>$}66{$<$}/NUMPAGES{$>$} pp.]
+  {10.1051/0004-6361/201321591}, 571, A16
 
 \bibitem[\protect\citeauthoryear{Richards et~al.,}{Richards
   et~al.}{2016}]{richards2016}
@@ -413,11 +417,6 @@ Sparre M.,  Hayward C.~C.,  Feldmann R.,  {Faucher-Gigu{\`e}re} C.-A.,  Muratov
   et~al.}{2005}]{springel2005a}
 Springel V.,  et~al., 2005, \mn@doi [Nature] {10.1038/nature03597}, 435, 629
 
-\bibitem[\protect\citeauthoryear{Springel et~al.,}{Springel
-  et~al.}{2018}]{springel2018}
-Springel V.,  et~al., 2018, \mn@doi [Monthly Notices of the Royal Astronomical
-  Society] {10.1093/mnras/stx3304}, 475, 676
-
 \bibitem[\protect\citeauthoryear{Tacchella et~al.,}{Tacchella
   et~al.}{2021}]{tacchella2021}
 Tacchella S.,  et~al., 2021, arXiv e-prints, 2102, arXiv:2102.12494
@@ -467,6 +466,11 @@ Trevisan M.,  Mamon G.~A.,  Thuan T.~X.,  Ferrari F.,  Pilyugin L.~S.,   Ranjan
   et~al.,}{{Villaescusa-Navarro} et~al.}{2021}]{villaescusa-navarro2021}
 {Villaescusa-Navarro} F.,  et~al., 2021, \mn@doi [The Astrophysical Journal]
   {10.3847/1538-4357/abf7ba}, 915, 71
+
+\bibitem[\protect\citeauthoryear{Vogelsberger et~al.,}{Vogelsberger
+  et~al.}{2014}]{vogelsberger2014}
+Vogelsberger M.,  et~al., 2014, \mn@doi [Monthly Notices of the Royal
+  Astronomical Society] {10.1093/mnras/stu1536}, 444, 1518
 
 \bibitem[\protect\citeauthoryear{Wang \& Zhao}{Wang \& Zhao}{2020}]{wang2020}
 Wang Y.,  Zhao G.-B.,  2020, \mn@doi [Research in Astronomy and Astrophysics]

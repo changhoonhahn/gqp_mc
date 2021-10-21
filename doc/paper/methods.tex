@@ -37,20 +37,19 @@ coefficients.
 The integral in the denominator normalizes the NMF basis functions to unity. 
 We constrain $\sum_i \beta_i = 1$, so the total SFH of the component over the
 age of the galaxy ($t_{\rm age})$ is normalized to unity.
-$\{s^{\rm SFH}_i\}$ are derived from the IllustrisTNG cosmological hydrodynamic
-simulation~\citep{nelson2018, pillepich2018, springel2018}.
-The SFHs of simulated galaxies IllustrisTNG are compiled, rebinnined, and
-smoothed.
+$\{s^{\rm SFH}_i\}$ are derived from the Illustris cosmological hydrodynamic
+simulation~\citep{vogelsberger2014, genel2014, nelson2015}.
+The SFHs of Illustris galaxies are compiled, rebinnined, and smoothed.
 Afterwards, we perform non-negative matrix
 factorization~\citep{lee1999,cichocki2009, fevotte2011} on the smooth SFHs to
 derive $\{s^{\rm SFH}_i\}$. 
 We find that 4 components is sufficient to accurately reconstruct the SFHs
-from IllustrisTNG. 
+from Illustris. 
 We present the NMF SFH bases as a function of lookback time in
 left panel of Figure~\ref{fig:nmf}.
 For further details on the derivation of the NMF bases, we refer readers to
 Appendix~\ref{sec:nmf}. 
-Assuming that the SFHs of IllustrisTNG galaxies resemble the SFHs of actual
+Assuming that the SFHs of Illustris galaxies resemble the SFHs of actual
 observed galaxies, our NMF form provides a compact and flexible representation
 of the SFHs. 
 
@@ -59,7 +58,7 @@ not include any stochasticity.
 However, observations and high resolution zoom-in hydrodyanmical simulations
 both find significant stochasticity in galaxy SFHs~\citep{sparre2017,
 caplar2019, hahn2019b, iyer2020}. 
-To include this stochasticity in our SPS model, we include a starburst
+To include some stochasticity in our SPS model, we include a starburst
 component that consists of a SSP in the SFH. 
 Thus, for the total SFH, we use
 \begin{equation} \label{eq:sfh}
@@ -79,15 +78,15 @@ time~\citep{carnall2017, leja2019}.
 Since galaxies do not have constant metallicities throughout their history,
 this assumption can significantly bias the inferred galaxy
 properties~\citep{thorne2021}. 
-Instead, for our ZH, we take a similar approach to the SFH and use NMF basis
-functions:
+Instead, we take a similar approach to the SFH and use NMF basis functions for
+our ZH:
 \begin{equation}
     {\rm ZH}(t) = \sum\limits_{i=1}^2 \gamma_i s_i^{\rm ZH}(t).
 \end{equation} 
 $\{s_i^{\rm ZH}(t)\}$ are the ZH NMF basis functions and $\{\gamma_i\}$ are the
 coefficients. 
 $\{s_i^{\rm ZH}(t)\}$ are fit using the ZHs of simulated galaxies from
-IllustrisTNG in the same fashion as the SFH (Appendix~\ref{sec:nmf}). 
+Illustris in the same fashion as the SFH (Appendix~\ref{sec:nmf}). 
 In the right panel of Figure~\ref{fig:nmf}, we present the ZH NMF bases as a
 function of lookback time. 
 We use two NMF components, so our ZH prescription has 2 free parameters. 
@@ -100,9 +99,9 @@ We use two NMF components, so our ZH prescription has 2 free parameters.
         and ZH (right) used in the non-parametric SFH and ZH prescriptions of
         our SPS model. 
         These basis functions are derived from the SFHs and ZHs of simulated
-        galaxies in the IllustrisTNG cosmological hydrodynamic simulations. 
+        galaxies in the Illustris cosmological hydrodynamic simulations. 
         With the NMF basis functions, we can reproduce the wide range of SFHs
-        and ZHs of IllustrisTNG galaxies.  
+        and ZHs of Illustris galaxies (Appendix~\ref{sec:nmf}).  
     }
     \label{fig:nmf}
 \end{center}
@@ -129,8 +128,8 @@ Since we use MIST isochrones, we impose a minimum and maximum limit to ${\rm
 ZH}$ based on its coverage: $4.49\times10^{-5}$ and $4.49\times10^{-2}$,
 respectively.
 We note that our stellar metallicity range is significantly broader than
-previous studies~\citep[\emph{e.g.}][]{carnall2017, leja2017, tacchella2021}
-for additional flexibility. 
+previous studies for additional flexibility~\citep[\emph{e.g.}][]{carnall2017,
+leja2017, tacchella2021}. 
 
 Before we combine the SSP luminosities, we apply dust attenuation.
 We use a two component \cite{charlot2000} dust attenuation model with birth
@@ -163,7 +162,7 @@ profile:
     \lambda_0^2)^2 + (\lambda~\Delta \lambda)^2}
 \end{equation}
 where $\lambda_0 = 2175 \AA$, $\Delta \lambda = 350\AA$, and 
-$E_b=0.85 - 1.9 n_{\rm dust}$ are the central wavelength, full width at half
+$E_b=0.85 - 1.9\,n_{\rm dust}$ are the central wavelength, full width at half
 maximum, and strength of the bump, respectively. 
 Once dust attenuation is applied to the SSPs, we sum them up to get the
 rest-frame luminosity of the galaxy. 
@@ -173,17 +172,18 @@ $\tau_{\rm BC}$, $\tau_{\rm ISM}$, and $n_{\rm dust}$.
 
 %description of our speculator SED model \citep{alsing2019}, which is based on FSPS. We use Chabrier IMF \ch{do we need to justify htis?}. 
 
-In practice, evaluating each SSP using \fsps~requires \todo{X} seconds. 
+In practice, evaluating each SSP using \fsps~requires \ch{X} seconds. 
 For each model evaluation, we evaluate $\sim 43$ SSPs in each of the log-spaced
 $\tlb$ bins. 
 Though this is not a prohibitive computational cost on its own, sampling a
 high dimensional parameter space for inference requires $>100,000$ evaluations
---- \emph{i.e.} \todo{$>100$} CPU hours \emph{per galaxy}. 
-For the >10 million BGS galaxies, this would require \todo{\emph{a billion}}
+--- \emph{i.e.} \ch{$>100$} CPU hours \emph{per galaxy}. 
+For the >10 million BGS galaxies, this would require \ch{\emph{a billion}}
 CPU hours. 
 Instead, we use an emulator for the model luminosity, which uses a Principal
 Component Analysis (PCA) neural network (NN) following the approach of
-\cite{alsing2019}.
+\cite{alsing2019}. 
+\ch{The numbers above will be updated after further updates to the pipeline.}
 
 Our emulator consists of a NN and PCA basis functions. 
 The NN provides a flexible and accurate mapping between the SPS model
@@ -191,8 +191,8 @@ parameters and PCA coefficients --- \emph{i.e.} the NN predicts PCA
 coefficients for a given set of SPS parameters. 
 Then the linear combination of the predicted coefficients and PCA basis
 functions give us the emulated model luminosity. 
-The PCA basis functions and NN are trained using $1,000,000$ SPS parameters and
-model luminosity pairs, $(\theta, L(\lambda;\theta))$. 
+The PCA basis functions and NN are trained using 1,000,000 SPS parameters and
+model luminosity pairs, $\{(\theta, L(\lambda;\theta))\}$. 
 Throughout the wavelength range relevant for BGS, $3000 < \lambda < 9800\AA$,
 we achieve $< 1\%$ accurate with the emulator. 
 For details on the training, validation, and performance of our PCA NN
@@ -203,18 +203,16 @@ in the same way as Eq.~\ref{eq:sed}.
 In our case, redshift is not a free parameter since we will have high quality
 spectroscopic redshifts for every DESI BGS galaxy.
 BGS redshifts will have small redshift error, $\sigma_z < 0.0005 (1+z)$
-(150km/s), and <5\% catastrophic failures, $\Delta z/(1+z) < 0.003$ (<1000
+(150 km/s), and <5\% catastrophic failures, $\Delta z/(1+z) < 0.003$ (<1000
 km/s).
 To model DESI photometry, we convolve the model flux with the LS broadband
 filters as in Eq.~\ref{eq:photo}.
 To model DESI spectra, we first apply Gaussian velocity dispersion. 
-In this work, we keep velocity dispersion fixed at 0km/s but in practice
+In this work, we keep velocity dispersion fixed at 0 km/s but in practice
 velocity dispersion can be set as a free parameter. 
-Then the broadened flux is resampled into the wavelength binning of the
-observed DESI spectra, which has spectral resolution $R = 2000 - 5000$ over
-$3600 < \lambda < 9800\AA$. 
-Since the DESI spectra does not necessarily include all the light of a galaxy,
-we include a nuisance parameter $f_{\rm fiber}$, a normalization factor on the
+Then the broadened flux is resampled into the DESI wavelength binning. 
+Since DESI spectra do not necessarily include all the light of a galaxy, we
+include a nuisance parameter $f_{\rm fiber}$, a normalization factor on the
 spectra to account for fiber aperture effects. 
 Finally, the SPS model photometry and spectrum can be directly compared to
 observations.
@@ -292,9 +290,9 @@ $m^{\rm photo}$ and $m^{\rm spec}$ represent SPS model for photometry and
 spectroscopy. 
 $\sigma^{\rm photo}$ and $\sigma^{\rm spec}$ respresent the uncertainties on
 the measured photometry and spectrum. 
-In calculating $\mathcal{L}^{\rm spec}$, we exclude 40\AA wavelength range
-surrounding the OII, H$\beta$, OIII, and H$\alpha$ emission lines since our SED
-model does not model gas emissions.
+In calculating $\mathcal{L}^{\rm spec}$, we exclude wavelength ranges of width
+40\AA~surrounding the OII, H$\beta$, OIII, and H$\alpha$ emission lines since
+our SED model does not model gas emissions.
 We consider the photometry indepedent from the spectrum so we combine the
 likelihoods when jointly modeling the spectrophotometry: 
 \begin{equation}
@@ -321,7 +319,7 @@ It generally converges faster than other MCMC algorithms (\emph{e.g.}
 Metropolis) and generates chains with significantly lower autocorrelation.
 
 When we sample the posterior, we do not directly sample our 12 dimensional
-SPS parameter space because we impose a Dirichlet prior on the SFH NMF
+SPS parameter space because we use a Dirichlet prior on the SFH NMF
 coefficients. 
 Dirichlet distributions are difficult to directly sample so we instead use the
 \cite{betancourt2012} sampling method, which transforms an $N$ dimensional
@@ -331,7 +329,7 @@ Given this dimensionality, we run our MCMC sampling with 30 walkers.
 Overall, we find that the sampling converges after 2,500 iterations with a 500
 iteration burn in. 
 Deriving the posterior distribution from a joint SED modeling of photometry and
-spectra, with the emulator, takes \todo{0.5 CPU hours}. 
+spectra, with the emulator, takes \ch{0.5 CPU hours}. 
 In principle, since our emulator uses a PCA NN, we can further expedite our
 paremeter inference using more efficient sampling methods that exploit gradient
 information, such as Hamiltonian Monte Carlo.  
@@ -341,7 +339,7 @@ In Figure~\ref{fig:posterior} we present the posterior distribution of our 12
 SPS model parameters for an arbitrarily chosen \lgal~mock observation. 
 We mark the 68 and 95 percentiles of the distribution with the contours. 
 The posterior distribution reveal there are significant degeneracies between
-SPS parameters --- \emph{e.g.} $\beta_2^{\rm SFH}$ and $f_{\rm burst}$. 
+SPS parameters: \emph{e.g.} $\beta_2^{\rm SFH}$ and $f_{\rm burst}$. 
 Furthermore, the distribution is multimodal (see $f_{\rm burst}$ panels). 
 With our Bayesian SED modeling, we are able to capture such complexities in the
 posterior that would be lost with point estimates or maximum likelihood
@@ -349,9 +347,9 @@ approaches.
 In the bottom panels, we compare our SPS model evaluated at the best-fit
 parameters (orange) with the \lgal~mock observations (black). 
 On the left, we compare the $g$, $r$, $z$ band magnitudes; on the right, we
-compare the DESI spectroscopy. 
+compare spectra. 
 We find excellent agreement between the best-fit SPS model and mock
 observations.
-The entire PROVABGS SED modeling pipeline, which includes the neural emulators
-and parameter inference framework, is publicly available at
+The entire PROVABGS SED modeling pipeline, including the neural emulators and
+parameter inference framework, is publicly available at
 \href{https://github.com/changhoonhahn/provabgs/}{https://github.com/changhoonhahn/provabgs/}. 

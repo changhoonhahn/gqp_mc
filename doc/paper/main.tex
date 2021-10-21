@@ -1,5 +1,6 @@
 \documentclass[12pt, letterpaper, preprint]{aastex63}
 \usepackage[T1]{fontenc}
+\usepackage{fontawesome}
 \usepackage{color}
 \usepackage{amsmath}
 \usepackage{natbib}
@@ -52,6 +53,8 @@
 \newcommand{\avgssfr}{\overline{\rm SSFR}_{\rm 1Gyr}}
 \let\oldAA\AA
 \renewcommand{\AA}{\text{\normalfont\oldAA}}
+\newcommand{\github}{\href{https://github.com/changhoonhahn/provabgs/}{\faGithub}}
+
 
 \makeatletter \def\@captype{figure} \makeatother
 
@@ -67,7 +70,7 @@
 %% collaborating
 \newcommand{\todo}[1]{\marginpar{\color{red}TODO}{\color{red}#1}}
 \definecolor{orange}{rgb}{1,0.5,0}
-\newcommand{\ch}[1]{{\color{orange}{\bf CH:} #1}}
+\newcommand{\ch}[1]{{\color{orange} #1}}
 
 \shorttitle{PROVABGS Mock Challenge}
 \shortauthors{Hahn et al.}
@@ -92,6 +95,9 @@
 \affil{Institut de F\'{\i}sica d'Altes Energies (IFAE), The Barcelona Institute of Science and Technology, 08193 Bellaterra (Barcelona), Spain}
 \affil{National Centre for Nuclear Research, ul. Pasteura 7, 02-093, Warsaw, Poland}
 
+\author{Rebecca E. A. Canning}
+\affil{}
+
 \author{Mar Mezcua}
 \affil{Institute of Space Sciences (ICE, CSIC), Campus UAB, Carrer de Can Magrans, 08193, Barcelona, Spain}
 \affil{Institut d’Estudis Espacials de Catalunya (IEEC), C/ Gran Capità, 08034 Barcelona, Spain}
@@ -113,32 +119,31 @@
     Full posterior distributions of the galaxy properties will be inferred
     using state-of-the-art Bayesian spectral energy distribution (SED) modeling
     of DESI spectroscopy and Legacy Surveys photometry.
-    In this work, we present the SED model, the Bayesian inference framework,
-    and all the methodology of PROVABGS\footnote{publicly available at
-    \href{https://github.com/changhoonhahn/provabgs/}{https://github.com/changhoonhahn/provabgs/}}.
+    In this work, we present the SED model, Bayesian inference framework, and
+    methodology of PROVABGS. %\footnote{publicly available at }.
     Furthermore, we construct realistic synthetic DESI spectra and photometry
-    using galaxies in the {\sc L-Galaxies} semi-analytic model, based on their
-    star formation and chemical enrichment histories, and apply the PROVABGS
-    SED modeling on the mock observations.
-    Afterwards, we compare the galaxy properties that we infer to the true
-    galaxy properties of the simulation using a hierarchical Bayesian framework
+    using galaxies in the {\sc L-Galaxies} semi-analytic model
+    %, based on their star formation and chemical enrichment histories, 
+    and apply the PROVABGS SED modeling on the mock observations.
+    We then compare the galaxy properties that we infer to the true galaxy
+    properties of the simulation using a hierarchical Bayesian framework
     to quantify accuracy and precision. 
     Overall, we accurately infer the true $M_*$, SFR, $Z_{\rm MW}$, and 
     $t_{\rm age, MW}$ of the simulated galaxies. 
     However, we find that priors on galaxy properties induced by the SED model
     have a significant impact on the posteriors. 
-    We characterize the priors in detail and quantify that they impose a 
-    ${\rm SFR} > 10^{-1} M_\odot/{\rm yr}$ lower bound on SFR, a ${\sim}0.3$
+    We characterize the priors and their impact in detail: they impose a 
+    ${\rm SFR}{>}10^{-1} M_\odot/{\rm yr}$ lower bound on SFR, a ${\sim}0.3$
     dex bias on $\log Z_{\rm MW}$ for galaxies with low spectral
     signal-to-noise, and $t_{\rm age, MW} < 8\,{\rm Gyr}$ upper bound on
     stellar age. 
-    We also demonstrate that a joint analysis of spectrophotometry
+    We also demonstrate that a joint analysis of spectra and photometry
     significantly improves the constraints on galaxy properties over photometry
     alone and is necessary to mitigate the impact of the priors. 
     With the methodology presented and validated in this work, PROVABGS will
     maximize information extracted from DESI observations and provide a galaxy
     catalog that will extend current galaxy studies to new regimes and unlock 
-    cutting edge probabilistic analyses.
+    cutting-edge probabilistic analyses. \github
 \end{abstract}
 
 \keywords{

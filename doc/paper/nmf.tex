@@ -1,2 +1,105 @@
 \section{Non-negative Matrix Factorization Bases} \label{sec:nmf}
+The basis vectors for the star-formation and metallicity histories are computed
+using non-negative matrix factorisation (NMF) on a set of star formation and
+metallicity histories in the Illustris 
+simulation~\citep{vogelsberger2014, genel2014, nelson2015}.
+Unlike PCA, NMF lends itself well to this task as it gives positive vectors,
+which can each be straightforwardly interpreted physically as representing the
+SFH of a composite stellar population. 
+In the case of the ZHs, the advantage of NMF vs PCA is less clear, but we
+maintain the NMF scheme for simplicity. 
 
+The SFHs and ZHs are computed from all stellar particles bound to subhalos
+that host a galaxy with $M_* > 10^9 M_\odot$ at $z=0$, giving a sample of just
+over 29,000 Illustris galaxies. 
+For the SFHs, we take the distribution of stellar ages in 400 bins,
+logarithmically distributed between 8.6 Myrs and 13.65 Gyrs, and compute the
+stellar mass formed in each bin. For the ZHs, we take the mass-weighted
+metallicity in each of the bins. 
+Next, the vectors for the SFHs and ZHs are normalized independently ---
+\emph{i.e.} we do not keep information of which ZH corresponds to each SFH.
+Therefore we do not impose the mass-metallicity relation of the simulation onto
+our basis vectors (see \citealt{thorne2021} for a parameterization that links
+SFH with ZH throught he mass-metallicity relation). 
+We take each set of simulated SFHz and ZHs as a reasonable representation of
+possible SFHs and ZHs in the Universe. 
+Prior to decomposition, each individual vector is smoothed on a scale of 400
+Myr, which removes any information on smaller timescales. 
+We decompose the set of SFHs into 4 independent components, and the set of ZHs
+into 2 independent components. 
+The resulting components are shown in the main text (Figure~\ref{fig:nmf}). 
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.85\textwidth]{figs/NFMrec_gal2000_A.pdf}
+\includegraphics[width=0.85\textwidth]{figs/NFMrec_gal2000_B.pdf}
+    \caption{
+    The original and NMF-reconstructed SFHs (top left) and ZHs (top right) of a
+    galaxy in the Illustris simulation. 
+    The original SFH is shown after smoothing on a scale of 400 Myr. 
+    We mark the contributions of each of the NMF components in the faded
+    colored lines. 
+    The middle and bottom panels compare the spectra obtained from integrating
+    the original and reconstructed SFH and ZH. 
+    In this case, the NMF basis offers a good reconstruction of the SFH and ZH,
+    which results in a small residuals in the corresponding spectra.
+    }\label{fig:nmf0}
+\end{center}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.85\textwidth]{figs/NFMrec_gal9009_A.pdf}
+\includegraphics[width=0.85\textwidth]{figs/NFMrec_gal9009_B.pdf}
+    \caption{
+    Same as Figure~\ref{fig:nmf0} but for another Illustris galaxy. 
+    In this case, the NMF basis fails to reproduce a burst of star formation at
+    recent times, leading directly to an underestimation of the luminosity,
+    especially towards the bluer wavelengths.
+    }\label{fig:nmf1}
+\end{center}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.85\textwidth]{figs/ensemble_plots_4p2.jpg}
+    \caption{
+    Comparison of original versus NMF reconstructed total stellar mass formed,
+    mass-weighted age, mass-weighted metallicity, and mass formed in the last
+    200 Myr (from top to bottom). 
+    On the left column we present the distribution of each quantity, and on the
+    right column we show direct comparisons in scatter plots. 
+    The orange dashed lines shows the one-to-one line.
+    Total stellar mass is well recovered, as expected given its lack of
+    sensitivity to smaller bursts. 
+    Mass-weighted ages are poorly recovered at young and old ages, as a direct
+    consequence of the lack of resolution of our basis.
+    The mass-weighted metallicity is well recovered on the mean, though with a
+    large scatter. 
+    The mass formed in young stars is again affected by the lack of resolution
+    of our basis. 
+    In our SPS model, we include a stochastic burst component to account for
+    this limitation (Section~\ref{sec:sps}). 
+    }\label{fig:nmf2}
+\end{center}
+\end{figure}
+
+Figures~\ref{fig:nmf0} and~\ref{fig:nmf1} show two examples of the NMF direct
+reconstruction on two galaxies. 
+The two galaxies are chosen as examples of a `fair' and a `poor' reconstruction.
+In all cases the reconstructions can be improved by increasing the number of
+components, and doing so effectively improves our ability to model shorter
+timescale features in the SFH and ZHs.
+In this work, we instead include a stochastic burst component in the SFH
+(Section~\ref{sec:sps}). 
+
+In Figure~\ref{fig:nmf2}, we present how NMF reconstruction projects onto
+certain derived properties: total stellar mass formed, mass-weighted age,
+mass-weighted metallicity and mass in young stars (mass formed in the last 200
+Myr).
+Besides the total stellar mass, the other derived properties are impacted by
+the lack of short timescale features. 
+Our stochastic burst component directly address this limitiation. 
+Therefore, the NMF basis can be seen as a reasonable and minimal set to recover
+the broad shape of the star-formation and metallicity histories, which is
+complemented in our SPS model by the stochastic burst component.

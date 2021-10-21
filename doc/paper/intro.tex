@@ -6,25 +6,22 @@ With surveys such as the Sloan Digital Sky Survey~\citep[SDSS;][]{york2000},
 Galaxy and Mass Assembly survey~\citep[GAMA;][]{driver2011}, and 
 PRIsm MUlti-object Survey~\citep[PRIMUS;][]{coil2011}, 
 we have now established the global trends of galaxies in the local universe. 
-For instance, population statistiscs, such as the stellar mass
+Population statistiscs, such as the stellar mass 
 function~\citep{li2009, marchesini2009, moustakas2013} or quiescent
 fraction~\citep{kauffmann2003a, blanton2003, baldry2006, taylor2009}, and their
 evolution are now well understood. 
 Many global scaling relations of galaxy propreties such as the mass-metallicity
 relation~\citep{tremonti2004} or
 the ``star formation sequence''~\citep{noeske2007, daddi2007, salim2007} have
-also been firmly established by these observations. 
+also been firmly established. 
 Despite their importance in building our current understanding, however,
-these empirical relations from existing observations are inadequate for
+the empirical relations from existing observations are inadequate for
 shedding further light on how galaxies form and evolve.
-%we've exhausted what we can do with the empirical relations of our current
-%observations
 
-More precise and accurate measurements of empirical relations can potentially
-reveal new trends among galaxies undetected by previous observations.
-New approaches that go beyond observed relations also show promise.
-%There are also new approaches that go beyond the observed relations.
-Empirical prescriptions for physical processes can be placed on top of $N$-body
+More precise and accurate measurements have the potential to reveal new trends
+among galaxies undetected by previous observations.
+So do new approaches that go beyond observed relations.
+Empirical prescriptions for physical processes can be combined with $N$-body
 simulations that capture hierarchical structure formation in empirical 
 models~\citep[\emph{e.g.} {\sc UniverseMachine}][]{behroozi2019}. 
 The predictions of these models can be compared to the observed distributions
@@ -34,13 +31,15 @@ Predicted distributions of galaxy properties of large-scale cosmological
 hydrodyanmical simulations can also be compared to 
 observations~\citep[\emph{e.g.}][]{genel2014, somerville2015a, dave2017a,
 trayford2017, dickey2021, donnari2021}.
-Advances in machine learning techniques for accelerating and emulating
-hydrodynamical simulations~\citep{villaescusa-navarro2021} will enable such
-comparisons to explore a broad range of galaxy formation models.
+Though such comparisons are currently limited by the computation of costs of
+simulations, advances in machine learning techniques for accelerating and
+emulating simulations will enable such comparisons to explore a broad range of
+galaxy formation models~\citep[\emph{e.g.}][]{villaescusa-navarro2021}.
 Soon we will be able to compare detailed galaxy formation models directly
 against observations and explore the parameter spaces of the models. 
-All of these approaches require more statistically poweful galaxy samples with
-well controlled systematics and well understood selection function. 
+While many different approaches are available for expanding our understanding
+of galaxies, they all require more statistically poweful galaxy samples with
+well controlled systematics and well understood selection functions. 
 
 The Dark Energy Spectroscopic Instrument (DESI) marks the next stage in large
 galaxy surveys. 
@@ -60,7 +59,7 @@ It also includes photometry in the \emph{Wide-field Infrared Survey Explorer}
 $W1$, $W2$, $W3$, and $W4$ infrared bands.
 The infrared photometry is derived from all imaging through year 4 of
 NEOWISE-Reactivation force-photometered in the unWISE maps at the locations of
-LS optical sources~\citep{meisner2017, meisner2017a}.
+LS optical sources~\citep{meisner2017a, meisner2017}.
 
 \begin{figure}
 \begin{center}
@@ -88,25 +87,21 @@ LS optical sources~\citep{meisner2017, meisner2017a}.
 \end{center}
 \end{figure}
 
-During bright time, when the night sky is roughly ${\sim}2.5\times$ brighter
-than the nominal dark conditions, DESI will conduct the Bright Galaxy Survey
-(BGS). 
+During bright time, when the night sky is ${\sim}2.5\times$ brighter than
+nominal dark conditions, DESI will conduct the Bright Galaxy Survey (BGS).
 BGS will provide a $r < 19.5$ magnitude-limited sample of ${\sim}10$ million
 galaxies out to redshift $z < 0.6$ --- the BGS Bright sample. 
 It will also provide a surface brightness and color-selected sample of 
 ${\sim}5$ million faint galaxies with $19.5 < r < 20.175$. 
-The completeness and effect of systematics of the BGS galaxy samples are
-characterized in detail in Hahn~\etal~(in prep.) using observations from
-DESI Survey Validation. 
-%From the BGS galaxy samples we will be able to measure the Baryon Acoustic Oscillation to the cosmic variance limit. 
-%They also have the potential to unlock the constraining power of galaxy clustering with higher-order statistics and multiple-tracer methods~\citep{desicollaboration2016, desicollaboration2016a}.
-%Beyond cosmology, BGS will be transformative for galaxy evolution. 
+The selection and completeness as well as the effect of systematics of the BGS
+samples are characterized in detail in Hahn~\etal~(in prep.) using observations
+from DESI Survey Validation programs. 
 Compared to the seminal SDSS main galaxy survey, BGS will provide optical
 spectra two magnitudes deeper, over twice the sky, and ${\sim}4$ billion years
 farther (Figure~\ref{fig:bgs}). 
 It will observe a broader range of galaxies than previous surveys with
 unprecendented statistical power. 
-Hence, BGS presents a unique opportunity to apply more sophisticated statistical
+BGS presents a unique opportunity to apply more sophisticated statistical
 analyses and new approaches to reveal the detailed connections among galaxy
 populations and  advance galaxy evolution studies. 
 
@@ -114,9 +109,9 @@ populations and  advance galaxy evolution studies.
 \begin{center}
     \includegraphics[width=0.5\textwidth]{figs/bgs_mstar_z.pdf}
     \caption{
-        Stellar mass ($M_*$) distribution as a function of redshift of the $r < 19.5$
-        magnitude-limited BGS Bright sample (orange) as predicted by the MXXL
-        simulation. 
+        Stellar mass ($M_*$) distribution as a function of redshift of the 
+        $r < 19.5$ magnitude-limited BGS Bright sample (orange) as predicted by
+        the MXXL simulation. 
         We include the $M_*$ distribution of MXXL galaxies with $r < 20$ (blue)
         for reference.
         Many such fainter galaxies will be included in the BGS Faint sample,
@@ -125,25 +120,23 @@ populations and  advance galaxy evolution studies.
         provide galaxy samples with unprecedented statistical power.
         \emph{We will apply state-of-the-art Bayesian SED modeling to all BGS
         galaxies to construct the PRObabilistic Value-Added BGS (PROVABGS)
-        catalog, which will unlock new and more sophisticated approaches to
-        galaxy evolution studies.}}\label{fig:bgs_mstar}
+        catalog, which will unlock more sophisticated statistical approaches to
+        advance galaxy evolution studies.}}\label{fig:bgs_mstar}
 \end{center}
 \end{figure}
 
-Observations alone, however, are not sufficient.  
-New techniques and approaches require robust and consistent measurements of
-galaxy properties from the observations.
-The many advantages of the BGS observations would be squandered if they were 
+Better observations alone, however, are not sufficient.  
+The many advantages of BGS observations would be squandered if they were
 analyzed inconsistently with a hodgepodge of methodologies.  
+The advantages of new techniques and approaches cannot be realized without
+consistently measured galaxy properties. 
 Value-added catalogs (VACs) that provide consistently measured galaxy
 properties for entire galaxy surveys are instrumental in this regard and have
-been used by hundreds of scientific
-analyses~\citep[see][for a review]{blanton2009}. 
-For SDSS galaxies, the NYU-VAGC~\citep{blanton2005} provides photometric properties
-(\emph{e.g.} absolute magnitudes) and the MPA-JHU
+been used by hundreds of galaxy studies~\citep[see][for a review]{blanton2009}.
+For SDSS galaxies, the NYU-VAGC~\citep{blanton2005} provided photometric
+properties (\emph{e.g.} absolute magnitudes) and the MPA-JHU
 catalog~~\citep{brinchmann2004}\footnote{https://wwwmpa.mpa-garching.mpg.de/SDSS/DR7/}
-provides spectral properties (\emph{e.g.} emission line
-luminosities).
+provided spectral properties (\emph{e.g.} emission line luminosities).
 Despite being released over a decade ago, these VACs are still widely used
 today~\citep[\emph{e.g.}][]{alpaslan2021, odonnell2021, trevisan2021}. 
 Accompanying the BGS observations, the DESI Galaxy Quasar Physics (GQP) working
@@ -167,24 +160,23 @@ simulations with new approaches.
 
 Moreover, PROVABGS will provide more accurate measurements of galaxy properties
 from full posterior distributions, rather than point estimates. 
-Posteriors estimate the uncertainties on the galaxy property measurements and
-any degeneracies among them more accurately. 
+Posteriors estimate the uncertainties on galaxy property measurements and any
+degeneracies among them more accurately. 
 This will enable a new level of statistical robustness in galaxy evolution
 studies.
-%Beyond mitigating biases, the PROVABGS posteriors will also open the door for Bayesian Hierarchical approaches.
 For instance, we can combine individual posteriors of galaxies to conduct
 principled population inference.
-That means, given observations, $\{X_i\}$, of a set of galaxies we can
-correctly derive the distribution of their physical properties, $\theta$ ---
-$p(\theta | \{ X_i \})$.
-This will enable us to \emph{fully} exploit the observations since we can
-robustly include galaxies with less tightly constrained properties.  
+Given observations of a set of galaxies, $\{X_i\}$, we can properly derive the
+distribution of their physical properties, $\theta$ --- $p(\theta | \{ X_i \})$
+--- and \emph{fully exploit the observations} 
+This also means that we can robustly include galaxies with less tightly
+constrained properties.  
 Little explored low signal-to-noise regimes that can be probed with this
 approach may shed new light on galaxy evolution.
 The PROVABGS posteriors will also open the door for Bayesian Hierarchical
-approaches, which can improve the statistical power of BGS through Bayesian
-shrinkage: the joint posterior of the galaxy sample can be used as the
-prior to shrink the uncertainties on the properties of individual galaxies. 
+approaches and improve the statistical power of BGS through Bayesian shrinkage:
+the joint posterior of the galaxy sample can be used as the prior to shrink the
+uncertainties on the properties of individual galaxies. 
 With these advantages, PROVABGS will provide a VAC that fully exploits the
 DESI observations and maximizes the scientific impact of BGS. 
 
@@ -200,8 +192,8 @@ constructed using the {\sc L-Galaxies} semi-analytic
 model~\citep{henriques2015} and DESI survey simulations. 
 By applying our SED model on mock observations, where we know the true galaxy
 properties, we demonstrate that we can accurately infer galaxy properties for
-PROVABGS and highlight the advantages of jointly analyzing photometric and
-spectroscopic observations. 
+PROVABGS and highlight the advantages of jointly analyzing photometry and
+spectra. 
 Furthermore, we characterize, in detail, the limitations of our SED modeling so
 that future studies using PROVABGS can use this work as a reference in
 interpreting their results. 

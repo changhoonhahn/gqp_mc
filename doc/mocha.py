@@ -277,9 +277,15 @@ def FM_photo():
             range=[[-1., 3.], [-1., 3.]], bins=40, smooth=0.5, 
             plot_datapoints=False, fill_contours=False, plot_density=False, linewidth=0.5, ax=sub)
     sub.fill_between([0],[0],[0], fc='none', ec='k', label='BGS Legacy Surveys') 
-    sub.errorbar(photo_g - photo_r, photo_r - photo_z, 
-            xerr=np.sqrt(sigma_g**2 + sigma_r**2),
-            yerr=np.sqrt(sigma_r**2 + sigma_z**2),
+
+    #DFM.hist2d(photo_g - photo_r, photo_r - photo_z, color='r', levels=[0.68, 0.95], 
+    #        range=[[-1., 3.], [-1., 3.]], bins=40, smooth=0.5, 
+    #        plot_datapoints=False, fill_contours=False, plot_density=False, linewidth=0.5, ax=sub)
+    print(photo_g.shape) 
+    print(photo_g[::5].shape)
+    sub.errorbar((photo_g - photo_r)[::5], (photo_r - photo_z)[::5], 
+            xerr=np.sqrt(sigma_g**2 + sigma_r**2)[::5],
+            yerr=np.sqrt(sigma_r**2 + sigma_z**2)[::5],
             fmt='.C3', markersize=1)#, label='forward modeled DESI photometry') 
     sub.set_xlabel('$g-r$', fontsize=20) 
     sub.set_xlim(0., 2.) 
@@ -2354,11 +2360,78 @@ def Nmock():
     print(props_infer.shape)
     return None 
 
+
+def _model_prior(): 
+    ''' figure illustrating model priors 
+    '''
+    # prior  on SPS parameters
+    prior = Infer.load_priors([
+        Infer.UniformPrior(7., 12.5, label='sed'),
+        Infer.FlatDirichletPrior(4, label='sed'),   # flat dirichilet priors
+        Infer.UniformPrior(0., 1., label='sed'), # burst fraction
+        Infer.UniformPrior(1e-2, 13.27, label='sed'), # tburst
+        Infer.UniformPrior(4.5e-5, 1.5e-2, label='sed'), # log uniform priors on ZH coeff
+        Infer.UniformPrior(4.5e-5, 1.5e-2, label='sed'), # log uniform priors on ZH coeff
+        Infer.UniformPrior(0., 3., label='sed'),        # uniform priors on dust1
+        Infer.UniformPrior(0., 3., label='sed'),        # uniform priors on dust2
+        Infer.UniformPrior(-2., 1., label='sed')    # uniform priors on dust_index
+    ])
+
+    # declare SPS model  
+    m_nmf = Models.NMF(burst=True, emulator=True)
+    
+    n_sample = 10000 # draw n_sample samples from the prior
+    zred = 0.1
+    
+    # sample prior and evaluate SSFR and Z_MW 
+    _thetas = np.array([prior.sample() for i in range(n_sample)])
+    thetas = prior.transform(_thetas)
+    
+    logmstar        = thetas[:,0]
+    logsfr_1gyr     = np.log10(m_nmf.avgSFR(thetas, zred=zred, dt=1.))
+    logssfr_1gyr    = logsfr_1gyr - logmstar
+    logz_mw         = np.log10(m_nmf.Z_MW(thetas, zred=zred))
+    tage_mw         = m_nmf.tage_MW(thetas, zred=zred)
+    
+    #lbls = [r'$\log M_*$', r'$\log {\rm SFR}_{\rm 1 Gyr}$', r'$\log Z_{\rm MW}$', r'$t_{\rm age, MW}$']
+    #fig = DFM.corner(
+    #        np.array([logmstar, logsfr_1gyr, logz_mw, tage_mw]).T, 
+    #        range=[(7., 12.5), (-5, 4.), (-5, -1), (0., 13.2)],
+    #        labels=lbls,
+    #        label_kwargs={'fontsize': 20},
+    #        levels=[0.68, 0.95])#, smooth=True) 
+    lbls = [r'$\log M_*$', r'$\log {\rm SSFR}_{\rm 1 Gyr}$', r'$\log Z_{\rm MW}$', r'$t_{\rm age, MW}$']
+    fig = DFM.corner(
+            np.array([logmstar, logssfr_1gyr, logz_mw, tage_mw]).T, 
+            range=[(7., 12.5), (-14, -8.5), (-5, -1), (0., 13.2)],
+            labels=lbls,
+            label_kwargs={'fontsize': 20},
+            levels=[0.68, 0.95])#, smooth=True) 
+
+    ffig = os.path.join(dir_doc, '_model_prior.pdf')
+    fig.savefig(ffig, bbox_inches='tight')
+    return None 
+
+
+def _Lgal_mass_metallicity():
+
+    _, props_truth = L2_chains('P2', derived_properties=True)
+
+    logM    = props_truth[0]
+    logZmw  = props_truth[2]
+
+    plt.scatter(logM, logZmw - np.log10(0.019))
+    plt.xlim(8.5, 12.)
+    plt.show() 
+
+    return None 
+
+
 if __name__=="__main__": 
     #Nmock()
     #BGS()
 
-    #FM_photo()
+    FM_photo()
     #FM_spec()
     
     #_NMF_bases() 
@@ -2406,6 +2479,9 @@ if __name__=="__main__":
     #_l2_props()
 
     #model_prior()
+    #_model_prior()
     #model_prior_SFH()
 
-    eta_demo(method='opt')
+    #eta_demo(method='opt')
+
+    #_Lgal_mass_metallicity()

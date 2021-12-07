@@ -128,6 +128,20 @@ Ciesla L.,  Elbaz D.,   Fensch J.,  2017, \mn@doi [Astronomy and Astrophysics]
 Coil A.~L.,  et~al., 2011, \mn@doi [The Astrophysical Journal]
   {10.1088/0004-637X/741/1/8}, 741, 8
 
+\bibitem[\protect\citeauthoryear{Collaboration et~al.,}{Collaboration
+  et~al.}{2014}]{planckcollaboration2014a}
+Collaboration P.,  et~al., 2014, \mn@doi [Astronomy \&amp; Astrophysics, Volume
+  571, id.A16, {$<$}NUMPAGES{$>$}66{$<$}/NUMPAGES{$>$} pp.]
+  {10.1051/0004-6361/201321591}, 571, A16
+
+\bibitem[\protect\citeauthoryear{Collaboration et~al.,}{Collaboration
+  et~al.}{2016a}]{desicollaboration2016}
+Collaboration D.,  et~al., 2016a, arXiv:1611.00036 [astro-ph]
+
+\bibitem[\protect\citeauthoryear{Collaboration et~al.,}{Collaboration
+  et~al.}{2016b}]{desicollaboration2016a}
+Collaboration D.,  et~al., 2016b, arXiv:1611.00037 [astro-ph]
+
 \bibitem[\protect\citeauthoryear{Conroy}{Conroy}{2013}]{conroy2013}
 Conroy C.,  2013, \mn@doi [Annual Review of Astronomy and Astrophysics]
   {10.1146/annurev-astro-082812-141017}, 51, 393
@@ -141,14 +155,6 @@ Conroy C.,  Gunn J.~E.,  2010, \mn@doi [The Astrophysical Journal]
   et~al.}{2009}]{conroy2009}
 Conroy C.,  Gunn J.~E.,   White M.,  2009, \mn@doi [The Astrophysical Journal]
   {10.1088/0004-637X/699/1/486}, 699, 486
-
-\bibitem[\protect\citeauthoryear{{DESI Collaboration}}{{DESI
-  Collaboration}}{2016a}]{desicollaboration2016}
-{DESI Collaboration} 2016a, arXiv:1611.00036 [astro-ph]
-
-\bibitem[\protect\citeauthoryear{{DESI Collaboration}}{{DESI
-  Collaboration}}{2016b}]{desicollaboration2016a}
-{DESI Collaboration} 2016b, arXiv:1611.00037 [astro-ph]
 
 \bibitem[\protect\citeauthoryear{Daddi et~al.,}{Daddi et~al.}{2007}]{daddi2007}
 Daddi E.,  et~al., 2007, \mn@doi [The Astrophysical Journal] {10.1086/521818},
@@ -215,7 +221,7 @@ Hahn C.,  Tinker J.~L.,   Wetzel A.~R.,  2017, \mn@doi [The Astrophysical
 Hahn C.,  Tinker J.~L.,   Wetzel A.,  2019, arXiv:1910.01644 [astro-ph]
 
 \bibitem[\protect\citeauthoryear{Hahn et~al.,}{Hahn et~al.}{2021}]{hahn2021}
-Hahn C.,  et~al., 2021, {{IQ Collaboratory III}}: {{The Empirical Dust
+Hahn C.,  et~al., 2021, {{IQ Collaboratory III}}: The {{Empirical Dust
   Attenuation Framework}} -- {{Taking Hydrodynamical Simulations}} with a
   {{Grain}} of {{Dust}}
 
@@ -264,6 +270,17 @@ Leja J.,  Johnson B.~D.,  Conroy C.,  {van Dokkum} P.~G.,   Byler N.,  2017,
   Speagle}{Leja et~al.}{2019}]{leja2019}
 Leja J.,  Carnall A.~C.,  Johnson B.~D.,  Conroy C.,   Speagle J.~S.,  2019,
   \mn@doi [ApJ] {10.3847/1538-4357/ab133c}, 876, 3
+
+\bibitem[\protect\citeauthoryear{Lejeune, Cuisinier  \& Buser}{Lejeune
+  et~al.}{1997}]{lejeune1997}
+Lejeune T.,  Cuisinier F.,   Buser R.,  1997, \mn@doi [A \&amp; A Supplement
+  series, Vol. 125, October II 1997, p.229-246.] {10.1051/aas:1997373}, 125,
+  229
+
+\bibitem[\protect\citeauthoryear{Lejeune, Cuisinier  \& Buser}{Lejeune
+  et~al.}{1998}]{lejeune1998}
+Lejeune T.,  Cuisinier F.,   Buser R.,  1998, \mn@doi [Astronomy and
+  Astrophysics Supplement, v.130, p.65-75] {10.1051/aas:1998405}, 130, 65
 
 \bibitem[\protect\citeauthoryear{Li \& White}{Li \& White}{2009}]{li2009}
 Li C.,  White S. D.~M.,  2009, \mn@doi [Monthly Notices of the Royal
@@ -341,12 +358,6 @@ Paxton B.,  et~al., 2013, \mn@doi [The Astrophysical Journal Supplement Series]
   et~al.}{2015}]{paxton2015}
 Paxton B.,  et~al., 2015, \mn@doi [The Astrophysical Journal Supplement Series]
   {10.1088/0067-0049/220/1/15}, 220, 15
-
-\bibitem[\protect\citeauthoryear{{Planck Collaboration}}{{Planck
-  Collaboration}}{2014}]{planckcollaboration2014a}
-{Planck Collaboration} 2014, \mn@doi [Astronomy \&amp; Astrophysics, Volume
-  571, id.A16, {$<$}NUMPAGES{$>$}66{$<$}/NUMPAGES{$>$} pp.]
-  {10.1051/0004-6361/201321591}, 571, A16
 
 \bibitem[\protect\citeauthoryear{Richards et~al.,}{Richards
   et~al.}{2016}]{richards2016}
@@ -475,6 +486,11 @@ Vogelsberger M.,  et~al., 2014, \mn@doi [Monthly Notices of the Royal
 \bibitem[\protect\citeauthoryear{Wang \& Zhao}{Wang \& Zhao}{2020}]{wang2020}
 Wang Y.,  Zhao G.-B.,  2020, \mn@doi [Research in Astronomy and Astrophysics]
   {10.1088/1674-4527/20/10/158}, 20, 158
+
+\bibitem[\protect\citeauthoryear{Westera, Lejeune, Buser, Cuisinier  \&
+  Bruzual}{Westera et~al.}{2002}]{westera2002}
+Westera P.,  Lejeune T.,  Buser R.,  Cuisinier F.,   Bruzual G.,  2002, \mn@doi
+  [Astronomy and Astrophysics] {10.1051/0004-6361:20011493}, 381, 524
 
 \bibitem[\protect\citeauthoryear{Wetzel, Tinker, Conroy  \& {van den
   Bosch}}{Wetzel et~al.}{2013}]{wetzel2013}

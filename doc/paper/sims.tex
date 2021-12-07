@@ -16,7 +16,9 @@ demonstrate that we can accurately infer the true galaxy propertries.
     (Section~\ref{sec:photo}).
     {\em Right}: The $g-r$ and $r-z$ color distribution of the forward modeled
     \lgal~photometry is in good agreement with the color distribution of LS BGS
-    objects (black contours).} \label{fig:photo}
+    objects (black contours). 
+    \edits{We only include 425 of the 2,123 total \lgal~mock photometry for clarity.}
+    } \label{fig:photo}
 \end{center}
 \end{figure}
 
@@ -61,9 +63,16 @@ $L_{\rm SSP}$ corresponds to the luminosity of the SSP, which we calculate
 using the Flexible Stellar Population Synthesis~\citep[\fsps;][]{conroy2009,
 conroy2010c} model.
 % do we want to describe SPS models? 
-For \fsps, we use the MIST isochrones~\citep{paxton2011, paxton2013, paxton2015,
-choi2016, dotter2016}, the MILES spectral library~\citep{sanchez-blazquez2006},
-and the \cite{chabrier2003} initial mass function (IMF). 
+\edits{
+    For \fsps, we use the MIST isochrones~\citep{paxton2011, paxton2013,
+    paxton2015, choi2016, dotter2016} and the \cite{chabrier2003} initial mass
+    function (IMF). 
+    Also, we use the default spectral library in \fsps: the MILES spectral
+    library~\citep{sanchez-blazquez2006} over the wavelength range
+    $3800-7100\AA$ and the BaSeL
+    library~\citep{lejeune1997, lejeune1998, westera2002} 
+    outside of those limits.
+}
 
 % applying velocity dispersion to bulge and disk components separately 
 Next, we apply velocity dispersions to $L^{\rm comp.}(\lambda)$.

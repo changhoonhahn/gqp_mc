@@ -121,15 +121,27 @@ the same number of bins.
 At every $\tlb$ bin $i$, we evaluate the luminosity of a SSP with ${\rm
 ZH}(t_i)$, where $t_i$ is the center of $\tlb$ bin, and total stellar mass
 calculated by resampling the SFH in Eq.~\ref{eq:sfh}. 
-We use \fsps~to evaluate the SSP luminosities and use the MIST isochrones, MILES
-spectral library, and the \cite{chabrier2003} IMF (same as in
-Section~\ref{sec:sed}).  
+\edits{
+    We use \fsps~to evaluate the SSP luminosities and use the MIST isochrones, the
+    combination of MILES and BaSeL spectral libraries, and the \cite{chabrier2003}
+    IMF (same as in Section~\ref{sec:sed}).  
+}
 Since we use MIST isochrones, we impose a minimum and maximum limit to ${\rm
 ZH}$ based on its coverage: $4.49\times10^{-5}$ and $4.49\times10^{-2}$,
 respectively.
+\edits{
+    These metallicity values are in units of absolute metallicity and can be
+    converted to solar metallicity using $Z_\odot = 0.019$. 
+}
 We note that our stellar metallicity range is significantly broader than
 previous studies for additional flexibility~\citep[\emph{e.g.}][]{carnall2017,
 leja2017, tacchella2021}. 
+\edits{
+    Since we model galaxies as a linear combination of SSPs, we do not model
+    gas emission.  
+    We, therefore, exclude emission lines in our SED modeling by masking the
+    wavelength ranges of emission lines.
+}
 
 Before we combine the SSP luminosities, we apply dust attenuation.
 We use a two component \cite{charlot2000} dust attenuation model with birth

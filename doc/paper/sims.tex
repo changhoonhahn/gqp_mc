@@ -164,7 +164,14 @@ We begin forward modeling the fiber aperture effect. % and apply a noise model t
 DESI uses fiber-fed spectrographs with fibers that have angular radii of 1''. 
 Hence, only the light from a galaxy within this fiber aperture is collected by
 the instrument.
-LS provides measurements of photometric fiber flux within a 1'' radius aperture
+\edits{
+    Among BGS targets in LS, 40\% have $r_e < 1''$ and 81\% have $r_e < 2''$ so
+    the fiber aperture effect will significantly impact the majority of BGS
+    galaxies.
+    $r_e$ here is the half-light radius of the galaxy surface brightness model
+    fit by {\sc Tractor}\footnote{http://thetractor.org/doc/}.
+}
+LS also provides measurements of photometric fiber flux within a 1'' radius aperture
 ($f_X^{\rm fiber}$), which estimates the flux that passes through to the fibers.
 When we assigned photometric uncertainties to our simulated galaxies based on
 $r$, $g-r$, and $r-z$ in Section~\ref{sec:photo}, we also assigned $r$-band

@@ -47,6 +47,11 @@ We find that 4 components is sufficient to accurately reconstruct the SFHs
 from Illustris. 
 We present the NMF SFH bases as a function of lookback time in
 left panel of Figure~\ref{fig:nmf}.
+\edits{
+    By using NMF instead of \emph{e.g.} Principal Component Analysis (PCA), we
+    ensure that all of the SFH bases are non-negative and, thus, physically
+    meaningful. 
+}
 For further details on the derivation of the NMF bases, we refer readers to
 Appendix~\ref{sec:nmf}. 
 Assuming that the SFHs of Illustris galaxies resemble the SFHs of actual
@@ -114,7 +119,10 @@ We use a fixed log-binning with the bin egdes starting with $(0, 10^{6.05}{\rm
 yr})$, $(10^{6.05}, 10^{6.15}{\rm yr})$, and continuing on with bins of width
 0.1 dex.
 The binning is truncated at the age of the model galaxy. 
-For a $z=0$ galaxy, we use 43 $\tlb$ bins.
+For a $z=0$ galaxy, this binning produces 43 $\tlb$ bins
+\edits{
+    so 43 SSPs contribute to the total galaxy SED.
+} 
 We use log-spaced $\tlb$ bins because it better reproduces galaxy luminosities
 evaluated with much higher resolution $\tlb$ binning than linearly-spacing, for
 the same number of bins. 

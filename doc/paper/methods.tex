@@ -78,8 +78,10 @@ In total we use 6 free parameters in our SFH: 4 NMF basis coefficients
 
 % describe ZH 
 Another key part of an SPS model is the ZH, or chemical enrichment history. 
-Current SPS models mostly assume a ZH that does not vary over
-time~\citep{carnall2017, leja2019}. 
+Current SPS models mostly assume a
+\edits{
+    flat ZH, constant metallicity over time~\citep{carnall2017, leja2019}.
+} 
 Since galaxies do not have constant metallicities throughout their history,
 this assumption can significantly bias the inferred galaxy
 properties~\citep{thorne2021}. 
@@ -200,19 +202,44 @@ high dimensional parameter space for inference requires $>100,000$ evaluations
 --- \emph{i.e.} \ch{$>100$} CPU hours \emph{per galaxy}. 
 For the >10 million BGS galaxies, this would require \ch{\emph{a billion}}
 CPU hours. 
-Instead, we use an emulator for the model luminosity, which uses a Principal
-Component Analysis (PCA) neural network (NN) following the approach of
-\cite{alsing2019}. 
+Instead, we use an emulator for the model luminosity, which uses a PCA neural
+network (NN) following the approach of \cite{alsing2019}. 
 \ch{The numbers above will be updated after further updates to the pipeline.}
 
-Our emulator consists of a NN and PCA basis functions. 
-The NN provides a flexible and accurate mapping between the SPS model
-parameters and PCA coefficients --- \emph{i.e.} the NN predicts PCA
-coefficients for a given set of SPS parameters. 
-Then the linear combination of the predicted coefficients and PCA basis
-functions give us the emulated model luminosity. 
-The PCA basis functions and NN are trained using 1,000,000 SPS parameters and
-model luminosity pairs, $\{(\theta, L(\lambda;\theta))\}$. 
+%The NN provides a flexible and accurate mapping between the SPS model
+%parameters and PCA coefficients --- \emph{i.e.} the NN predicts PCA
+%coefficients for a given set of SPS parameters. 
+%Then the linear combination of the predicted coefficients and PCA basis
+%functions give us the emulated model luminosity. 
+%The PCA basis functions and NN are trained using 1,000,000 SPS parameters and
+%model luminosity pairs, $\{(\theta, L(\lambda;\theta))\}$. 
+
+\edits{
+    To construct our emulator, we first generate $N_{\rm model} = 1,000,000$
+    model luminosities, $L(\lambda;\theta)$, from unique SPS parameters,
+    $\theta$, sampled from the prior (Section~\ref{sec:infer}).
+    We then split the model luminosities into four wavelength bins: 2000 - 3600,
+    3600 - 5500, 5500 - 7410, and 7410 - $60000\AA$ with $N_{\rm spec}$ = 127, 2109,
+    2113, and 549 resolution elements, respectively.
+    For each wavelength bin, a PCA is done in the $N_{\rm spec}$-dimensional
+    space to yield PCA basis functions, or eigenspectra. 
+    We represent the model luminosity using the first $N_{\rm basis}$
+    eigenspectra and their corresponding PCA coefficients. 
+    We use $N_{\rm basis}$ = 50, 50, 50, and 30 for the wavelength bins.
+    A NN is then trained on the set of $N_{\rm model}$ models to
+    derive a mapping from the $N_{\rm SPS}=12$ SPS parameters to the 
+    $N_{\rm basis}$ PCA coefficients for each wavelength bin. 
+}
+
+\edits{
+    Once trained, our emulator works as follows.
+    For a given set of SPS parameters, the NN for each wavelength bin predicts
+    PCA coefficients. 
+    The coefficients are then linearly combined with the eigenspectra to
+    predict the model luminosity in the wavelength bin. 
+    The luminosity in all four wavelength bins are concatenated to produce the
+    full model luminosity. 
+}
 Throughout the wavelength range relevant for BGS, $3000 < \lambda < 9800\AA$,
 we achieve $< 1\%$ accurate with the emulator. 
 For details on the training, validation, and performance of our PCA NN

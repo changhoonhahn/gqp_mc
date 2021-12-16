@@ -8,8 +8,12 @@
     $\log Z_{\rm MW}$, $\tage$ and $\tauism$. 
     The inferred galaxy properties are derived from SED modeling of mock
     spectra (top), photometry (middle), and spectrophotometry (bottom). 
-    For each simulated galaxy, we represent the marginalized posterior of
-    $\theta$ with a violin plot.  %We derive unbiased and precise $\log M_*$
+    \edits{
+        For each simulated galaxy, we plot 10 samples of the marginalized
+        posterior of $\theta$.
+        We also include violin plots of the marginalized posteriors for a
+        handful of randomly selected galaxies.
+    }
     \emph{The posteriors demonstrate that, overall, we can derive accurate and 
     precise constraints on certain galaxy properties from joint SED modeling of
     DESI photometry and spectra.}
@@ -43,9 +47,12 @@ From left to right, we compare $\log M_*$, $\log \avgsfr$, $\log Z_{\rm MW}$,
 $\tage$, and $\tauism$ in each column.  
 The inferred properties in the top, middle, and bottom rows are derived from
 SED modeling of spectra, photometry, and spectrophotometry, respectively.
-In each panel, we plot $\hat{\theta}$ using a violin plot, where the width
-of the marker represents the marginalized posterior distribution of $\theta$. 
 \edits{
+    In each panel, we represent $\hat{\theta}$ by plotting 10 samples from the
+    marginalized posterior for each simulated galaxy. 
+    We also include violin plots of  $\hat{\theta}$, where the width of the
+    marker represents the marginalized posterior distribution of $\theta$, for
+    a handful of randomly selected galaxies.
     We note that in our SED modeling of spectra only, we do not include 
     $f_{\rm fiber}$ so the true stellar mass in this case corresponds to 
     $f_{\rm fiber} \times M_*$, which has a different range than for the 

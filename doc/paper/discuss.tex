@@ -209,7 +209,7 @@ any other summary statistic of galaxy populations.
 faint apparent magnitude limit of BGS. 
 Dwarf galaxies are dark matter dominated and, thus, probe the physics of
 dark matter; they are also sensitive to star formation feedback and can help
-distinguish different aspects of galaxy formation. 
+distinguish different aspects of galaxy formation~\citep{mao2021}. 
 Galaxy studies examining the galaxy-halo connection can also be extended to
 exploit the additional statistical power of {\sc
 PROVABGS}~\citep[\emph{e.g.}][]{tinker2011, wetzel2013, zu2015, hahn2017,
@@ -220,8 +220,7 @@ in inferring cosmological parameters~\citep{seljak2009, mcdonald2009,
 wang2020}.
 Analyses exploiting new forward modeling approaches, such as \cite{hahn2021},
 will also greatly benefit from the statistical power of {\sc PROVABGS}.
-\ch{Text above will be updated with more science applications based on any
-feedback.}
+%\ch{Text above will be updated with more science applications based on any feedback.}
 
 In addition to the applications above, {\sc PROVABGS} will also unlock
 applications that can exploit the full posteriors that the catalog will
@@ -230,11 +229,29 @@ In this work, we utilized the posteriors in order to quantify accuracy and
 precision of galaxy population constraints using population inference with a
 hierarchical Bayesian approach. 
 This is only the \emph{simplest} illustration of such an approach. 
+\edits{
+    Another straightforward probabilistic analysis would be to use the
+    posteriors on $M_*$ to measure the \emph{probabilistic} SMF of BGS. 
+    With full posteriors, we can accurately probe even the lowest
+    signal-to-noise regime so the SMF will be accurate even at the lowest mass
+    end, down to ${\sim}10^{7} M_\odot$ (Figure~\ref{fig:bgs_mstar}). 
+    Precise constraint on the SMF of dwarf galaxies has important implications
+    for both galaxy evolution and cosmology. 
+    Probabilistic analyses can extend to higher dimensions. 
+    Posteriors on $M_*$ and SFR can be used to infer the 
+}
+%With the {\sc PROVABGS} posteriors we can infer fully probabilistic galaxy
+%population statistics, which will allow us to robustly probe even the lowest
+%signal-to-noise regime.
+%A probabilistic SMF of BGS, for example, will provide accurate constraints on
+%the low mass end down to ${\sim}10^{7} M_\odot$ (Figure~\ref{fig:bgs_mstar}),
+%which has important implications for both galaxy evolution and cosmology. 
 In fact, we can extend the approach to the ultimate goal of any observational
 galaxy study --- to infer the full distribution of all galaxy properties given
 a set of galaxy observations, $p(\theta | \{X_i\})$.
 This is only possible with population inference using the full posteriors for
 each galaxy.
+
 %We can also use population inference to robustly derive galaxy property distributions of galaxy subpopulations --- \emph{without stacking observations}.
 Furthermore, population inference allows us to avoid stacking observations. 
 Stacking makes the strong assumption that galaxies that are grouped together in
@@ -242,11 +259,5 @@ some \emph{e.g.} color-space are from a subpopulation with the same properties.
 This assumption fails if, for instance, there are contaminants or multiple
 disparate galaxy subpopulations that are degenerate in color-space and
 therefore are included in the stack. 
-With the {\sc PROVABGS} posteriors we can infer fully probabilistic galaxy
-population statistics, which will allow us to robustly probe even the lowest
-signal-to-noise regime.
-A probabilistic SMF of BGS, for example, will provide accurate constraints on
-the low mass end down to ${\sim}10^{7} M_\odot$ (Figure~\ref{fig:bgs_mstar}),
-which has important implications for both galaxy evolution and cosmology. 
 With all of the applications listed above, {\sc PROVABGS} will enable us to
 fully extract the statistical power of >10 million BGS galaxies.

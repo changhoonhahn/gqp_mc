@@ -165,6 +165,11 @@ Daddi E.,  et~al., 2007, \mn@doi [The Astrophysical Journal] {10.1086/521818},
 Dav{\'e} R.,  Rafieferantsoa M.~H.,   Thompson R.~J.,  2017, arXiv:1704.01135
   [astro-ph]
 
+\bibitem[\protect\citeauthoryear{Davies et~al.,}{Davies
+  et~al.}{2021}]{davies2021}
+Davies L. J.~M.,  et~al., 2021, \mn@doi [Monthly Notices of the Royal
+  Astronomical Society] {10.1093/mnras/stab3145}, 509, 4392
+
 \bibitem[\protect\citeauthoryear{Dey et~al.,}{Dey et~al.}{2019}]{dey2019}
 Dey A.,  et~al., 2019, \mn@doi [AJ] {10.3847/1538-3881/ab089d}, 157, 168
 
@@ -289,6 +294,12 @@ Li C.,  White S. D.~M.,  2009, \mn@doi [Monthly Notices of the Royal
 \bibitem[\protect\citeauthoryear{Malz \& Hogg}{Malz \& Hogg}{2020}]{malz2020}
 Malz A.~I.,  Hogg D.~W.,  2020, How to Obtain the Redshift Distribution from
   Probabilistic Redshift Estimates
+
+\bibitem[\protect\citeauthoryear{Mao, Geha, Wechsler, Weiner, Tollerud, Nadler
+  \& Kallivayalil}{Mao et~al.}{2021}]{mao2021}
+Mao Y.-Y.,  Geha M.,  Wechsler R.~H.,  Weiner B.,  Tollerud E.~J.,  Nadler
+  E.~O.,   Kallivayalil N.,  2021, \mn@doi [The Astrophysical Journal]
+  {10.3847/1538-4357/abce58}, 907, 85
 
 \bibitem[\protect\citeauthoryear{Marchesini, {van Dokkum},
   F{\"o}rster~Schreiber, Franx, Labb{\'e}  \& Wuyts}{Marchesini

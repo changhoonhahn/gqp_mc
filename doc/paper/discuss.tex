@@ -230,30 +230,39 @@ precision of galaxy population constraints using population inference with a
 hierarchical Bayesian approach. 
 This is only the \emph{simplest} illustration of such an approach. 
 \edits{
-    Another straightforward probabilistic analysis would be to use the
-    posteriors on $M_*$ to measure the \emph{probabilistic} SMF of BGS. 
-    With full posteriors, we can accurately probe even the lowest
-    signal-to-noise regime so the SMF will be accurate even at the lowest mass
-    end, down to ${\sim}10^{7} M_\odot$ (Figure~\ref{fig:bgs_mstar}). 
-    Precise constraint on the SMF of dwarf galaxies has important implications
-    for both galaxy evolution and cosmology. 
-    Probabilistic analyses can extend to higher dimensions. 
-    Posteriors on $M_*$ and SFR can be used to infer the 
+    Another application is to use posteriors on $M_*$, 
+    $p(M_* \given {\bfi X}_i)$, to measure the \emph{probabilistic} SMF of BGS.
+    With full posteriors, we can probe even the lowest signal-to-noise regime
+    so the SMF will be accurate at the lowest mass end, down to 
+    ${\sim}10^{7} M_\odot$ (Figure~\ref{fig:bgs_mstar}). 
+    This will be particularly impactful since a precise constraint on the SMF
+    of dwarf galaxies has important implications for both galaxy evolution and
+    cosmology. 
 }
+
 %With the {\sc PROVABGS} posteriors we can infer fully probabilistic galaxy
 %population statistics, which will allow us to robustly probe even the lowest
 %signal-to-noise regime.
 %A probabilistic SMF of BGS, for example, will provide accurate constraints on
 %the low mass end down to ${\sim}10^{7} M_\odot$ (Figure~\ref{fig:bgs_mstar}),
 %which has important implications for both galaxy evolution and cosmology. 
-In fact, we can extend the approach to the ultimate goal of any observational
-galaxy study --- to infer the full distribution of all galaxy properties given
-a set of galaxy observations, $p(\theta | \{X_i\})$.
-This is only possible with population inference using the full posteriors for
-each galaxy.
+\edits{
+    Probabilistic analyses can extend to higher dimensions. 
+    Joint posteriors on $M_*$ and SFR, $p(M_*, {\rm SFR} \given {\bfi X}_i)$
+    can be used to measure the probabilistic SFS. 
+    Since the posteriors reliably estimate the uncertainties and parameter
+    degeneracies, we will more accurately infer the intrinsic width of the
+    SFS, which encodes information about star formation and stellar and AGN
+    feedback in galaxies~\citep{davies2021}. 
+    We can even extend the approach to infer the distribution of \emph{all}
+    galaxy properties given observations, $p(\theta | \{X_i\})$, which contains
+    the full statistical power of observations. 
+    This is only possible with population inference using the posterior
+    distributions of every galaxy.
+}
 
 %We can also use population inference to robustly derive galaxy property distributions of galaxy subpopulations --- \emph{without stacking observations}.
-Furthermore, population inference allows us to avoid stacking observations. 
+Population inference also allows us to avoid stacking observations. 
 Stacking makes the strong assumption that galaxies that are grouped together in
 some \emph{e.g.} color-space are from a subpopulation with the same properties. 
 This assumption fails if, for instance, there are contaminants or multiple

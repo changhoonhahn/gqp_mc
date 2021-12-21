@@ -70,7 +70,7 @@ $3600 - 5930$, $5660 - 7720$, and $7470 - 9800 \AA$.
 After flat fielding and sky subtraction, flux calibration is performed on each
 channel of the spectra by matching physical stellar models to spectra of
 spectrohotometric standard stars observed in the same exposure
-(\ch{Guy~\etal~in prep.}). 
+(Guy~\etal~in prep.). 
 Since the calibration is performed for each channel seaparately, imperfections
 can imprint a wavelength dependent residual. 
 In a subsequent paper, Ramos \etal~(in prep.), we examine the fiber aperture
@@ -231,7 +231,8 @@ hierarchical Bayesian approach.
 This is only the \emph{simplest} illustration of such an approach. 
 \edits{
     Another application is to use posteriors on $M_*$, 
-    $p(M_* \given {\bfi X}_i)$, to measure the \emph{probabilistic} SMF of BGS.
+    $p(M_* \given {\bfi X}_i)$, to measure $p(M_* \given \{ {\bfi X_i} \})$ ---
+    the \emph{probabilistic} SMF of BGS.
     With full posteriors, we can probe even the lowest signal-to-noise regime
     so the SMF will be accurate at the lowest mass end, down to 
     ${\sim}10^{7} M_\odot$ (Figure~\ref{fig:bgs_mstar}). 
@@ -255,8 +256,8 @@ This is only the \emph{simplest} illustration of such an approach.
     SFS, which encodes information about star formation and stellar and AGN
     feedback in galaxies~\citep{davies2021}. 
     We can even extend the approach to infer the distribution of \emph{all}
-    galaxy properties given observations, $p(\theta | \{X_i\})$, which contains
-    the full statistical power of observations. 
+    galaxy properties given observations, $p(\theta | \{X_i\})$, which would
+    exploit the \emph{full} statistical power of observations. 
     This is only possible with population inference using the posterior
     distributions of every galaxy.
 }

@@ -129,12 +129,6 @@ Coil A.~L.,  et~al., 2011, \mn@doi [The Astrophysical Journal]
   {10.1088/0004-637X/741/1/8}, 741, 8
 
 \bibitem[\protect\citeauthoryear{Collaboration et~al.,}{Collaboration
-  et~al.}{2014}]{planckcollaboration2014a}
-Collaboration P.,  et~al., 2014, \mn@doi [Astronomy \&amp; Astrophysics, Volume
-  571, id.A16, {$<$}NUMPAGES{$>$}66{$<$}/NUMPAGES{$>$} pp.]
-  {10.1051/0004-6361/201321591}, 571, A16
-
-\bibitem[\protect\citeauthoryear{Collaboration et~al.,}{Collaboration
   et~al.}{2016a}]{desicollaboration2016}
 Collaboration D.,  et~al., 2016a, arXiv:1611.00036 [astro-ph]
 
@@ -374,6 +368,12 @@ Paxton B.,  et~al., 2013, \mn@doi [The Astrophysical Journal Supplement Series]
   et~al.}{2015}]{paxton2015}
 Paxton B.,  et~al., 2015, \mn@doi [The Astrophysical Journal Supplement Series]
   {10.1088/0067-0049/220/1/15}, 220, 15
+
+\bibitem[\protect\citeauthoryear{{Planck Collaboration} et~al.,}{{Planck
+  Collaboration} et~al.}{2014}]{planckcollaboration2014a}
+{Planck Collaboration} et~al., 2014, \mn@doi [Astronomy \&amp; Astrophysics,
+  Volume 571, id.A16, {$<$}NUMPAGES{$>$}66{$<$}/NUMPAGES{$>$} pp.]
+  {10.1051/0004-6361/201321591}, 571, A16
 
 \bibitem[\protect\citeauthoryear{Richards et~al.,}{Richards
   et~al.}{2016}]{richards2016}

@@ -4,9 +4,8 @@ The most significant limitation of the {\sc PROVABGS} SED modeling in
 inferring the true galaxy properties is the prior on galaxy properties imposed
 by the model. 
 The effect of such priors is  a major limitation for any SED modeling
-methods~\citep[\emph{e.g.}][]{carnall2017, leja2019}. 
-It is a consequence of the fact that galaxy properties are \emph{not}
-parameters of the SPS model.
+methods~\citep[\emph{e.g.}][]{carnall2017, leja2019} and is a consequence of
+the fact that galaxy properties are \emph{not} parameters of the SPS model.
 For instance, $\avgsfr$, $\zmw$, and $\tage$ are derived by integrating the SFH
 and ZH (Eq.~\ref{eq:prop_eqs}), which are parameterized by $\beta_1, \beta_2,
 \beta_3, \beta_4$ and $\gamma_1, \gamma_2$. 
@@ -45,19 +44,19 @@ In this work, we use forward modeled mock observations to demonstrate that we
 can infer accurate and precise posteriors on certain galaxy properties.
 The mock observations are constructed from \lgal~and include photometry and
 spectra. 
-In generating the spectra, we model the fiber aperture effect --- \emph{i.e.}
-spectra only include light from a galaxy collected within its fiber diameter 
---- by scaling the SED flux (Section~\ref{sec:spec}).
+In generating the mock spectra, we model the fiber aperture effect ---
+\emph{i.e.} spectra only include light from a galaxy collected within its fiber
+diameter --- by scaling the SED flux (Section~\ref{sec:spec}).
 In our SED modeling, we account for this fiber aperture effect using a
 normalization factor, $f_{\rm fiber}$ (Section~\ref{sec:sps}). 
 Hence, our mock observations and SED modeling have a consistent treatment of
 the fiber aperture effect. 
 In observations, however, aperture effects can be wavelength
-dependent~\citep{gerssen2012, richards2016}, and if the dependence is strong,
+dependent~\citep{gerssen2012, richards2016} and if the dependence is strong,
 an overall $f_{\rm fiber}$ factor would not be sufficient.
 In order to examine the wavelength dependence, we compare the ratio of the
-fiber aperture flux over total flux in $g$, $r$, and $z$ bands of BGS targets
-from LS.
+fiber aperture flux over total flux, $f^{\rm fiber}_X/f_X$, in $g$, $r$, and
+$z$ bands of BGS targets from LS.
 We find find no significant difference in the flux ratios of the different
 bands, which suggests that the fiber aperture effect in DESI does not have a
 strong wavelength dependence. 
@@ -90,7 +89,7 @@ polynomial;][]{carnall2017, tacchella2021}.
 In both our {\sc PROVABGS} SED model and mock observations, we use the MIST
 isochrones, 
 \edits{
-    combined MILES+BaSeL spectral library,
+    the combined MILES+BaSeL spectral library,
 }
 and the \cite{chabrier2003} IMF.
 With the same set of choices, our analysis does not consider how different
@@ -100,7 +99,7 @@ choices~\citep{conroy2009, conroy2013}.
 For instance, recent observational works suggest that there may be significant
 variations in IMF~\citep[\emph{e.g.}][]{treu2010, vandokkum2010, rosani2018,
 sonnenfeld2019}. 
-Different SPS model choices can significantly impact the derived galaxy
+Different SPS model choices can also significantly impact the derived galaxy
 propeties~\citep[\emph{e.g.}][]{ge2019}.
 We reserve a detailed examination of this effect for future work. 
 In the meantime, for the {\sc PROVABGS} catalog we will release multiple
@@ -138,7 +137,8 @@ as they enable the maximum-entropy method, mentioned earlier,
 to correct for the significant impact of priors on derived galaxy properties.
 Grid-based methods also scale exponentially with the number of SPS parameters
 so they quickly become infeasible as the dimensionality of SPS models increase. 
-Meanwhile, MCMC scales approximately linearly with the number of parameters. 
+MCMC, on the other hand, scales approximately linearly with the number of
+parameters. 
 
 \begin{figure}
 \begin{center}
@@ -196,6 +196,7 @@ robustly infer galaxy properties of quiescent galaxies with $\log\avgsfr < 0$
 dex.
 %We emphasize that all of these benefits come from spectra with the SNR of BGS, which is observing during bright time. 
 
+\subsection{Applications of PROVABGS}
 {\sc PROVABGS} will be a value-added galaxy catalog with unprecedented
 statistical power. 
 With physical galaxy properties of over $10$ million DESI BGS galaxies, 
@@ -223,8 +224,7 @@ will also greatly benefit from the statistical power of {\sc PROVABGS}.
 %\ch{Text above will be updated with more science applications based on any feedback.}
 
 In addition to the applications above, {\sc PROVABGS} will also unlock
-applications that can exploit the full posteriors that the catalog will
-provide. 
+applications that can exploit the full posteriors of the probabilistic catalog.
 In this work, we utilized the posteriors in order to quantify accuracy and
 precision of galaxy population constraints using population inference with a
 hierarchical Bayesian approach. 
@@ -232,13 +232,12 @@ This is only the \emph{simplest} illustration of such an approach.
 \edits{
     Another application is to use posteriors on $M_*$, 
     $p(M_* \given {\bfi X}_i)$, to measure $p(M_* \given \{ {\bfi X_i} \})$ ---
-    the \emph{probabilistic} SMF of BGS.
+    the \emph{probabilistic} SMF.
     With full posteriors, we can probe even the lowest signal-to-noise regime
-    so the SMF will be accurate at the lowest mass end, down to 
+    accurately so the SMF will be reliable even at the lowest mass end, down to
     ${\sim}10^{7} M_\odot$ (Figure~\ref{fig:bgs_mstar}). 
-    This will be particularly impactful since a precise constraint on the SMF
-    of dwarf galaxies has important implications for both galaxy evolution and
-    cosmology. 
+    This will constrain the SMF of dwarf galaxies and have important
+    implications for both galaxy evolution and cosmology. 
 }
 
 %With the {\sc PROVABGS} posteriors we can infer fully probabilistic galaxy
@@ -250,14 +249,15 @@ This is only the \emph{simplest} illustration of such an approach.
 \edits{
     Probabilistic analyses can extend to higher dimensions. 
     Joint posteriors on $M_*$ and SFR, $p(M_*, {\rm SFR} \given {\bfi X}_i)$
-    can be used to measure the probabilistic SFS. 
+    can be used to measure the probabilistic star formation sequence. 
     Since the posteriors reliably estimate the uncertainties and parameter
     degeneracies, we will more accurately infer the intrinsic width of the
     SFS, which encodes information about star formation and stellar and AGN
     feedback in galaxies~\citep{davies2021}. 
     We can even extend the approach to infer the distribution of \emph{all}
     galaxy properties given observations, $p(\theta | \{X_i\})$, which would
-    exploit the \emph{full} statistical power of observations. 
+    exploit the \emph{full} statistical power of observations and reveal new
+    trends among galaxy properties. 
     This is only possible with population inference using the posterior
     distributions of every galaxy.
 }

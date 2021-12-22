@@ -17,8 +17,8 @@ demonstrate that we can accurately infer the true galaxy propertries.
     {\em Right}: The $g-r$ and $r-z$ color distribution of the forward modeled
     \lgal~photometry is in good agreement with the color distribution of LS BGS
     objects (black contours). 
-    \edits{We use 2,123 simulated galaxies from \lgal~in total and plot a
-    subsample of 425 in the color distribution for clarity.}
+    \edits{We plot a subsample of the total 2,123 simulated galaxies from
+    \lgal~that we use in this work.}
     } \label{fig:photo}
 \end{center}
 \end{figure}
@@ -51,8 +51,8 @@ and chemical enrichment histories (ZH) for its bulge and disk components,
 separately, in approximately log-spaced lookback time bins.  
 We treat each lookback time bin, $i$, as a single stellar population (SSP) of
 age $t_i$.
-Then, we derive the luminosities of each component by summing up the
-luminosities of their SSPs:
+We then derive the luminosities of the bulge and disk components by summing up
+the luminosities of their SSPs:
 \begin{equation}
     L^{\rm comp.}(\lambda) = \sum \limits_i \left({\rm SFH}^{\rm comp.}_i
     \Delta t_i\right)~L_{\rm SSP}(\lambda\,;\, t_i, Z^{\rm comp.}_i). 
@@ -88,7 +88,7 @@ Stellar emission from stars younger than $30{\rm Myr}$ are further attenuated
 with a uniform dust screen and a wavelength dependent optical depth.
 No dust attenuation is applied to the bulge component.
 We use the same dust attenuation that \cite{henriques2015} uses to construct
-galaxy colors. 
+galaxy colors from \lgal~that match observations. 
 
 Finally, we combine the attenuated disk component and the bulge component to
 construct the total luminosity of the simulated galaxy and then convert this
@@ -113,9 +113,9 @@ $f_{\rm SED}$ is the galaxy SED (Eq.~\ref{eq:sed}) and $R_X$ is the
 transmission curve for filter in the $X$ band. 
 We generate photometry for the LS $g$, $r$, and $z$ optical bands.
 Next, we apply realistic measurement uncertainties to the derived photometry by
-roughly sampling the noise distribution of BGS targets from LS DR9. 
+sampling the noise distribution of BGS targets from LS DR9. 
 We do this by matching each simulated galaxy to a BGS target with the nearest 
-$r$-band magnitude and $g-r$ and $r-z$ color.
+$r$-band magnitude and $g-r$ and $r-z$ colors.
 The photometric uncertainties ($\sigma_X$) and $r$-band fiber flux ($f_r^{\rm
 fiber}$) of the BGS object are then assigned to the simulated galaxy. 
 We apply photometric noise by sampling a Gaussian distribution with standard
@@ -149,8 +149,8 @@ optical color space.
     The noise model accounts for the DESI spectrograph response and the bright
     time observing conditions of BGS (Hahn~\etal~in prep., Schlafly~\etal~in
     prep.).  
-    We represent the spectra from the three arms ($b$, $r$, and $z$) of the
-    DESI spectraphs in blue, orange, and green respectively. 
+    We represent the spectra from the $b$, $r$, and $z$ arms of the DESI
+    spectraphs in blue, orange, and green respectively. 
     Our forward model produces realistic DESI-like spectra that accurately
     reproduce the noise levels and characteristics of actual BGS spectra. 
     } \label{fig:spec}
@@ -158,18 +158,17 @@ optical color space.
 \end{figure}
 
 \subsection{Forward Modeling DESI Spectra} \label{sec:spec}
-In the following, we describe how we construct realistic DESI-like spectroscopy 
-from the SEDs of simulated galaxies. 
-We begin forward modeling the fiber aperture effect. % and apply a noise model that accurately reproduces the bright time observations of BGS. 
+Next, we construct realistic DESI-like spectroscopy from the SEDs of simulated
+galaxies. 
+We begin by forward modeling the fiber aperture effect. % and apply a noise model that accurately reproduces the bright time observations of BGS. 
 DESI uses fiber-fed spectrographs with fibers that have angular radii of 1''. 
 Hence, only the light from a galaxy within this fiber aperture is collected by
 the instrument.
 \edits{
-    Among BGS targets in LS, 40\% have $r_e < 1''$ and 81\% have $r_e < 2''$ so
-    the fiber aperture effect will significantly impact the majority of BGS
-    galaxies.
-    $r_e$ here is the half-light radius of the galaxy surface brightness model
-    fit by {\sc Tractor}\footnote{http://thetractor.org/doc/}.
+    Among BGS targets in LS, 40\% have $r_e$ < 1'' and 81\% have $r_e$ < 2'' so
+    the fiber aperture effect significantly impacts the majority of BGS
+    galaxies ($r_e$ is the half-light radius of the galaxy surface brightness
+    model fit by {\sc Tractor}\footnote{http://thetractor.org/doc/}).
 }
 LS also provides measurements of photometric fiber flux within a 1'' radius aperture
 ($f_X^{\rm fiber}$), which estimates the flux that passes through to the fibers.
@@ -187,16 +186,16 @@ dependence.
 It also assume that there are no significant biases in the fiber flux
 measurements in LS due to miscentering of objects. 
 We discuss the implications of these assumptions later in
-Section~\ref{sec:discuss}. 
+Section~\ref{sec:discuss} and will investigate them further in Ramos \etal~(in
+prep.). 
 In addition to the aperture correction, we also use $f_r^{\rm fiber}$ to derive
-``measured'' $\hat{f}_r^{\rm fiber}$: 
+``measured'' $\hat{f}_r^{\rm fiber}$, since we do not know the true fiber
+fraction in actual observations: 
 \begin{equation}
     \hat{f}_r^{\rm fiber} = f_r^{\rm fiber} + n^{\rm fiber}_r \quad~{\rm
     where}~n^{\rm fiber}_r \sim \mathcal{N}\left(0, \frac{f_r^{\rm fiber}}{f_r}
     \sigma_r\right).
 \end{equation}
-After all, when analyzing actual observations, we do not know the true fiber
-fraction. 
 We later use $\hat{f}_r^{\rm fiber}$ to set the prior on the nuisance parameter
 of our SED modeling (Section~\ref{sec:methods}).
 
@@ -208,9 +207,9 @@ used for the BGS survey design and validation (Hahn~\etal~in prep.).
 We refer readers to Schlafly~\etal~(in prep.) for details about the survey
 operations and simulations and Guy~\etal~(in prep.) for details on the DESI
 spectroscopic data reduction pipeline.
-Specifically, we use nominal dark time observing conditions with $180s$
+Specifically, we use nominal dark time observing conditions with a $180s$
 exposure time, which accurately reproduce the spectral noise and redshift
-success rates of observed BGS spectra in DESI survey validation observations.
+success rates of observed BGS spectra in early DESI observations.
 In Figure~\ref{fig:spec}, we present the forward modeled BGS spectrum of an
 arbitrary \lgal~galaxy (solid). 
 We mark the spectrum from each arm of the three DESI spectrographs separately 

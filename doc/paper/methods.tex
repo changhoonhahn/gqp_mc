@@ -1,9 +1,9 @@
 \section{Joint SED modeling of Photometry and Spectra} \label{sec:methods}
 \subsection{Stellar Population Synthesis Modeling} \label{sec:sps} 
-PROVABGS will provide inferred galaxy properties derived from joint SED
-modeling of DESI photometry and spectra. 
+PROVABGS will provide galaxy properties inferred from joint SED modeling of
+DESI photometry and spectra. 
 For the SED modeling, we use a state-of-the-art stellar population synthesis
-(SPS) model that uses a non-parametric SFH with a star-burst, a non-parametric
+(SPS) model that uses a non-parametric SFH with a starburst, a non-parametric
 ZH that varies with time, and a flexible dust attenuation prescription. 
 
 % describe SFH prescription
@@ -26,7 +26,7 @@ parameter degeneracies and discards constraining power.
 
 In our SPS model, we use a non-parametric SFH with two components: one based on
 non-negative matrix factorization (NMF) basis functions and a starburst component.
-For the first component, SFH is a linear combination of NMF SFH bases:
+For the first component, SFH is a linear combination of four NMF SFH bases:
 \begin{equation} \label{eq:nmf} 
     {\rm SFH}^{\rm NMF} (t, t_{\rm age}) = \sum\limits_{i=1}^{4} \beta_i
     \frac{s_i^{\rm SFH}(t)}{\int\limits_0^{t_{\rm age}} s_i^{\rm SFH}(t) \,
@@ -39,10 +39,9 @@ We constrain $\sum_i \beta_i = 1$, so the total SFH of the component over the
 age of the galaxy ($t_{\rm age})$ is normalized to unity.
 $\{s^{\rm SFH}_i\}$ are derived from the Illustris cosmological hydrodynamic
 simulation~\citep{vogelsberger2014, genel2014, nelson2015}.
-The SFHs of Illustris galaxies are compiled, rebinnined, and smoothed.
-Afterwards, we perform non-negative matrix
-factorization~\citep{lee1999,cichocki2009, fevotte2011} on the smooth SFHs to
-derive $\{s^{\rm SFH}_i\}$. 
+We compile, rebin, and smooth the SFHs of Illustris galaxies and then perform
+non-negative matrix factorization~\citep{lee1999,cichocki2009, fevotte2011} on
+them to derive $\{s^{\rm SFH}_i\}$. 
 We find that 4 components is sufficient to accurately reconstruct the SFHs
 from Illustris. 
 We present the NMF SFH bases as a function of lookback time in
@@ -64,7 +63,7 @@ However, observations and high resolution zoom-in hydrodyanmical simulations
 both find significant stochasticity in galaxy SFHs~\citep{sparre2017,
 caplar2019, hahn2019b, iyer2020}. 
 To include some stochasticity in our SPS model, we include a starburst
-component that consists of a SSP in the SFH. 
+component that consists of a SSP. 
 Thus, for the total SFH, we use
 \begin{equation} \label{eq:sfh}
     {\rm SFH} (t, t_{\rm age}) = (1 - f_{\rm burst})~{\rm SFH}^{\rm NMF} (t,
@@ -77,7 +76,7 @@ In total we use 6 free parameters in our SFH: 4 NMF basis coefficients
 ($\beta_i$), $f_{\rm burst}$, and $t_{\rm burst}$. 
 
 % describe ZH 
-Another key part of an SPS model is the ZH, or chemical enrichment history. 
+Another key part of an SPS model is the chemical enrichment history, or ZH. 
 Current SPS models mostly assume a
 \edits{
     flat ZH, constant metallicity over time~\citep{carnall2017, leja2019}.
@@ -93,7 +92,7 @@ our ZH:
 $\{s_i^{\rm ZH}(t)\}$ are the ZH NMF basis functions and $\{\gamma_i\}$ are the
 coefficients. 
 $\{s_i^{\rm ZH}(t)\}$ are fit using the ZHs of simulated galaxies from
-Illustris in the same fashion as the SFH (Appendix~\ref{sec:nmf}). 
+Illustris in the same fashion as the SFH. 
 In the right panel of Figure~\ref{fig:nmf}, we present the ZH NMF bases as a
 function of lookback time. 
 We use two NMF components, so our ZH prescription has 2 free parameters. 
@@ -121,16 +120,14 @@ We use a fixed log-binning with the bin egdes starting with $(0, 10^{6.05}{\rm
 yr})$, $(10^{6.05}, 10^{6.15}{\rm yr})$, and continuing on with bins of width
 0.1 dex.
 The binning is truncated at the age of the model galaxy. 
-For a $z=0$ galaxy, this binning produces 43 $\tlb$ bins
-\edits{
-    so 43 SSPs contribute to the total galaxy SED.
-} 
+For a $z=0$ galaxy, this binning produces 43 $\tlb$ bins.
 We use log-spaced $\tlb$ bins because it better reproduces galaxy luminosities
 evaluated with much higher resolution $\tlb$ binning than linearly-spacing, for
 the same number of bins. 
-At every $\tlb$ bin $i$, we evaluate the luminosity of a SSP with ${\rm
-ZH}(t_i)$, where $t_i$ is the center of $\tlb$ bin, and total stellar mass
-calculated by resampling the SFH in Eq.~\ref{eq:sfh}. 
+\edits{At each of the 43 $\tlb$ bin $i$,}
+we evaluate the luminosity of a SSP with ${\rm ZH}(t_i)$, where $t_i$ is the
+center of $\tlb$ bin, and total stellar mass calculated by resampling the SFH
+in Eq.~\ref{eq:sfh}. 
 \edits{
     We use \fsps~to evaluate the SSP luminosities and use the MIST isochrones, the
     combination of MILES and BaSeL spectral libraries, and the \cite{chabrier2003}
@@ -147,8 +144,8 @@ We note that our stellar metallicity range is significantly broader than
 previous studies for additional flexibility~\citep[\emph{e.g.}][]{carnall2017,
 leja2017, tacchella2021}. 
 \edits{
-    Since we model galaxies as a linear combination of SSPs, we do not model
-    gas emission.  
+    Since we model galaxies solely as a linear combination of SSPs, we do not
+    model nebular emission.  
     We, therefore, exclude emission lines in our SED modeling by masking the
     wavelength ranges of emission lines.
 }
@@ -204,7 +201,6 @@ For the >10 million BGS galaxies, this would require \ch{\emph{a billion}}
 CPU hours. 
 Instead, we use an emulator for the model luminosity, which uses a PCA neural
 network (NN) following the approach of \cite{alsing2019}. 
-\ch{The numbers above will be updated after further updates to the pipeline.}
 
 %The NN provides a flexible and accurate mapping between the SPS model
 %parameters and PCA coefficients --- \emph{i.e.} the NN predicts PCA
@@ -217,18 +213,18 @@ network (NN) following the approach of \cite{alsing2019}.
 \edits{
     To construct our emulator, we first generate $N_{\rm model} = 1,000,000$
     model luminosities, $L(\lambda;\theta)$, from unique SPS parameters,
-    $\theta$, sampled from the prior (Section~\ref{sec:infer}).
+    $\theta$, sampled from the prior (Section~\ref{sec:infer},
+    Table~\ref{tab:params}).
     We then split the model luminosities into four wavelength bins: 2000 - 3600,
     3600 - 5500, 5500 - 7410, and 7410 - $60000\AA$ with $N_{\rm spec}$ = 127, 2109,
     2113, and 549 resolution elements, respectively.
     For each wavelength bin, a PCA is done in the $N_{\rm spec}$-dimensional
     space to yield PCA basis functions, or eigenspectra. 
-    We represent the model luminosity using the first $N_{\rm basis}$
+    We represent the model luminosity using the first $N_{\rm basis}$ = 50, 50, 50, and 30
     eigenspectra and their corresponding PCA coefficients. 
-    We use $N_{\rm basis}$ = 50, 50, 50, and 30 for the wavelength bins.
     A NN is then trained on the set of $N_{\rm model}$ models to
-    derive a mapping from the $N_{\rm SPS}=12$ SPS parameters to the 
-    $N_{\rm basis}$ PCA coefficients for each wavelength bin. 
+    derive a mapping from the 12 SPS parameters to the $N_{\rm basis}$ PCA
+    coefficients for each wavelength bin. 
 }
 
 \edits{
@@ -265,8 +261,8 @@ Finally, the SPS model photometry and spectrum can be directly compared to
 observations.
 
 \begin{table} 
-\caption{Parameters of the PROVABGS SPS model used for joint SED modeling of
-    DESI photometry and spectroscopy.} 
+\caption{Parameters of the PROVABGS SPS model and their priors used for joint
+    SED modeling of DESI photometry and spectroscopy.} 
 \begin{center}
     \begin{tabular}{ccc} \toprule
         name & description & prior \\[3pt]
@@ -346,16 +342,15 @@ likelihoods when jointly modeling the spectrophotometry:
     \log \mathcal{L} \approx \log \mathcal{L}^{\rm photo} + \log
     \mathcal{L}^{\rm spec}.
 \end{equation}
-$p(\theta)$ is the prior on the SPS parameters. 
+$p(\theta)$ in Eq.~\ref{eq:bayes} is the prior on the SPS parameters. 
 For most of our parameters, we use uninformative uniform priors with
 conservatively chosen ranges that are listed in Table~\ref{tab:params}. 
 However, for the priors of $\{\beta_1, \beta_2, \beta_3, \beta_4 \}$, the NMF coefficients
-for the SFH, we use a Dirichlet distribution.  
+for the SFH, we use a Dirichlet distribution to main the normalization of the SFH in Eq.~\ref{eq:nmf}. 
 With a Dirichlet distribution, $\beta_i$ are within $0 < \beta_i < 1$ and
 satisfy the constraint $\sum_i \beta_i = 1$. 
-This maintains the normalization of the SFH in Eq.~\ref{eq:nmf}. 
 
-Now that we can evaluate the posterior at given $\theta$, we derive the
+Now that we can evaluate the posterior at given $\theta$, we estimate the
 posterior distributions using Markov Chain Monte Carlo (MCMC) sampling. 
 We use the \cite{karamanis2020} ensemble slice sampling MCMC algorithm with the
 {\sc zeus} Python

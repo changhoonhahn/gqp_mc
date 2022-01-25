@@ -17,8 +17,8 @@ demonstrate that we can accurately infer the true galaxy propertries.
     {\em Right}: The $g-r$ and $r-z$ color distribution of the forward modeled
     \lgal~photometry is in good agreement with the color distribution of LS BGS
     objects (black contours). 
-    \edits{We plot a subsample of the total 2,123 simulated galaxies from
-    \lgal~that we use in this work.}
+    We plot a subsample of the total 2,123 simulated galaxies from
+    \lgal~that we use in this work.
     } \label{fig:photo}
 \end{center}
 \end{figure}
@@ -36,9 +36,10 @@ effects of tidal and ram-pressure stripping.
 Feedback from active galactic nuclei (AGN), which prevents hot gas from
 cooling, is the major mechanism for quenching star formation in massive
 galaxies.
-\lgal~model parameters are calibrated against the observed stellar mass
-functions and passive (quiescent) fractions at four different redshifts from 
-$z = 3$ to 0.
+\lgal~model parameters are calibrated against observations at four different
+redshifts from $z = 3$ to 0.
+They match the observed stellar mass function and passive (quiescent) fraction,
+which they estimate for the model by forward modeling U, V, and J photometry. 
 We refer readers to \cite{henriques2015} for further detail on \lgal.
 
 % A recent comparison to the cosmological hydrodynamical simulation
@@ -64,16 +65,14 @@ $L_{\rm SSP}$ corresponds to the luminosity of the SSP, which we calculate
 using the Flexible Stellar Population Synthesis~\citep[\fsps;][]{conroy2009,
 conroy2010c} model.
 % do we want to describe SPS models? 
-\edits{
-    For \fsps, we use the MIST isochrones~\citep{paxton2011, paxton2013,
-    paxton2015, choi2016, dotter2016} and the \cite{chabrier2003} initial mass
-    function (IMF). 
-    Also, we use the default spectral library in \fsps: the MILES spectral
-    library~\citep{sanchez-blazquez2006} over the wavelength range
-    $3800-7100\AA$ and the BaSeL
-    library~\citep{lejeune1997, lejeune1998, westera2002} 
-    outside of those limits.
-}
+For \fsps, we use the MIST isochrones~\citep{paxton2011, paxton2013,
+paxton2015, choi2016, dotter2016} and the \cite{chabrier2003} initial mass
+function (IMF). 
+Also, we use the default spectral library in \fsps: the MILES spectral
+library~\citep{sanchez-blazquez2006} over the wavelength range
+$3800-7100\AA$ and the BaSeL
+library~\citep{lejeune1997, lejeune1998, westera2002} 
+outside of those limits.
 
 % applying velocity dispersion to bulge and disk components separately 
 Next, we apply velocity dispersions to $L^{\rm comp.}(\lambda)$.
@@ -164,12 +163,10 @@ We begin by forward modeling the fiber aperture effect. % and apply a noise mode
 DESI uses fiber-fed spectrographs with fibers that have angular radii of 1''. 
 Hence, only the light from a galaxy within this fiber aperture is collected by
 the instrument.
-\edits{
-    Among BGS targets in LS, 40\% have $r_e$ < 1'' and 81\% have $r_e$ < 2'' so
-    the fiber aperture effect significantly impacts the majority of BGS
-    galaxies ($r_e$ is the half-light radius of the galaxy surface brightness
-    model fit by {\sc Tractor}\footnote{http://thetractor.org/doc/}).
-}
+Among BGS targets in LS, 40\% have $r_e$ < 1'' and 81\% have $r_e$ < 2'' so
+the fiber aperture effect significantly impacts the majority of BGS
+galaxies ($r_e$ is the half-light radius of the galaxy surface brightness
+model fit by {\sc Tractor}\footnote{http://thetractor.org/doc/}).
 LS also provides measurements of photometric fiber flux within a 1'' radius aperture
 ($f_X^{\rm fiber}$), which estimates the flux that passes through to the fibers.
 When we assigned photometric uncertainties to our simulated galaxies based on

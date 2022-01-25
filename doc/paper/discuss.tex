@@ -3,8 +3,8 @@
 The most significant limitation of the {\sc PROVABGS} SED modeling in
 inferring the true galaxy properties is the prior on galaxy properties imposed
 by the model. 
-The effect of such priors is  a major limitation for any SED modeling
-methods~\citep[\emph{e.g.}][]{carnall2017, leja2019} and is a consequence of
+The effect of such priors is a major limitation for any SED modeling
+methods~\citep[\emph{e.g.}][]{carnall2019a, leja2019} and is a consequence of
 the fact that galaxy properties are \emph{not} parameters of the SPS model.
 For instance, $\avgsfr$, $\zmw$, and $\tage$ are derived by integrating the SFH
 and ZH (Eq.~\ref{eq:prop_eqs}), which are parameterized by $\beta_1, \beta_2,
@@ -82,16 +82,13 @@ corrections that can be applied on derived BGS galaxy properties.
 We also note that the {\sc PROVABGS} SED modeling pipeline already includes flux
 calibration models beyond a single $f_{\rm fiber}$ and can easily be extended
 to include more sophisticated models~\citep[\emph{e.g.} Chebyschev
-polynomial;][]{carnall2017, tacchella2021}. 
+polynomial;][]{carnall2019a, tacchella2021}. 
 
 %\todo{paragraph on how we handle theoretical assumptions --- isochrones and stellar libraries, summary of the appendix}
 \subsection{Stellar Model Choices}
 In both our {\sc PROVABGS} SED model and mock observations, we use the MIST
-isochrones, 
-\edits{
-    the combined MILES+BaSeL spectral library,
-}
-and the \cite{chabrier2003} IMF.
+isochrones, the combined MILES+BaSeL spectral library, and the
+\cite{chabrier2003} IMF.
 With the same set of choices, our analysis does not consider how different
 choices for stellar evolution or IMF can affect the inferred galaxy properties. 
 Yet, it is well-established that there are major uncertainties in each of these
@@ -174,7 +171,7 @@ We mark the 68 and 95\% confidence intervals in the shaded regions.
 For comparison, we include the true SFH and ZH from \lgal~(dashed).  
 The inferred SFH and ZH is able to generally recover the true histories. 
 We emphasize that current SPS models typically assume constant ZHs that does
-not vary over time~\citep{carnall2017, leja2019}. 
+not vary over time~\citep{carnall2019a, leja2019}. 
 Hence inferring ZH over time is a key advantage of the {\sc PROVABGS} SPS
 model. 
 Similar to the inferred $\avgsfr$ and $\zmw$, the SFH and ZH constraints are
@@ -229,16 +226,13 @@ In this work, we utilized the posteriors in order to quantify accuracy and
 precision of galaxy population constraints using population inference with a
 hierarchical Bayesian approach. 
 This is only the \emph{simplest} illustration of such an approach. 
-\edits{
-    Another application is to use posteriors on $M_*$, 
-    $p(M_* \given {\bfi X}_i)$, to measure $p(M_* \given \{ {\bfi X_i} \})$ ---
-    the \emph{probabilistic} SMF.
-    With full posteriors, we can probe even the lowest signal-to-noise regime
-    accurately so the SMF will be reliable even at the lowest mass end, down to
-    ${\sim}10^{7} M_\odot$ (Figure~\ref{fig:bgs_mstar}). 
-    This will constrain the SMF of dwarf galaxies and have important
-    implications for both galaxy evolution and cosmology. 
-}
+Another application is to use posteriors on $M_*$, $p(M_* \given {\bfi X}_i)$,
+to measure $p(M_* \given \{ {\bfi X_i} \})$ --- the \emph{probabilistic} SMF.
+With full posteriors, we can probe even the lowest signal-to-noise regime
+accurately so the SMF will be reliable even at the lowest mass end, down to
+${\sim}10^{7} M_\odot$ (Figure~\ref{fig:bgs_mstar}). 
+This will constrain the SMF of dwarf galaxies and have important
+implications for both galaxy evolution and cosmology. 
 
 %With the {\sc PROVABGS} posteriors we can infer fully probabilistic galaxy
 %population statistics, which will allow us to robustly probe even the lowest
@@ -246,21 +240,19 @@ This is only the \emph{simplest} illustration of such an approach.
 %A probabilistic SMF of BGS, for example, will provide accurate constraints on
 %the low mass end down to ${\sim}10^{7} M_\odot$ (Figure~\ref{fig:bgs_mstar}),
 %which has important implications for both galaxy evolution and cosmology. 
-\edits{
-    Probabilistic analyses can extend to higher dimensions. 
-    Joint posteriors on $M_*$ and SFR, $p(M_*, {\rm SFR} \given {\bfi X}_i)$
-    can be used to measure the probabilistic star formation sequence. 
-    Since the posteriors reliably estimate the uncertainties and parameter
-    degeneracies, we will more accurately infer the intrinsic width of the
-    SFS, which encodes information about star formation and stellar and AGN
-    feedback in galaxies~\citep{davies2021}. 
-    We can even extend the approach to infer the distribution of \emph{all}
-    galaxy properties given observations, $p(\theta | \{X_i\})$, which would
-    exploit the \emph{full} statistical power of observations and reveal new
-    trends among galaxy properties. 
-    This is only possible with population inference using the posterior
-    distributions of every galaxy.
-}
+Probabilistic analyses can extend to higher dimensions. 
+Joint posteriors on $M_*$ and SFR, $p(M_*, {\rm SFR} \given {\bfi X}_i)$
+can be used to measure the probabilistic star formation sequence. 
+Since the posteriors reliably estimate the uncertainties and parameter
+degeneracies, we will more accurately infer the intrinsic width of the
+SFS, which encodes information about star formation and stellar and AGN
+feedback in galaxies~\citep{davies2021}. 
+We can even extend the approach to infer the distribution of \emph{all}
+galaxy properties given observations, $p(\theta | \{X_i\})$, which would
+exploit the \emph{full} statistical power of observations and reveal new
+trends among galaxy properties. 
+This is only possible with population inference using the posterior
+distributions of every galaxy.
 
 %We can also use population inference to robustly derive galaxy property distributions of galaxy subpopulations --- \emph{without stacking observations}.
 Population inference also allows us to avoid stacking observations. 

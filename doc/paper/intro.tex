@@ -12,7 +12,8 @@ fraction~\citep{kauffmann2003a, blanton2003, baldry2006, taylor2009}, and their
 evolution are now well understood. 
 Many global scaling relations of galaxy propreties such as the mass-metallicity
 relation~\citep{tremonti2004} or
-the ``star formation sequence''~\citep{noeske2007, daddi2007, salim2007} have
+the ``star formation sequence''~\citep{noeske2007, daddi2007,
+salim2007} have
 also been firmly established. 
 Despite their importance in building our current understanding, however,
 the empirical relations from existing observations are inadequate for
@@ -42,13 +43,11 @@ While many different approaches are available for expanding our understanding
 of galaxies, they all require more statistically powerful galaxy samples with
 well controlled systematics and well understood selection functions. 
 
-\edits{
-    Better observations, however, must be accompanied by better and more
-    consistent methodogy. 
-    The statistical power of large galaxy surveys are squandered when they are
-    analyzed inconsistently with a hodgepodge of methodologies since analyses
-    cannot take advantage of new techniques and approaches. 
-}
+Better observations, however, must be accompanied by better and more consistent
+methodogy. 
+The statistical power of large galaxy surveys are squandered when they are
+analyzed inconsistently with a hodgepodge of methodologies since analyses
+cannot take advantage of new techniques and approaches. 
 In this regard, value-added catalogs (VACs) that provide consistently measured
 galaxy properties for entire galaxy surveys are instrumental and have been
 used by hundreds of galaxy studies~\citep[see][for a review]{blanton2009}.
@@ -62,35 +61,31 @@ today~\citep[\emph{e.g.}][]{alpaslan2021, odonnell2021, trevisan2021}.
 % motivate the probabilistic approach
 Probabilistic VACs are the next advancement in VACs that will extract even more
 the information from galaxy surveys. 
-Unlike previous VACs that provide point estimates, probabilistic catalogs
-provide full posterior distributions of galaxy properties ---
-$p(\theta\given{\bfi X_i})$, the probability of galaxy properties $\theta$
-given observations, ${\bfi X_i}$, of galaxy $i$.
+Unlike previous VACs that provide point estimates and rough estimates of
+uncertainties, probabilistic catalogs provide full posterior distributions of
+galaxy properties --- $p(\theta\given{\bfi X_i})$, the probability of galaxy
+properties $\theta$ given observations, ${\bfi X_i}$, of galaxy $i$.
 Posteriors offer more accurate measurements of galaxy properties because they
 estimate the uncertainties and any degeneracies among them more accurately. 
-\edits{
-    They also open the doors for principled population inference.
-    Given observations of a set of galaxies, $\{{\bfi X_i}\}$, we can combine
-    individual posteriors of the galaxies to rigorously derive the distribution of
-    their physical properties: $p(\theta | \{ {\bfi X_i} \})$.
-    For example, we can use posteriors on stellar mass, $M_*$, and star formation
-    rate, SFR, to infer $p(M_*, {\rm SFR} | \{ {\bfi X_i} \})$. 
-    From the $M_*$-SFR distributions, we can measure the intrinsic width star
-    formation sequence with unprecedented accuracy and provide key insight into
-    star formation and stellar and AGN feedback in star-forming
-    galaxies~\citep[\emph{e.g.}][]{davies2021}.
-}
+They also open the doors for principled population inference.
+Given observations of a set of galaxies, $\{{\bfi X_i}\}$, we can combine
+individual posteriors of the galaxies to rigorously derive the distribution of
+their physical properties: $p(\theta | \{ {\bfi X_i} \})$.
+For example, we can use posteriors on stellar mass, $M_*$, and star formation
+rate, SFR, to infer $p(M_*, {\rm SFR} | \{ {\bfi X_i} \})$. 
+From the $M_*$-SFR distributions, we can measure the intrinsic width star
+formation sequence with unprecedented accuracy and provide key insight into
+star formation and stellar and AGN feedback in star-forming
+galaxies~\citep[\emph{e.g.}][]{davies2021, curtis-lake2021}.
 
-\edits{
-    With probabilistic catalogs, we can also include galaxies with less
-    tightly constrained properties in our analyses since posteriors accurately
-    quantify uncertainties. 
-    This means we can probe less explored, low signal-to-noise, regimes that may
-    shed new light on galaxy evolution, such as dwarf galaxies.
-    We can also more reliably quantify the fraction of extreme or outlier
-    galaxies, \emph{e.g.} quiescent fraction of field dwarf
-    galaxies~\citep{geha2012}.
-}
+With probabilistic catalogs, we can also include galaxies with less
+tightly constrained properties in our analyses since posteriors accurately
+quantify uncertainties. 
+This means we can probe less explored, low signal-to-noise, regimes that may
+shed new light on galaxy evolution, such as dwarf galaxies.
+We can also more reliably quantify the fraction of extreme or outlier
+galaxies, \emph{e.g.} quiescent fraction of field dwarf
+galaxies~\citep{geha2012}.
 Probabilistic catalogs also open the door for Bayesian Hierarchical approaches
 and improve the statistical power of BGS through Bayesian shrinkage: the joint
 posterior of the galaxy sample can be used as the prior to shrink the

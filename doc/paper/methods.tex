@@ -15,7 +15,7 @@ that it can describe any SFH at the expense of constraining power.
 If the model SFH is not flexible enough to describe actual SFHs of galaxies,
 then unbiased galaxy properties cannot be inferred using the SPS model. 
 For instance, most SPS models~(\emph{e.g.} CIGALE,~\citealt{serra2011,
-boquien2019}; BAGPIPES,~\citealt{carnall2017}) use parametric SFH such as the
+boquien2019}; BAGPIPES,~\citealt{carnall2018}) use parametric SFH such as the
 exponentially declining $\tau$-model.
 Such functional forms, however, produce biased estimates of galaxy properties
 (\emph{e.g.} $M_*$ and SFR) when used to fit mock observations of simulated 
@@ -46,11 +46,9 @@ We find that 4 components is sufficient to accurately reconstruct the SFHs
 from Illustris. 
 We present the NMF SFH bases as a function of lookback time in
 left panel of Figure~\ref{fig:nmf}.
-\edits{
-    By using NMF instead of \emph{e.g.} Principal Component Analysis (PCA), we
-    ensure that all of the SFH bases are non-negative and, thus, physically
-    meaningful. 
-}
+By using NMF instead of \emph{e.g.} Principal Component Analysis (PCA), we
+ensure that all of the SFH bases are non-negative and, thus, physically
+meaningful. 
 For further details on the derivation of the NMF bases, we refer readers to
 Appendix~\ref{sec:nmf}. 
 Assuming that the SFHs of Illustris galaxies resemble the SFHs of actual
@@ -77,10 +75,8 @@ In total we use 6 free parameters in our SFH: 4 NMF basis coefficients
 
 % describe ZH 
 Another key part of an SPS model is the chemical enrichment history, or ZH. 
-Current SPS models mostly assume a
-\edits{
-    flat ZH, constant metallicity over time~\citep{carnall2017, leja2019}.
-} 
+Current SPS models mostly assume a flat ZH, constant metallicity over
+time~\citep{carnall2019a, leja2019}.
 Since galaxies do not have constant metallicities throughout their history,
 this assumption can significantly bias the inferred galaxy
 properties~\citep{thorne2021}. 
@@ -124,31 +120,24 @@ For a $z=0$ galaxy, this binning produces 43 $\tlb$ bins.
 We use log-spaced $\tlb$ bins because it better reproduces galaxy luminosities
 evaluated with much higher resolution $\tlb$ binning than linearly-spacing, for
 the same number of bins. 
-\edits{At each of the 43 $\tlb$ bin $i$,}
-we evaluate the luminosity of a SSP with ${\rm ZH}(t_i)$, where $t_i$ is the
-center of $\tlb$ bin, and total stellar mass calculated by resampling the SFH
-in Eq.~\ref{eq:sfh}. 
-\edits{
-    We use \fsps~to evaluate the SSP luminosities and use the MIST isochrones, the
-    combination of MILES and BaSeL spectral libraries, and the \cite{chabrier2003}
-    IMF (same as in Section~\ref{sec:sed}).  
-}
+At each of the 43 $\tlb$ bin $i$, we evaluate the luminosity of a SSP with
+${\rm ZH}(t_i)$, where $t_i$ is the center of $\tlb$ bin, and total stellar
+mass calculated by resampling the SFH in Eq.~\ref{eq:sfh}. 
+We use \fsps~to evaluate the SSP luminosities and use the MIST isochrones, the
+combination of MILES and BaSeL spectral libraries, and the \cite{chabrier2003}
+IMF (same as in Section~\ref{sec:sed}).  
 Since we use MIST isochrones, we impose a minimum and maximum limit to ${\rm
 ZH}$ based on its coverage: $4.49\times10^{-5}$ and $4.49\times10^{-2}$,
 respectively.
-\edits{
-    These metallicity values are in units of absolute metallicity and can be
-    converted to solar metallicity using $Z_\odot = 0.019$. 
-}
+These metallicity values are in units of absolute metallicity and can be
+converted to solar metallicity using $Z_\odot = 0.019$. 
 We note that our stellar metallicity range is significantly broader than
-previous studies for additional flexibility~\citep[\emph{e.g.}][]{carnall2017,
-leja2017, tacchella2021}. 
-\edits{
-    Since we model galaxies solely as a linear combination of SSPs, we do not
-    model nebular emission.  
-    We, therefore, exclude emission lines in our SED modeling by masking the
-    wavelength ranges of emission lines.
-}
+previous studies for additional flexibility~\citep[\emph{e.g.}][]{leja2017,
+carnall2019a, tacchella2021}. 
+Since we model galaxies solely as a linear combination of SSPs, we do not
+model nebular emission.  
+We, therefore, exclude emission lines in our SED modeling by masking the
+wavelength ranges of emission lines.
 
 Before we combine the SSP luminosities, we apply dust attenuation.
 We use a two component \cite{charlot2000} dust attenuation model with birth
@@ -191,14 +180,12 @@ $\tau_{\rm BC}$, $\tau_{\rm ISM}$, and $n_{\rm dust}$.
 
 %description of our speculator SED model \citep{alsing2019}, which is based on FSPS. We use Chabrier IMF \ch{do we need to justify htis?}. 
 
-In practice, evaluating each SSP using \fsps~requires \ch{X} seconds. 
-For each model evaluation, we evaluate $\sim 43$ SSPs in each of the log-spaced
-$\tlb$ bins. 
+In practice, each model evaulation using \fsps~requires ${\sim}340$ ms. 
+%evaluating each SSP using \fsps~requires \ch{X} seconds.  For each model evaluation, we evaluate $\sim 43$ SSPs in each of the log-spaced $\tlb$ bins. 
 Though this is not a prohibitive computational cost on its own, sampling a
 high dimensional parameter space for inference requires $>100,000$ evaluations
---- \emph{i.e.} \ch{$>100$} CPU hours \emph{per galaxy}. 
-For the >10 million BGS galaxies, this would require \ch{\emph{a billion}}
-CPU hours. 
+--- \emph{i.e.} $\gtrsim10$ CPU hours \emph{per galaxy}. 
+For the >10 million BGS galaxies, this would require >100 million CPU hours. 
 Instead, we use an emulator for the model luminosity, which uses a PCA neural
 network (NN) following the approach of \cite{alsing2019}. 
 
@@ -210,36 +197,35 @@ network (NN) following the approach of \cite{alsing2019}.
 %The PCA basis functions and NN are trained using 1,000,000 SPS parameters and
 %model luminosity pairs, $\{(\theta, L(\lambda;\theta))\}$. 
 
-\edits{
-    To construct our emulator, we first generate $N_{\rm model} = 1,000,000$
-    model luminosities, $L(\lambda;\theta)$, from unique SPS parameters,
-    $\theta$, sampled from the prior (Section~\ref{sec:infer},
-    Table~\ref{tab:params}).
-    We then split the model luminosities into four wavelength bins: 2000 - 3600,
-    3600 - 5500, 5500 - 7410, and 7410 - $60000\AA$ with $N_{\rm spec}$ = 127, 2109,
-    2113, and 549 resolution elements, respectively.
-    For each wavelength bin, a PCA is done in the $N_{\rm spec}$-dimensional
-    space to yield PCA basis functions, or eigenspectra. 
-    We represent the model luminosity using the first $N_{\rm basis}$ = 50, 50, 50, and 30
-    eigenspectra and their corresponding PCA coefficients. 
-    A NN is then trained on the set of $N_{\rm model}$ models to
-    derive a mapping from the 12 SPS parameters to the $N_{\rm basis}$ PCA
-    coefficients for each wavelength bin. 
-}
+To construct our emulator, we first generate $N_{\rm model} = 1,000,000$
+model luminosities, $L(\lambda;\theta)$, from unique SPS parameters,
+$\theta$, sampled from the prior (Section~\ref{sec:infer},
+Table~\ref{tab:params}).
+We then split the model luminosities into four wavelength bins: 2000 - 3600,
+3600 - 5500, 5500 - 7410, and 7410 - $60000\AA$ with $N_{\rm spec}$ = 127, 2109,
+2113, and 549 resolution elements, respectively.
+For each wavelength bin, a PCA is done in the $N_{\rm spec}$-dimensional
+space to yield PCA basis functions, or eigenspectra. 
+We represent the model luminosity using the first $N_{\rm basis}$ = 50, 50, 50, and 30
+eigenspectra and their corresponding PCA coefficients. 
+A NN is then trained on the set of $N_{\rm model}$ models to
+derive a mapping from the 12 SPS parameters to the $N_{\rm basis}$ PCA
+coefficients for each wavelength bin. 
 
-\edits{
-    Once trained, our emulator works as follows.
-    For a given set of SPS parameters, the NN for each wavelength bin predicts
-    PCA coefficients. 
-    The coefficients are then linearly combined with the eigenspectra to
-    predict the model luminosity in the wavelength bin. 
-    The luminosity in all four wavelength bins are concatenated to produce the
-    full model luminosity. 
-}
+
+Once trained, our emulator works as follows.
+For a given set of SPS parameters, the NN for each wavelength bin predicts
+PCA coefficients. 
+The coefficients are then linearly combined with the eigenspectra to
+predict the model luminosity in the wavelength bin. 
+The luminosity in all four wavelength bins are concatenated to produce the
+full model luminosity. 
 Throughout the wavelength range relevant for BGS, $3000 < \lambda < 9800\AA$,
 we achieve $< 1\%$ accurate with the emulator. 
 For details on the training, validation, and performance of our PCA NN
 emulator, we refer readers to Kwon \etal~(in prep.). 
+With the neural emulator, each model evaluation only requires ${\sim}2.9$ ms,
+100$\times$ faster than with FSPS.
 
 From the rest-frame luminosity, we obtain the observed-frame, redshifted, flux
 in the same way as Eq.~\ref{eq:sed}.
@@ -251,9 +237,15 @@ km/s).
 To model DESI photometry, we convolve the model flux with the LS broadband
 filters as in Eq.~\ref{eq:photo}.
 To model DESI spectra, we first apply Gaussian velocity dispersion. 
-In this work, we keep velocity dispersion fixed at 0 km/s but in practice
-velocity dispersion can be set as a free parameter. 
-Then the broadened flux is resampled into the DESI wavelength binning. 
+In this work, we keep velocity dispersion fixed at 0 km/s as a conservative
+test for our SED modeling when we use an explicitly incorrect velocity
+dispersion.
+In future work, when we apply our SPS model to observations, the velocity
+dispersion will be set to a more realistic value. 
+In practice, it can also be set as a free parameter.
+%In practice, however, the velocity dispersion can be set as a free parameter. 
+After velocity dispersions, the broadened flux is resampled into the DESI
+wavelength binning.  
 Since DESI spectra do not necessarily include all the light of a galaxy, we
 include a nuisance parameter $f_{\rm fiber}$, a normalization factor on the
 spectra to account for fiber aperture effects. 
@@ -371,7 +363,7 @@ Given this dimensionality, we run our MCMC sampling with 30 walkers.
 Overall, we find that the sampling converges after 2,500 iterations with a 500
 iteration burn in. 
 Deriving the posterior distribution from a joint SED modeling of photometry and
-spectra, with the emulator, takes \ch{0.5 CPU hours}. 
+spectra, with the emulator, takes ${\sim}10$ CPU minutes. 
 In principle, since our emulator uses a PCA NN, we can further expedite our
 paremeter inference using more efficient sampling methods that exploit gradient
 information, such as Hamiltonian Monte Carlo.  

@@ -89,14 +89,16 @@ Calzetti D.,  2001, \mn@doi [New Astronomy Reviews]
 Caplar N.,  Tacchella S.,  2019, arXiv:1901.07556 [astro-ph]
 
 \bibitem[\protect\citeauthoryear{Carnall, McLure, Dunlop  \& Dav{\'e}}{Carnall
-  et~al.}{2017}]{carnall2017}
-Carnall A.~C.,  McLure R.~J.,  Dunlop J.~S.,   Dav{\'e} R.,  2017,
-  arXiv:1712.04452 [astro-ph]
+  et~al.}{2018}]{carnall2018}
+Carnall A.~C.,  McLure R.~J.,  Dunlop J.~S.,   Dav{\'e} R.,  2018, \mn@doi
+  [Monthly Notices of the Royal Astronomical Society] {10.1093/mnras/sty2169},
+  480, 4379
 
 \bibitem[\protect\citeauthoryear{Carnall, Leja, Johnson, McLure, Dunlop  \&
-  Conroy}{Carnall et~al.}{2018}]{carnall2018}
+  Conroy}{Carnall et~al.}{2019}]{carnall2019a}
 Carnall A.~C.,  Leja J.,  Johnson B.~D.,  McLure R.~J.,  Dunlop J.~S.,   Conroy
-  C.,  2018, arXiv:1811.03635 [astro-ph]
+  C.,  2019, \mn@doi [The Astrophysical Journal] {10.3847/1538-4357/ab04a2},
+  873, 44
 
 \bibitem[\protect\citeauthoryear{Chabrier}{Chabrier}{2003}]{chabrier2003}
 Chabrier G.,  2003, \mn@doi [Publications of the Astronomical Society of the
@@ -128,14 +130,6 @@ Ciesla L.,  Elbaz D.,   Fensch J.,  2017, \mn@doi [Astronomy and Astrophysics]
 Coil A.~L.,  et~al., 2011, \mn@doi [The Astrophysical Journal]
   {10.1088/0004-637X/741/1/8}, 741, 8
 
-\bibitem[\protect\citeauthoryear{Collaboration et~al.,}{Collaboration
-  et~al.}{2016a}]{desicollaboration2016}
-Collaboration D.,  et~al., 2016a, arXiv:1611.00036 [astro-ph]
-
-\bibitem[\protect\citeauthoryear{Collaboration et~al.,}{Collaboration
-  et~al.}{2016b}]{desicollaboration2016a}
-Collaboration D.,  et~al., 2016b, arXiv:1611.00037 [astro-ph]
-
 \bibitem[\protect\citeauthoryear{Conroy}{Conroy}{2013}]{conroy2013}
 Conroy C.,  2013, \mn@doi [Annual Review of Astronomy and Astrophysics]
   {10.1146/annurev-astro-082812-141017}, 51, 393
@@ -149,6 +143,20 @@ Conroy C.,  Gunn J.~E.,  2010, \mn@doi [The Astrophysical Journal]
   et~al.}{2009}]{conroy2009}
 Conroy C.,  Gunn J.~E.,   White M.,  2009, \mn@doi [The Astrophysical Journal]
   {10.1088/0004-637X/699/1/486}, 699, 486
+
+\bibitem[\protect\citeauthoryear{{Curtis-Lake}, Chevallard, Charlot  \&
+  Sandles}{{Curtis-Lake} et~al.}{2021}]{curtis-lake2021}
+{Curtis-Lake} E.,  Chevallard J.,  Charlot S.,   Sandles L.,  2021, \mn@doi
+  [Monthly Notices of the Royal Astronomical Society] {10.1093/mnras/stab698},
+  503, 4855
+
+\bibitem[\protect\citeauthoryear{{DESI Collaboration} et~al.,}{{DESI
+  Collaboration} et~al.}{2016a}]{desicollaboration2016}
+{DESI Collaboration} et~al., 2016a, arXiv:1611.00036 [astro-ph]
+
+\bibitem[\protect\citeauthoryear{{DESI Collaboration} et~al.,}{{DESI
+  Collaboration} et~al.}{2016b}]{desicollaboration2016a}
+{DESI Collaboration} et~al., 2016b, arXiv:1611.00037 [astro-ph]
 
 \bibitem[\protect\citeauthoryear{Daddi et~al.,}{Daddi et~al.}{2007}]{daddi2007}
 Daddi E.,  et~al., 2007, \mn@doi [The Astrophysical Journal] {10.1086/521818},
@@ -225,7 +233,7 @@ Hahn C.,  Tinker J.~L.,   Wetzel A.~R.,  2017, \mn@doi [The Astrophysical
 Hahn C.,  Tinker J.~L.,   Wetzel A.,  2019, arXiv:1910.01644 [astro-ph]
 
 \bibitem[\protect\citeauthoryear{Hahn et~al.,}{Hahn et~al.}{2021}]{hahn2021}
-Hahn C.,  et~al., 2021, {{IQ Collaboratory III}}: The {{Empirical Dust
+Hahn C.,  et~al., 2021, {{IQ Collaboratory III}}: {{The Empirical Dust
   Attenuation Framework}} -- {{Taking Hydrodynamical Simulations}} with a
   {{Grain}} of {{Dust}}
 
@@ -371,9 +379,8 @@ Paxton B.,  et~al., 2015, \mn@doi [The Astrophysical Journal Supplement Series]
 
 \bibitem[\protect\citeauthoryear{{Planck Collaboration} et~al.,}{{Planck
   Collaboration} et~al.}{2014}]{planckcollaboration2014a}
-{Planck Collaboration} et~al., 2014, \mn@doi [Astronomy \&amp; Astrophysics,
-  Volume 571, id.A16, {$<$}NUMPAGES{$>$}66{$<$}/NUMPAGES{$>$} pp.]
-  {10.1051/0004-6361/201321591}, 571, A16
+{Planck Collaboration} et~al., 2014, \mn@doi [Astronomy \& Astrophysics, Volume
+  571, id.A16, 66 pp.] {10.1051/0004-6361/201321591}, 571, A16
 
 \bibitem[\protect\citeauthoryear{Richards et~al.,}{Richards
   et~al.}{2016}]{richards2016}

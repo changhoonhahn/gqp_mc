@@ -25,7 +25,8 @@ and allow unphysical SFHs~\citep{leja2019}, which unncessarily increases
 parameter degeneracies and discards constraining power. 
 
 In our SPS model, we use a non-parametric SFH with two components: one based on
-non-negative matrix factorization (NMF) basis functions and a starburst component.
+non-negative matrix factorization~\citep[NMF;][]{lee1999,cichocki2009,
+fevotte2011} basis functions and a starburst component.
 For the first component, SFH is a linear combination of four NMF SFH bases:
 \begin{equation} \label{eq:nmf} 
     {\rm SFH}^{\rm NMF} (t, t_{\rm age}) = \sum\limits_{i=1}^{4} \beta_i
@@ -40,8 +41,7 @@ age of the galaxy ($t_{\rm age})$ is normalized to unity.
 $\{s^{\rm SFH}_i\}$ are derived from the Illustris cosmological hydrodynamic
 simulation~\citep{vogelsberger2014, genel2014, nelson2015}.
 We compile, rebin, and smooth the SFHs of Illustris galaxies and then perform
-non-negative matrix factorization~\citep{lee1999,cichocki2009, fevotte2011} on
-them to derive $\{s^{\rm SFH}_i\}$. 
+NMF on them to derive $\{s^{\rm SFH}_i\}$. 
 We find that 4 components is sufficient to accurately reconstruct the SFHs
 from Illustris. 
 We present the NMF SFH bases as a function of lookback time in
@@ -51,17 +51,17 @@ ensure that all of the SFH bases are non-negative and, thus, physically
 meaningful. 
 For further details on the derivation of the NMF bases, we refer readers to
 Appendix~\ref{sec:nmf}. 
-Assuming that the SFHs of Illustris galaxies resemble the SFHs of actual
-observed galaxies, our NMF form provides a compact and flexible representation
-of the SFHs. 
+Assuming that the SFHs of Illustris galaxies resemble the SFHs of real
+galaxies, our NMF form provides a compact and flexible representation of the
+SFHs. 
 
 The NMF basis functions are derived from smooth SFHs, which means that it does
 not include any stochasticity. 
 However, observations and high resolution zoom-in hydrodyanmical simulations
 both find significant stochasticity in galaxy SFHs~\citep{sparre2017,
 caplar2019, hahn2019b, iyer2020}. 
-To include some stochasticity in our SPS model, we include a starburst
-component that consists of a SSP. 
+To include stochasticity in our SPS model, we include a starburst component
+that consists of a SSP. 
 Thus, for the total SFH, we use
 \begin{equation} \label{eq:sfh}
     {\rm SFH} (t, t_{\rm age}) = (1 - f_{\rm burst})~{\rm SFH}^{\rm NMF} (t,
@@ -81,7 +81,7 @@ Since galaxies do not have constant metallicities throughout their history,
 this assumption can significantly bias the inferred galaxy
 properties~\citep{thorne2021}. 
 Instead, we take a similar approach to the SFH and use NMF basis functions for
-our ZH:
+ZH:
 \begin{equation}
     {\rm ZH}(t) = \sum\limits_{i=1}^2 \gamma_i s_i^{\rm ZH}(t).
 \end{equation} 
@@ -224,8 +224,8 @@ Throughout the wavelength range relevant for BGS, $3000 < \lambda < 9800\AA$,
 we achieve $< 1\%$ accurate with the emulator. 
 For details on the training, validation, and performance of our PCA NN
 emulator, we refer readers to Kwon \etal~(in prep.). 
-With the neural emulator, each model evaluation only requires ${\sim}2.9$ ms,
-100$\times$ faster than with FSPS.
+With the neural emulator, each model evaluation only requires 
+${\sim}2.9$ ms --- 100$\times$ faster than with FSPS.
 
 From the rest-frame luminosity, we obtain the observed-frame, redshifted, flux
 in the same way as Eq.~\ref{eq:sed}.
@@ -240,16 +240,16 @@ To model DESI spectra, we first apply Gaussian velocity dispersion.
 In this work, we keep velocity dispersion fixed at 0 km/s as a conservative
 test for our SED modeling when we use an explicitly incorrect velocity
 dispersion.
-In future work, when we apply our SPS model to observations, the velocity
-dispersion will be set to a more realistic value. 
-In practice, it can also be set as a free parameter.
+Later when we apply our SPS model to observations, the velocity dispersion will
+be set to a more realistic value. 
+It can also be set as a free parameter.
 %In practice, however, the velocity dispersion can be set as a free parameter. 
 After velocity dispersions, the broadened flux is resampled into the DESI
 wavelength binning.  
 Since DESI spectra do not necessarily include all the light of a galaxy, we
 include a nuisance parameter $f_{\rm fiber}$, a normalization factor on the
 spectra to account for fiber aperture effects. 
-Finally, the SPS model photometry and spectrum can be directly compared to
+Next, the model photometry and spectrum can be directly compared to
 observations.
 
 \begin{table} 
@@ -287,9 +287,9 @@ observations.
         We use a Gaussian likelihood and the prior specified in
         Table~\ref{tab:params} to evaluate the posterior and sample the
         distribution using ensemble slice MCMC. 
-        \emph{With our Bayesian SED modeling approach, we capture the significiant
-        parameter degeneracies and multimodality of the posterior
-        distribution.}\\
+        \emph{With our Bayesian SED modeling approach, we accurately quantify
+        uncertainties and capture complexities (\emph{e.g.}~parameter
+        degeneracies and multimodality) in the posterior distribution.}\\
         \emph{Bottom}: 
         We compare the best-fit model observables (orange) to the mock
         observations (black).  
@@ -310,7 +310,7 @@ From Bayes rule, we write down the posterior as
 \end{equation}
 where ${\bf X}$ is the photometry or spectrum and $\theta$ is the set of SPS
 parameters. 
-$p({\bf X} \given \theta)$ is the likelihood, which we calculate separately for
+$p({\bf X} \given \theta)$ is the likelihood, which we calculate independently for
 the photometry
 \begin{equation}
     \mathcal{L}^{\rm photo} \propto \exp\left[-\frac{1}{2} \left(\frac{X^{\rm photo} -
@@ -321,8 +321,7 @@ and for the spectrum
     \mathcal{L}^{\rm spec} \propto \exp\left[-\frac{1}{2} \left(\frac{X^{\rm spec} -
     m^{\rm spec}(\theta)}{\sigma^{\rm spec}} \right)^2\right].
 \end{equation}
-$m^{\rm photo}$ and $m^{\rm spec}$ represent SPS model for photometry and
-spectroscopy. 
+$m^{\rm photo}$ and $m^{\rm spec}$ represent SPS model photometry and spectroscopy. 
 $\sigma^{\rm photo}$ and $\sigma^{\rm spec}$ respresent the uncertainties on
 the measured photometry and spectrum. 
 In calculating $\mathcal{L}^{\rm spec}$, we exclude wavelength ranges of width
@@ -338,13 +337,14 @@ $p(\theta)$ in Eq.~\ref{eq:bayes} is the prior on the SPS parameters.
 For most of our parameters, we use uninformative uniform priors with
 conservatively chosen ranges that are listed in Table~\ref{tab:params}. 
 However, for the priors of $\{\beta_1, \beta_2, \beta_3, \beta_4 \}$, the NMF coefficients
-for the SFH, we use a Dirichlet distribution to main the normalization of the SFH in Eq.~\ref{eq:nmf}. 
-With a Dirichlet distribution, $\beta_i$ are within $0 < \beta_i < 1$ and
+for the SFH, we use a Dirichlet distribution to maintain the normalization of
+the SFH in Eq.~\ref{eq:nmf}. 
+With Dirichlet priors, $\beta_i$ are within $0 < \beta_i < 1$ and
 satisfy the constraint $\sum_i \beta_i = 1$. 
 
 Now that we can evaluate the posterior at given $\theta$, we estimate the
 posterior distributions using Markov Chain Monte Carlo (MCMC) sampling. 
-We use the \cite{karamanis2020} ensemble slice sampling MCMC algorithm with the
+We use the \cite{karamanis2020} ensemble slice sampling algorithm with the
 {\sc zeus} Python
 package\footnote{\href{https://zeus-mcmc.readthedocs.io/}{https://zeus-mcmc.readthedocs.io/}}. 
 Ensemble slice sampling is an extension of standard slice sampling that does
@@ -363,7 +363,7 @@ Given this dimensionality, we run our MCMC sampling with 30 walkers.
 Overall, we find that the sampling converges after 2,500 iterations with a 500
 iteration burn in. 
 Deriving the posterior distribution from a joint SED modeling of photometry and
-spectra, with the emulator, takes ${\sim}10$ CPU minutes. 
+spectra, with the emulator, takes ${\sim}10$ CPU minutes per galaxy.
 In principle, since our emulator uses a PCA NN, we can further expedite our
 paremeter inference using more efficient sampling methods that exploit gradient
 information, such as Hamiltonian Monte Carlo.  

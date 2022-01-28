@@ -22,10 +22,6 @@
 Alpaslan M.,  Tinker J.~L.,  2021, \mn@doi [Monthly Notices of the Royal
   Astronomical Society] {10.1093/mnras/stab1591}, 505, 5403
 
-\bibitem[\protect\citeauthoryear{Alsing et~al.,}{Alsing
-  et~al.}{2019}]{alsing2019}
-Alsing J.,  et~al., 2019, arXiv:1911.11778 [astro-ph]
-
 \bibitem[\protect\citeauthoryear{Baldry, Balogh, Bower, Glazebrook, Nichol,
   Bamford  \& Budavari}{Baldry et~al.}{2006}]{baldry2006}
 Baldry I.~K.,  Balogh M.~L.,  Bower R.~G.,  Glazebrook K.,  Nichol R.~C.,
@@ -143,12 +139,6 @@ Conroy C.,  Gunn J.~E.,  2010, \mn@doi [The Astrophysical Journal]
   et~al.}{2009}]{conroy2009}
 Conroy C.,  Gunn J.~E.,   White M.,  2009, \mn@doi [The Astrophysical Journal]
   {10.1088/0004-637X/699/1/486}, 699, 486
-
-\bibitem[\protect\citeauthoryear{{Curtis-Lake}, Chevallard, Charlot  \&
-  Sandles}{{Curtis-Lake} et~al.}{2021}]{curtis-lake2021}
-{Curtis-Lake} E.,  Chevallard J.,  Charlot S.,   Sandles L.,  2021, \mn@doi
-  [Monthly Notices of the Royal Astronomical Society] {10.1093/mnras/stab698},
-  503, 4855
 
 \bibitem[\protect\citeauthoryear{{DESI Collaboration} et~al.,}{{DESI
   Collaboration} et~al.}{2016a}]{desicollaboration2016}
@@ -283,6 +273,10 @@ Leja J.,  Johnson B.~D.,  Conroy C.,  {van Dokkum} P.~G.,   Byler N.,  2017,
 Leja J.,  Carnall A.~C.,  Johnson B.~D.,  Conroy C.,   Speagle J.~S.,  2019,
   \mn@doi [ApJ] {10.3847/1538-4357/ab133c}, 876, 3
 
+\bibitem[\protect\citeauthoryear{Leja et~al.,}{Leja et~al.}{2021}]{leja2021}
+Leja J.,  et~al., 2021, A {{New Census}} of the 0.2{$<$} z {$<$}3.0
+  {{Universe}}, {{Part II}}: {{The Star-Forming Sequence}}
+
 \bibitem[\protect\citeauthoryear{Lejeune, Cuisinier  \& Buser}{Lejeune
   et~al.}{1997}]{lejeune1997}
 Lejeune T.,  Cuisinier F.,   Buser R.,  1997, \mn@doi [A \&amp; A Supplement
@@ -379,8 +373,9 @@ Paxton B.,  et~al., 2015, \mn@doi [The Astrophysical Journal Supplement Series]
 
 \bibitem[\protect\citeauthoryear{{Planck Collaboration} et~al.,}{{Planck
   Collaboration} et~al.}{2014}]{planckcollaboration2014a}
-{Planck Collaboration} et~al., 2014, \mn@doi [Astronomy \& Astrophysics, Volume
-  571, id.A16, 66 pp.] {10.1051/0004-6361/201321591}, 571, A16
+{Planck Collaboration} et~al., 2014, \mn@doi [Astronomy \&amp; Astrophysics,
+  Volume 571, id.A16, {$<$}NUMPAGES{$>$}66{$<$}/NUMPAGES{$>$} pp.]
+  {10.1051/0004-6361/201321591}, 571, A16
 
 \bibitem[\protect\citeauthoryear{Richards et~al.,}{Richards
   et~al.}{2016}]{richards2016}

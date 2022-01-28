@@ -29,22 +29,6 @@
   file = {/Users/chahah/Zotero/storage/JNVGUHWN/Alpaslan and Tinker - 2021 - On the dark matter haloes of optical and IR-select.pdf}
 }
 
-@article{alsing2019,
-  title = {{{SPECULATOR}}: {{Emulating}} Stellar Population Synthesis for Fast and Accurate Galaxy Spectra and Photometry},
-  shorttitle = {{{SPECULATOR}}},
-  author = {Alsing, Justin and Peiris, Hiranya and Leja, Joel and Hahn, ChangHoon and Tojeiro, Rita and Mortlock, Daniel and Leistedt, Boris and Johnson, Benjamin D. and Conroy, Charlie},
-  year = {2019},
-  month = nov,
-  journal = {arXiv:1911.11778 [astro-ph]},
-  eprint = {1911.11778},
-  eprinttype = {arxiv},
-  primaryclass = {astro-ph},
-  abstract = {We present \textbackslash textsc\{speculator\} -- a fast, accurate, and flexible framework for emulating stellar population synthesis (SPS) models for predicting galaxy spectra and photometry. For emulating spectra, we use principal component analysis to construct a set of basis functions, and neural networks to learn the basis coefficients as a function of the SPS model parameters. For photometry, we parameterize the magnitudes (for the filters of interest) as a function of SPS parameters by a neural network. The resulting emulators are able to predict spectra and photometry under both simple and complicated SPS model parameterizations to percent-level accuracy, giving a factor of \$10\^3\$--\$10\^4\$ speed up over direct SPS computation. They have readily-computable derivatives, making them amenable to gradient-based inference and optimization methods. The emulators are also straightforward to call from a GPU, giving an additional order-of-magnitude speed-up. Rapid SPS computations delivered by emulation offers a massive reduction in the computational resources required to infer the physical properties of galaxies from observed spectra or photometry and simulate galaxy populations under SPS models, whilst maintaining the accuracy required for a range of applications.},
-  archiveprefix = {arXiv},
-  keywords = {Astrophysics - Astrophysics of Galaxies,Astrophysics - Instrumentation and Methods for Astrophysics},
-  file = {/Users/chahah/Zotero/storage/KKTTIMK4/Alsing et al. - 2019 - SPECULATOR Emulating stellar population synthesis.pdf;/Users/chahah/Zotero/storage/Q2ERMQZV/1911.html}
-}
-
 @article{baldry2006,
   title = {Galaxy Bimodality versus Stellar Mass and Environment},
   author = {Baldry, I. K. and Balogh, M. L. and Bower, R. G. and Glazebrook, K. and Nichol, R. C. and Bamford, S. P. and Budavari, T.},
@@ -1032,6 +1016,19 @@
   file = {/Users/chahah/Zotero/storage/4TV3QZSU/Leja et al. - A New Census of the 0.2  z  3.0 Universe, Part I.pdf;/Users/chahah/Zotero/storage/BEHHHLAD/abstract.html}
 }
 
+@misc{leja2021,
+  title = {A {{New Census}} of the 0.2{$<$} z {$<$}3.0 {{Universe}}, {{Part II}}: {{The Star-Forming Sequence}}},
+  shorttitle = {A {{New Census}} of the 0.2{$<$} z {$<$}3.0 {{Universe}}, {{Part II}}},
+  author = {Leja, Joel and Speagle, Joshua S. and Ting, Yuan-Sen and Johnson, Benjamin D. and Conroy, Charlie and Whitaker, Katherine E. and Nelson, Erica J. and {van Dokkum}, Pieter and Franx, Marijn},
+  year = {2021},
+  month = oct,
+  journal = {arXiv e-prints},
+  abstract = {We use the panchromatic SED-fitting code Prospector to measure the galaxy logM\$\^*\$-logSFR relationship (the `star-forming sequence') across \$0.2 {$<$} z {$<$} 3.0\$ using the COSMOS-2015 and 3D-HST UV-IR photometric catalogs. We demonstrate that the chosen method of identifying star-forming galaxies introduces a systematic uncertainty in the inferred normalization and width of the star-forming sequence, peaking for massive galaxies at \$\textbackslash sim 0.5\$ dex and \$\textbackslash sim0.2\$ dex respectively. To avoid this systematic, we instead parameterize the density of the full galaxy population in the logM\$\^*\$-logSFR-redshift plane using a flexible neural network known as a normalizing flow. The resulting star-forming sequence has a low-mass slope near unity and a much flatter slope at higher masses, with a normalization \$0.2-0.5\$ dex lower than typical inferences in the literature. We show this difference is due to the sophistication of the Prospector stellar populations modeling: the nonparametric star formation histories naturally produce higher masses while the combination of individualized metallicity, dust, and star formation history constraints produce lower star formation rates than typical UV+IR formulae. We introduce a simple formalism to understand the difference between SFRs inferred from spectral energy distribution fitting and standard template-based approaches such as UV+IR SFRs. Finally, we demonstrate the inferred star-forming sequence is consistent with predictions from theoretical models of galaxy formation, resolving a long-standing \$\textbackslash sim0.2-0.5\$ dex offset with observations at \$0.5},
+  keywords = {Astrophysics - Astrophysics of Galaxies},
+  annotation = {ADS Bibcode: 2021arXiv211004314L},
+  file = {/Users/chahah/Zotero/storage/PKCQJWHM/Leja et al. - 2021 - A New Census of the 0.2 z 3.0 Universe, Part II.pdf}
+}
+
 @article{lejeune1997,
   title = {Standard Stellar Library for Evolutionary Synthesis. {{I}}. {{Calibration}} of Theoretical Spectra},
   author = {Lejeune, Th and Cuisinier, F. and Buser, R.},
@@ -1341,7 +1338,7 @@
   author = {{Planck Collaboration} and Ade, P. a. R. and Aghanim, N. and {Armitage-Caplan}, C. and Arnaud, M. and Ashdown, M. and {Atrio-Barandela}, F. and Aumont, J. and Baccigalupi, C. and Banday, A. J. and Barreiro, R. B. and Bartlett, J. G. and Battaner, E. and Benabed, K. and Beno{\^i}t, A. and {Benoit-L{\'e}vy}, A. and Bernard, J.-P. and Bersanelli, M. and Bielewicz, P. and Bobin, J. and Bock, J. J. and Bonaldi, A. and Bond, J. R. and Borrill, J. and Bouchet, F. R. and Bridges, M. and Bucher, M. and Burigana, C. and Butler, R. C. and Calabrese, E. and Cappellini, B. and Cardoso, J.-F. and Catalano, A. and Challinor, A. and Chamballu, A. and Chary, R.-R. and Chen, X. and Chiang, H. C. and Chiang, L.-Y. and Christensen, P. R. and Church, S. and Clements, D. L. and Colombi, S. and Colombo, L. P. L. and Couchot, F. and Coulais, A. and Crill, B. P. and Curto, A. and Cuttaia, F. and Danese, L. and Davies, R. D. and Davis, R. J. and {de Bernardis}, P. and {de Rosa}, A. and {de Zotti}, G. and Delabrouille, J. and Delouis, J.-M. and D{\'e}sert, F.-X. and Dickinson, C. and Diego, J. M. and Dolag, K. and Dole, H. and Donzelli, S. and Dor{\'e}, O. and Douspis, M. and Dunkley, J. and Dupac, X. and Efstathiou, G. and Elsner, F. and En{\ss}lin, T. A. and Eriksen, H. K. and Finelli, F. and Forni, O. and Frailis, M. and Fraisse, A. A. and Franceschi, E. and Gaier, T. C. and Galeotta, S. and Galli, S. and Ganga, K. and Giard, M. and Giardino, G. and {Giraud-H{\'e}raud}, Y. and Gjerl{\o}w, E. and {Gonz{\'a}lez-Nuevo}, J. and G{\'o}rski, K. M. and Gratton, S. and Gregorio, A. and Gruppuso, A. and Gudmundsson, J. E. and Haissinski, J. and Hamann, J. and Hansen, F. K. and Hanson, D. and Harrison, D. and {Henrot-Versill{\'e}}, S. and {Hern{\'a}ndez-Monteagudo}, C. and Herranz, D. and Hildebrandt, S. R. and Hivon, E. and Hobson, M. and Holmes, W. A. and Hornstrup, A. and Hou, Z. and Hovest, W. and Huffenberger, K. M. and Jaffe, A. H. and Jaffe, T. R. and Jewell, J. and Jones, W. C. and Juvela, M. and Keih{\"a}nen, E. and Keskitalo, R. and Kisner, T. S. and Kneissl, R. and Knoche, J. and Knox, L. and Kunz, M. and {Kurki-Suonio}, H. and Lagache, G. and L{\"a}hteenm{\"a}ki, A. and Lamarre, J.-M. and Lasenby, A. and Lattanzi, M. and Laureijs, R. J. and Lawrence, C. R. and Leach, S. and Leahy, J. P. and Leonardi, R. and {Le{\'o}n-Tavares}, J. and Lesgourgues, J. and Lewis, A. and Liguori, M. and Lilje, P. B. and {Linden-V{\o}rnle}, M. and {L{\'o}pez-Caniego}, M. and Lubin, P. M. and {Mac{\'i}as-P{\'e}rez}, J. F. and Maffei, B. and Maino, D. and Mandolesi, N. and Maris, M. and Marshall, D. J. and Martin, P. G. and {Mart{\'i}nez-Gonz{\'a}lez}, E. and Masi, S. and Massardi, M. and Matarrese, S. and Matthai, F. and Mazzotta, P. and Meinhold, P. R. and Melchiorri, A. and Melin, J.-B. and Mendes, L. and Menegoni, E. and Mennella, A. and Migliaccio, M. and Millea, M. and Mitra, S. and {Miville-Desch{\^e}nes}, M.-A. and Moneti, A. and Montier, L. and Morgante, G. and Mortlock, D. and Moss, A. and Munshi, D. and Murphy, J. A. and Naselsky, P. and Nati, F. and Natoli, P. and Netterfield, C. B. and {N{\o}rgaard-Nielsen}, H. U. and Noviello, F. and Novikov, D. and Novikov, I. and O'Dwyer, I. J. and Osborne, S. and Oxborrow, C. A. and Paci, F. and Pagano, L. and Pajot, F. and Paladini, R. and Paoletti, D. and Partridge, B. and Pasian, F. and Patanchon, G. and Pearson, D. and Pearson, T. J. and Peiris, H. V. and Perdereau, O. and Perotto, L. and Perrotta, F. and Pettorino, V. and Piacentini, F. and Piat, M. and Pierpaoli, E. and Pietrobon, D. and Plaszczynski, S. and Platania, P. and Pointecouteau, E. and Polenta, G. and Ponthieu, N. and Popa, L. and Poutanen, T. and Pratt, G. W. and Pr{\'e}zeau, G. and Prunet, S. and Puget, J.-L. and Rachen, J. P. and Reach, W. T. and Rebolo, R. and Reinecke, M. and Remazeilles, M. and Renault, C. and Ricciardi, S. and Riller, T. and Ristorcelli, I. and Rocha, G. and Rosset, C. and Roudier, G. and {Rowan-Robinson}, M. and {Rubi{\~n}o-Mart{\'i}n}, J. A. and Rusholme, B. and Sandri, M. and Santos, D. and Savelainen, M. and Savini, G. and Scott, D. and Seiffert, M. D. and Shellard, E. P. S. and Spencer, L. D. and Starck, J.-L. and Stolyarov, V. and Stompor, R. and Sudiwala, R. and Sunyaev, R. and Sureau, F. and Sutton, D. and {Suur-Uski}, A.-S. and Sygnet, J.-F. and Tauber, J. A. and Tavagnacco, D. and Terenzi, L. and Toffolatti, L. and Tomasi, M. and Tristram, M. and Tucci, M. and Tuovinen, J. and T{\"u}rler, M. and Umana, G. and Valenziano, L. and Valiviita, J. and Van Tent, B. and Vielva, P. and Villa, F. and Vittorio, N. and Wade, L. A. and Wandelt, B. D. and Wehus, I. K. and White, M. and White, S. D. M. and Wilkinson, A. and Yvon, D. and Zacchei, A. and Zonca, A.},
   year = {2014},
   month = nov,
-  journal = {Astronomy \& Astrophysics, Volume 571, id.A16, 66 pp.},
+  journal = {Astronomy \&amp; Astrophysics, Volume 571, id.A16, {$<$}NUMPAGES{$>$}66{$<$}/NUMPAGES{$>$} pp.},
   volume = {571},
   pages = {A16},
   issn = {0004-6361},

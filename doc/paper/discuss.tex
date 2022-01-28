@@ -4,13 +4,13 @@ The most significant limitation of the {\sc PROVABGS} SED modeling in
 inferring the true galaxy properties is the prior on galaxy properties imposed
 by the model. 
 The effect of such priors is a major limitation for any SED modeling
-methods~\citep[\emph{e.g.}][]{carnall2019a, leja2019} and is a consequence of
+method~\citep[\emph{e.g.}][]{carnall2019a, leja2019} and is a consequence of
 the fact that galaxy properties are \emph{not} parameters of the SPS model.
 For instance, $\avgsfr$, $\zmw$, and $\tage$ are derived by integrating the SFH
 and ZH (Eq.~\ref{eq:prop_eqs}), which are parameterized by $\beta_1, \beta_2,
-\beta_3, \beta_4$ and $\gamma_1, \gamma_2$. 
-Uniform priors on $\beta$s and $\gamma$s (Section~\ref{sec:infer} and
-Table~\ref{tab:params}) do not translate into uniform priors on $\avgsfr$,
+\beta_3, \beta_4$, $f_{\rm burst}$, $t_{\rm burst}$, and $\gamma_1, \gamma_2$. 
+The uniform and Dirichlet priors on these parameters (Section~\ref{sec:infer}
+and Table~\ref{tab:params}) do not translate into uniform priors on $\avgsfr$,
 $\zmw$ and $\tage$.
 Other galaxy properties (\emph{e.g.}~SFH, and ZH) likewise have
 non-uniform, and undesireable, priors. 
@@ -19,15 +19,15 @@ One way to address this issue is to choose an SED model parameterization that
 does not impose extreme priors on galaxy properties and to characterize the
 priors in detail so that final posteriors can be appropriately interpreted. 
 For the {\sc PROVABGS} model, we explicitly chose our SFH prescription so that
-the prior on $\log\avgssfr$ extends the range $-12$ to $-9$ dex.
+the prior on $\log\avgssfr$ spans the range $-12$ to $-9$ dex.
 Furthermore, we fully characterize the prior on $\avgssfr$, $\zmw$, $\tage$,
 SFH, and ZH in Appendix~\ref{sec:model_priors} (Figures~\ref{fig:model_prior}
 and~\ref{fig:sfh_prior}). 
 This way, we understand exactly how the model prior impacts the derived
-posteriors as we discuss in detail in Section~\ref{sec:results}. 
-Beyond mitigating the effect of the priors, we can impose uniform prior (or any
-other desired prior distribution) on the derived galaxy properties by adjusting
-the priors on the SED model parameters. 
+posteriors as we discuss in Section~\ref{sec:results}. 
+Beyond mitigating the effect of the priors, we can alternatively impose uniform
+prior (or any other desired prior distribution) on the derived galaxy
+properties by adjusting the priors on the SED model parameters. 
 \cite{handley2019} recently demonstrated that maximum-entropy priors can be
 used for this purpose to impose uniform priors on the inferred sum of neutrino
 masses in cosmological analyses. 
@@ -44,9 +44,9 @@ In this work, we use forward modeled mock observations to demonstrate that we
 can infer accurate and precise posteriors on certain galaxy properties.
 The mock observations are constructed from \lgal~and include photometry and
 spectra. 
-In generating the mock spectra, we model the fiber aperture effect ---
-\emph{i.e.} spectra only include light from a galaxy collected within its fiber
-diameter --- by scaling the SED flux (Section~\ref{sec:spec}).
+In the mock spectra, we model the fiber aperture effect --- \emph{i.e.} spectra
+only include light from a galaxy collected within its fiber diameter --- by
+scaling the SED flux (Section~\ref{sec:spec}).
 In our SED modeling, we account for this fiber aperture effect using a
 normalization factor, $f_{\rm fiber}$ (Section~\ref{sec:sps}). 
 Hence, our mock observations and SED modeling have a consistent treatment of
@@ -54,15 +54,15 @@ the fiber aperture effect.
 In observations, however, aperture effects can be wavelength
 dependent~\citep{gerssen2012, richards2016} and if the dependence is strong,
 an overall $f_{\rm fiber}$ factor would not be sufficient.
-In order to examine the wavelength dependence, we compare the ratio of the
+We examine the wavelength dependence for BGS by comparing the ratio of the
 fiber aperture flux over total flux, $f^{\rm fiber}_X/f_X$, in $g$, $r$, and
 $z$ bands of BGS targets from LS.
 We find find no significant difference in the flux ratios of the different
-bands, which suggests that the fiber aperture effect in DESI does not have a
-strong wavelength dependence. 
+bands, which suggests that the fiber aperture effect does not have a strong
+wavelength dependence for BGS galaxies. 
 
-Flux calibration performed on DESI spectra can also induce wavelength dependent
-residuals. 
+Flux calibration performed by the DESI spectral pipeline can also induce
+wavelength dependent residuals. 
 DESI spectra are measured using three-arm spectrographs that split the spectra
 into three $b$, $r$, and $z$ channels with overlapping wavelength ranges: 
 $3600 - 5930$, $5660 - 7720$, and $7470 - 9800 \AA$.  
@@ -70,7 +70,7 @@ After flat fielding and sky subtraction, flux calibration is performed on each
 channel of the spectra by matching physical stellar models to spectra of
 spectrohotometric standard stars observed in the same exposure
 (Guy~\etal~in prep.). 
-Since the calibration is performed for each channel seaparately, imperfections
+Since the calibration is performed for each channel separately, imperfections
 can imprint a wavelength dependent residual. 
 In a subsequent paper, Ramos \etal~(in prep.), we examine the fiber aperture
 effect and wavelength dependent imprints on DESI spectra using BGS
@@ -113,10 +113,10 @@ properties instead of ``best-fit'' point estimates from maximizing the
 likelihood. 
 Posterior distributions are essential for accurately estimating uncertainties
 on galaxy properties.  
-As we find earlier, these uncertainties are significant, especially for
-properties such as $\zmw$ (Figure~\ref{fig:prop_inf}). 
-Ignoring the uncertainties dramatically overestimates the statistical precision
-of the derived galaxy properties and can significantly bias any galaxy study.
+These uncertainties are significant, especially for properties such as $\zmw$
+(Figure~\ref{fig:prop_inf}). 
+Ignoring them dramatically overestimates the statistical precision of the
+derived galaxy properties and can significantly bias any galaxy study.
 %We also note that the maximum-entropy method, mentioned earlier, to correct for the effect of priors on derived galaxy properties requires full posterior distributions.
 
 Furthermore, the {\sc PROVABGS} posteriors will be derived from MCMC sampling
@@ -160,8 +160,7 @@ In this work, we primarily focus on the following physical properties of
 galaxies: $\log M_*$, $\log\avgsfr$, $\log\zmw$, $\tage$, and $\tauism$. 
 The {\sc PROVABGS} SPS model, however, can constrain galaxy properties beyond
 these properties. 
-The SPS model employs nonparametric SFH and ZH prescriptions based on NMF bases
-and the model parameters include coefficients for these bases. 
+%The SPS model employs nonparametric SFH and ZH prescriptions based on NMF bases and the model parameters include coefficients for these bases. 
 Posteriors on the SPS model parameters can, thus, be used to derive constraints
 on the SFH and ZH. 
 In Figure~\ref{fig:sfh_demo}, we present the inferred SFH and ZH of two
@@ -201,8 +200,9 @@ With physical galaxy properties of over $10$ million DESI BGS galaxies,
 previous statistical galaxy studies. 
 For example, we will be able to make the most precise measurement of the
 stellar mass function~\citep[SMF]{li2009, moustakas2013}, star-forming
-sequence~\citep{noeske2007}, mass-metallicity relation~\citep{tremonti2004}, or
-any other summary statistic of galaxy populations. 
+sequence~\citep{noeske2007, curtis-lake2021}, mass-metallicity
+relation~\citep{tremonti2004}, or any other summary statistic of galaxy
+populations. 
 {\sc PROVABGS} will also include large sample of dwarf galaxies thanks to the
 faint apparent magnitude limit of BGS. 
 Dwarf galaxies are dark matter dominated and, thus, probe the physics of
@@ -229,7 +229,7 @@ This is only the \emph{simplest} illustration of such an approach.
 Another application is to use posteriors on $M_*$, $p(M_* \given {\bfi X}_i)$,
 to measure $p(M_* \given \{ {\bfi X_i} \})$ --- the \emph{probabilistic} SMF.
 With full posteriors, we can probe even the lowest signal-to-noise regime
-accurately so the SMF will be reliable even at the lowest mass end, down to
+accurately so the SMF will be reliable at the lowest mass end, down to
 ${\sim}10^{7} M_\odot$ (Figure~\ref{fig:bgs_mstar}). 
 This will constrain the SMF of dwarf galaxies and have important
 implications for both galaxy evolution and cosmology. 

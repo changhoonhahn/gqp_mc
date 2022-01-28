@@ -6,7 +6,7 @@ simulation~\citep{vogelsberger2014, genel2014, nelson2015}.
 Unlike PCA, NMF lends itself well to this task as it gives positive vectors,
 which can each be straightforwardly interpreted physically as representing the
 SFH of a composite stellar population. 
-In the case of the ZHs, the advantage of NMF vs PCA is less clear, but we
+In the case of the ZHs, the advantage of NMF over PCA is less clear, but we
 maintain the NMF scheme for simplicity. 
 
 The SFHs and ZHs are computed from all stellar particles bound to subhalos
@@ -21,7 +21,7 @@ Next, the vectors for the SFHs and ZHs are normalized independently ---
 Therefore we do not impose the mass-metallicity relation of the simulation onto
 our basis vectors (see \citealt{thorne2021} for a parameterization that links
 SFH with ZH throught he mass-metallicity relation). 
-We take each set of simulated SFHz and ZHs as a reasonable representation of
+We take each set of simulated SFHs and ZHs as a reasonable representation of
 possible SFHs and ZHs in the Universe. 
 Prior to decomposition, each individual vector is smoothed on a scale of 400
 Myr, which removes any information on smaller timescales. 
@@ -99,7 +99,7 @@ mass-weighted metallicity and mass in young stars (mass formed in the last 200
 Myr).
 Besides the total stellar mass, the other derived properties are impacted by
 the lack of short timescale features. 
-Our stochastic burst component directly address this limitiation. 
+Our stochastic burst component directly addresses this limitiation. 
 Therefore, the NMF basis can be seen as a reasonable and minimal set to recover
 the broad shape of the star-formation and metallicity histories, which is
 complemented in our SPS model by the stochastic burst component.

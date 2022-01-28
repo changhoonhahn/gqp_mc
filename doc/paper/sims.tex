@@ -36,10 +36,9 @@ effects of tidal and ram-pressure stripping.
 Feedback from active galactic nuclei (AGN), which prevents hot gas from
 cooling, is the major mechanism for quenching star formation in massive
 galaxies.
-\lgal~model parameters are calibrated against observations at four different
+\lgal~model parameters are calibrated against the observed stellar mass
+function and passive (quiescent) fraction at four different
 redshifts from $z = 3$ to 0.
-They match the observed stellar mass function and passive (quiescent) fraction,
-which they estimate for the model by forward modeling U, V, and J photometry. 
 We refer readers to \cite{henriques2015} for further detail on \lgal.
 
 % A recent comparison to the cosmological hydrodynamical simulation
@@ -133,8 +132,10 @@ On the right panel, we compare the $g - r$ versus $r - z$ color distribution
 for the forward modeled \lgal~galaxies (red) to the color distribution of BGS
 objects in LS (black contour). 
 The errorbars represent the photometric uncertainties. 
-The forward modeled photometry show good agreement with LS BGS targets in
-optical color space.
+The \lgal~galaxies have already been validated against observations, including
+$UVJ$-band photometry~\cite{henriques2015}. 
+However, we further confirm that the forward modeled photometry show good
+agreement with LS BGS targets in optical color space.
 
 \begin{figure}
 \begin{center}
@@ -167,14 +168,15 @@ Among BGS targets in LS, 40\% have $r_e$ < 1'' and 81\% have $r_e$ < 2'' so
 the fiber aperture effect significantly impacts the majority of BGS
 galaxies ($r_e$ is the half-light radius of the galaxy surface brightness
 model fit by {\sc Tractor}\footnote{http://thetractor.org/doc/}).
-LS also provides measurements of photometric fiber flux within a 1'' radius aperture
-($f_X^{\rm fiber}$), which estimates the flux that passes through to the fibers.
+To model this fiber apertuer effect, we use LS measurements of photometric
+fiber flux within a 1'' radius aperture ($f_X^{\rm fiber}$), which estimates
+the flux that passes through to the fibers.
 When we assigned photometric uncertainties to our simulated galaxies based on
 $r$, $g-r$, and $r-z$ in Section~\ref{sec:photo}, we also assigned $r$-band
 fiber flux. 
-We model the SED flux that passes through the fiber (fiber loss) by scaling the 
-SED flux by the $r$ band fiber fraction, the ratio of $f_r^{\rm fiber}$ over
-the total $r$ band flux: 
+We model the flux that passes through the fiber by scaling the SED flux by the
+$r$ band fiber fraction, the ratio of $f_r^{\rm fiber}$ over the total $r$ band
+flux: 
 \begin{equation}
     f^{\rm spec}(\lambda) = \left(\frac{f_r^{\rm fiber}}{f_r}\right)f_{\rm SED}(\lambda).
 \end{equation}

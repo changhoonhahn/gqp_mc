@@ -17,9 +17,9 @@ of galaxy evolution.
 To exploit this opportunity, we will construct the PRObabilistic Value-Added
 Bright Galaxy Survey (PROVABGS) catalog, where we will apply state-of-the-art
 Bayesian SED modeling to jointly analyze DESI photometry and spectroscopy. 
-PROVBGS will provide full posterior distributions of galaxy properties, such as
+PROVABGS will provide full posterior distributions of galaxy properties, such as
 stellar mass ($M_*$), star formation rate (SFR), stellar metallicity 
-($Z_{\rm MW}$), and stellar age ($\tage$), for all ${>}10$ million BGS galaxies.
+($\zmw$), and stellar age ($\tage$), for all ${>}10$ million BGS galaxies.
 
 In this work, we present and validate the SED model, Bayesian inference
 framework, and other methodology that will be used to construct
@@ -36,16 +36,16 @@ derive posteriors on $M_*$, $\avgsfr$, $\zmw$, and $\tage$.
 From the posteriors and the population inference we conduct to quantify
 accuracy and precision, we find: 
 \begin{itemize}
-    \item Overall, we derive posteriors on galaxy properties that are in good
+    \item Overall, we derive posteriors of galaxy properties that are in good
         agreement with the true properties of the simulated galaxies. 
         Furthermore, with posteriors rather than point estimates we accurately
         estimate the uncertainties on the galaxy properties. 
         We infer posteriors with the following levels of precision: 
-        $\sigma_{M_*}\sim0.1$ dex, $\sigma_{\log\avgsfr}\sim0.1$ dex, 
+        $\sigma_{\log M_*}\sim0.1$ dex, $\sigma_{\log\avgsfr}\sim0.1$ dex, 
         $\sigma_{\log\zmw}\sim0.15$ dex, and $\sigma_{\tage}\sim0.5$ Gyr. 
         Our results also demonstrate that we successfully marginalize over the
         effect of dust and other nuisance parameters. 
-    \item Like any SED model, the PROVABGS SED model also imposes significantly
+    \item Like any SED model, the PROVABGS SED model imposes significantly
         non-uniform priors on galaxy properties. 
         We find that these priors impose a lower bound on $\avgsfr$ of 
         $\avgsfr > 10^{-1}M_\odot/{\rm yr}$. 
@@ -75,18 +75,17 @@ Since the BGS samples span a wide range of galaxies, PROVABGS will
 also enable galaxy studies to investigate less explored regimes, such as dwarf
 galaxy populations. 
 
-Furthermore, PROVABGS will be a fully probabilistic catalog with posteriors for all the
-properties that accurately capture their uncertainties.
-With these posteriors, we can conduct more rigorous statistical analyses
-using new techinques such as population inference and hierarchical Bayesian
-modeling.
+Furthermore, PROVABGS will be a fully probabilistic catalog.
+With posteriors for all the galaxy properties, we can conduct more rigorous
+statistical analyses using new techinques such as population inference and
+hierarchical Bayesian modeling.
 We demonstrate one such approach in this work by using population inference to
 estimate the overall accuracy and precision of our galaxy property constraints. 
 These methods will not only improve the accuracy of our analyses but they will
 also allow us to fully exploit the statistical power of DESI observations. 
 
-Despite the overall success of the PROVABGS methodologies, as demonstrated in
-this mock challenge, there are some limitations. 
+Despite the overall success of the PROVABGS methodologies that we demonstrate,
+there are some limitations. 
 For instance, we only consider a simple model for the effect of the DESI fiber
 aperture and flux calibration. 
 A more detailed investigation will be presented in Ramos~\etal~(in prep.). 
@@ -107,22 +106,15 @@ reduction pipeline, redshift fitting algorithm, fiber assignment, survey
 operation and simulations, visual inspection, and target selection for the
 various tracers. 
 Finally, using BGS observations in the SVDA, we will construct and release the
-PROVABGS-SV catalog and present the stellar mass function measured from it in
-the subsequent paper. 
+PROVABGS-SV catalog and present the probabilistic stellar mass function
+measured from it in the subsequent paper. 
 
 
 The entire PROVABGS SED modeling pipeline, including the neural emulators and
-parameter inference framework, is publicly available at:
-\begin{center}
-    \url{https://github.com/changhoonhahn/provabgs/}
-\end{center}
+Bayesian inference framework, is publicly available at:
+\url{https://github.com/changhoonhahn/provabgs/}.
 All of the software and scripts used in our analysis are publicly available at:
-\begin{center}
-    \url{https://github.com/changhoonhahn/gqp_mc}
-\end{center}
+\url{https://github.com/changhoonhahn/gqp_mc}.
 The accompanying data used in this work, including the mock DESI observations
-and posteriors derived from PROVABGS, is available at: 
-\begin{center}
-    \url{DESI zenodo here}
-\end{center}
-
+and posteriors derived from PROVABGS, is available at:
+\url{https://doi.org/10.5281/zenodo.5910635}.

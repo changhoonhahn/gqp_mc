@@ -1,0 +1,25 @@
+Build a Docker container for the gqp_mc project.
+================================================
+
+```
+docker build . -t desihub/gqp_mc
+docker push desihub/gqp_mc:latest
+
+docker tag desihub/gqp_mc:latest desihub/gqp_mc:v0.0.1
+docker push desihub/gqp_mc:v0.0.1
+```
+
+To enter the container (with a shell prompt) on a laptop do:
+```
+docker pull desihub/gqp_mc:latest
+docker run -it desihub/gqp_mc:latest
+```
+
+Or at NERSC:
+```
+shifterimg pull docker:desihub/gqp_mc:latest
+shifter --image docker:desihub/gqp_mc:latest bash
+```
+
+To use this image with Jupyter check out the instructions here:
+https://docs.nersc.gov/services/jupyter/#shifter-kernels-on-jupyter
